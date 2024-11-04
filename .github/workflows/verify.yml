@@ -9,7 +9,7 @@ on:
     inputs:
       branch:
         description: "Branch to run the workflow on"
-        default: "main"
+        default: main
         required: true
 
 jobs:
