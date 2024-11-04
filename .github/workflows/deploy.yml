@@ -1,4 +1,16 @@
-on: [push, pull_request]
+name: Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to run the workflow on"
+        default: "main"
+        required: true
 
 jobs:
   build:
