@@ -1,6 +1,6 @@
-<!-- SPDX-License-Identifier: MIT -->
-
 # Gitflow-CLI
+
+[![Verify](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/verify.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/verify.yml)
 
 ## Introduction
 
