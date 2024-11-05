@@ -1,6 +1,6 @@
 # Gitflow-CLI
 
-[![Build and Test](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build-and-test.yml)
+[![build](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml)
 
 Gitflow is a branching model that organizes feature development, releases, and hotfixes into dedicated branches, 
 providing a structured approach for managing complex software projects with routine release timelines.
