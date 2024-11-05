@@ -12,7 +12,7 @@ on:
 
 jobs:
   blackduck-scan:
-    name: Black Duck Detect
+    name: Black Duck Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -25,6 +25,8 @@ jobs:
           DETECT_PROJECT_NAME: ${{ github.event.repository.name }}
 
         with:
+          blackduck_scan_full: true
+
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
 
@@ -40,6 +42,6 @@ jobs:
           # github_token: ${{ secrets.GITHUB_TOKEN }} # Required when PR comments is enabled
 
           ### SARIF report generation and upload to GitHub Adavanced Security: Uncomment below to enable
-          # blackduck_reports_sarif_create: true # Create Black Duck SARIF report and upload it as artifact
+          blackduck_reports_sarif_create: true # Create Black Duck SARIF report and upload it as artifact
           # blackduck_upload_sarif_report: true  # Upload Black Duck SARIF report in GitHub Advanced Security tab
           # github_token: ${{ secrets.GITHUB_TOKEN }} # Required when blackduck_upload_sarif_report is set as true
