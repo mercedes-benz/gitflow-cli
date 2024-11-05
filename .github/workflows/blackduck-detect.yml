@@ -1,4 +1,4 @@
-name: Blackduck Scan
+name: Black Duck Detect
 
 on:
   push:
@@ -12,6 +12,7 @@ on:
 
 jobs:
   blackduck-scan:
+    name: Black Duck Detect
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -19,6 +20,7 @@ jobs:
       - name: Run Synopsys Detect
         uses: synopsys-sig/detect-action@v0.3.4
         with:
+          scan-mode: INTELLIGENT
           github-token: ${{ secrets.GITHUB_TOKEN }}
           detect-version: 9.10.0
           blackduck-url: ${{ secrets.BLACKDUCK_URL }}
