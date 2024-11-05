@@ -22,7 +22,7 @@ jobs:
         uses: synopsys-sig/synopsys-action@v1.13.0
         env:
           DETECT_PROJECT_NAME: ${{ github.repository }}
-          DETECT_PROJECT_VERSION_NAME: ${{ github.ref_name }}
+          DETECT_PROJECT_VERSION_NAME: ${{ github.event.pull_request.head.ref }}
         with:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
