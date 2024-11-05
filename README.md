@@ -8,7 +8,7 @@ providing a structured approach for managing complex software projects with rout
 The **gitflow-cli** automates release workflow process, saving considerable time and reducing the risk of errors. 
 It keeps your Git graph clean and consistent, enhancing project stability through semantic versioning.
 
-<img src="assets/gitflow-cli-demo.png" alt="gitflow-cli-demo" width="700" />
+<img src=".github/assets/gitflow-cli-demo.png" alt="gitflow-cli-demo" width="700" />
 
 ## Installation
 
