@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   blackduck-scan:
@@ -14,3 +16,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Run Synopsys Detect
+        uses: synopsys-sig/detect-action@v0.3.4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          detect-version: 9.10.0
+          blackduck-url: ${{ secrets.BLACKDUCK_URL }}
+          blackduck-api-token: ${{ secrets.BLACKDUCK_API_TOKEN }}
