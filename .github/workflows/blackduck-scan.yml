@@ -4,10 +4,10 @@ on:
   push:
     branches:
       - main
+      - feature/blackduck-action
   pull_request:
     branches:
       - main
-      - feature/blackduck-action
   schedule:
     - cron: '0 0 * * *'
 
@@ -23,13 +23,11 @@ jobs:
         uses: synopsys-sig/synopsys-action@v1.13.0
         env:
           DETECT_PROJECT_NAME: ${{ github.repository }}
-          DETECT_PROJECT_VERSION_NAME: $([ "${{ github.event_name }}" == "pull_request" ] && echo "PR-${{ github.event.pull_request.number }}" || echo "${{ github.ref_name }}")
-          DETECT_LOG_LEVEL: DEBUG
-          BLACKDUCK_SCAN_FULL: $([ "${{ github.event_name }}" == "pull_request" ] && echo false || echo true)
+          DETECT_PROJECT_VERSION_NAME: ${{ github.event_name == 'pull_request' && format('PR-{0}', github.event.pull_request.number) || github.ref_name }}
         with:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
-          blackduck_scan_full:  ${{ env.BLACKDUCK_SCAN_FULL }}
+          blackduck_scan_full:  ${{ github.event_name != 'pull_request' }}
 
           ### PULL REQUEST COMMENTS: Uncomment below to enable
           #blackduck_prcomment_enabled: true
