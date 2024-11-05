@@ -106,7 +106,7 @@ If you want to contribute to this project, please read the [contributing guide](
 To contribute to **gitflow-cli**, we suggest setting up the Git hook below to comply with our contribution guidelines.
 
    ```bash
-   cp hooks/prepare-commit-msg .git/hooks/
+   cp .githooks/prepare-commit-msg .git/hooks/
    chmod +x .git/hooks/prepare-commit-msg
    ```
 
