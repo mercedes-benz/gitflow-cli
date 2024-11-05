@@ -10,10 +10,6 @@ It keeps your Git graph clean and consistent, enhancing project stability throug
 
 <img src="assets/gitflow-cli-demo.png" alt="gitflow-cli-demo" width="700" />
 
-## Changelog
-
-For a detailed list of changes and updates, please see the [Changelog](CHANGELOG.md).
-
 ## Installation
 
 From within the project directory the **gitflow-cli** can be built, run and installed.
