@@ -28,15 +28,15 @@ jobs:
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
 
           ### SCANNING: Optional fields
-          blackduck_scan_failure_severities: 'NONE'
+          #blackduck_scan_failure_severities: 'BLOCKER,CRITICAL'
 
           ### FIX PULL REQUEST CREATION: Uncomment below to enable
           # blackduck_fixpr_enabled: true
           # github_token: ${{ secrets.GITHUB_TOKEN }} # Required when Fix PRs is enabled
 
           ### PULL REQUEST COMMENTS: Uncomment below to enable
-          # blackduck_prcomment_enabled: true
-          # github_token: ${{ secrets.GITHUB_TOKEN }} # Required when PR comments is enabled
+          blackduck_prcomment_enabled: true
+          github_token: ${{ secrets.GITHUB_TOKEN }} # Required when PR comments is enabled
 
           ### SARIF report generation and upload to GitHub Adavanced Security: Uncomment below to enable
           # blackduck_reports_sarif_create: true # Create Black Duck SARIF report and upload it as artifact
