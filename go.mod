@@ -1,6 +1,6 @@
 module github.com/mercedes-benz/gitflow-cli
 
-go 1.22.5
+go 1.23.2
 
 require (
 	github.com/spf13/cobra v1.8.1
