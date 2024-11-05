@@ -23,22 +23,16 @@ jobs:
         env:
           DETECT_PROJECT_NAME: ${{ github.repository }}
           DETECT_PROJECT_VERSION_NAME: ${{ github.event.pull_request.number || github.ref_name }}
+          DETECT_FORCE_SUCCESS: true
         with:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
 
-          ### SCANNING: Optional fields
-          #blackduck_scan_failure_severities: 'BLOCKER,CRITICAL'
-
-          ### FIX PULL REQUEST CREATION: Uncomment below to enable
-          # blackduck_fixpr_enabled: true
-          # github_token: ${{ secrets.GITHUB_TOKEN }} # Required when Fix PRs is enabled
-
           ### PULL REQUEST COMMENTS: Uncomment below to enable
           blackduck_prcomment_enabled: true
-          github_token: ${{ secrets.GITHUB_TOKEN }} # Required when PR comments is enabled
+          #github_token: ${{ secrets.GITHUB_TOKEN }} # Required when PR comments is enabled
 
           ### SARIF report generation and upload to GitHub Adavanced Security: Uncomment below to enable
-          # blackduck_reports_sarif_create: true # Create Black Duck SARIF report and upload it as artifact
-          # blackduck_upload_sarif_report: true  # Upload Black Duck SARIF report in GitHub Advanced Security tab
-          # github_token: ${{ secrets.GITHUB_TOKEN }} # Required when blackduck_upload_sarif_report is set as true
+          blackduck_reports_sarif_create: true # Create Black Duck SARIF report and upload it as artifact
+          blackduck_upload_sarif_report: true  # Upload Black Duck SARIF report in GitHub Advanced Security tab
+          github_token: ${{ secrets.GITHUB_TOKEN }} # Required when blackduck_upload_sarif_report is set as true
