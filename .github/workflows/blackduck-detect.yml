@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-  schedule:
-    - cron: '0 0 * * *'
+  #pull_request:
+  #  branches:
+  #    - main
+  #schedule:
+  #  - cron: '0 0 * * *'
 
 jobs:
   blackduck-scan:
@@ -21,7 +21,7 @@ jobs:
       - name: Run Synopsys Detect
         uses: synopsys-sig/detect-action@v0.3.4
         with:
-          #scan-mode: INTELLIGENT
+          scan-mode: INTELLIGENT
           github-token: ${{ secrets.GITHUB_TOKEN }}
           detect-version: 9.10.0
           blackduck-url: ${{ secrets.BLACKDUCK_URL }}
