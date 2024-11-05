@@ -23,6 +23,7 @@ jobs:
         uses: synopsys-sig/synopsys-action@v1.13.0
         env:
           DETECT_PROJECT_NAME: ${{ github.repository }}
+          DETECT_GO_MOD_DEPENDENCY_TYPES_EXCLUDED: UNUSED
         with:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
