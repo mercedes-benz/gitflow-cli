@@ -22,16 +22,17 @@ jobs:
         uses: synopsys-sig/synopsys-action@v1.13.0
         env:
           DETECT_PROJECT_NAME: ${{ github.repository }}
-          DETECT_PROJECT_VERSION_NAME: ${{ github.event.pull_request.head.ref }}
+          DETECT_PROJECT_VERSION_NAME: $([ "${{ github.event_name }}" == "pull_request" ] && echo "PR-${{ github.event.pull_request.number }}" || echo "${{ github.ref_name }}")
+          DETECT_LOG_LEVEL: DEBUG
         with:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
 
           ### PULL REQUEST COMMENTS: Uncomment below to enable
-          blackduck_prcomment_enabled: true
-          github_token: ${{ secrets.GITHUB_TOKEN }} # Required when PR comments is enabled
+          #blackduck_prcomment_enabled: true
+          #github_token: ${{ secrets.GITHUB_TOKEN }} # Required when PR comments is enabled
 
           ### SARIF report generation and upload to GitHub Adavanced Security: Uncomment below to enable
-          blackduck_reports_sarif_create: true # Create Black Duck SARIF report and upload it as artifact
+          #blackduck_reports_sarif_create: true # Create Black Duck SARIF report and upload it as artifact
           #blackduck_upload_sarif_report: true  # Upload Black Duck SARIF report in GitHub Advanced Security tab
           #github_token: ${{ secrets.GITHUB_TOKEN }} # Required when blackduck_upload_sarif_report is set as true
