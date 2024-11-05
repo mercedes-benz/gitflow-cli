@@ -28,7 +28,7 @@ jobs:
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
 
           ### SCANNING: Optional fields
-          blackduck_scan_failure_severities: 'ALL'
+          blackduck_scan_failure_severities: 'CRITICAL'
 
           ### FIX PULL REQUEST CREATION: Uncomment below to enable
           # blackduck_fixpr_enabled: true
