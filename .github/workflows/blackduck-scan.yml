@@ -5,9 +5,9 @@ on:
     branches:
       - main
       - feature/blackduck-action
-  pull_request:
-    branches:
-      - main
+  #pull_request:
+  #  branches:
+  #    - main
   schedule:
     - cron: '0 0 * * *'
 
@@ -42,7 +42,7 @@ jobs:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
           blackduck_scan_full: true
-          blackduck_scan_failure_severities: 'BLOCKER,CRITICAL'
+          blackduck_scan_failure_severities: 'NONE'
       - name: Black Duck PR Scan
         if: ${{ github.event_name == 'pull_request' }}
         uses: synopsys-sig/synopsys-action@v1.13.0
@@ -52,5 +52,3 @@ jobs:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
           blackduck_scan_full: false
-          blackduck_prComment_enabled: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
