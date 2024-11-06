@@ -1,6 +1,7 @@
 # Gitflow-CLI
 
 [![build](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml)
+[![blackduck](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/blackduck.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/blackduck.yml)
 
 Gitflow is a branching model that organizes feature development, releases, and hotfixes into dedicated branches, 
 providing a structured approach for managing complex software projects with routine release timelines.

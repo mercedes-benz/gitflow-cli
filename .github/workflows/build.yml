@@ -1,10 +1,10 @@
-name: Build Application
+name: build
 
 on:
-  push:
-    branches:
-      - main
-      - feature/blackduck-action
+  #push:
+  #  branches:
+  #    - main
+  #    - feature/blackduck-action
   #pull_request:
   #  branches:
   #    - main
