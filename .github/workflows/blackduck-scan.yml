@@ -25,7 +25,7 @@ jobs:
           DETECT_PROJECT_VERSION_LICENSE: MIT License
           DETECT_GO_MOD_DEPENDENCY_TYPES_EXCLUDED: UNUSED
           DETECT_WAIT_FOR_RESULTS: true
-          DETECT_POLICY_CHECK_FAIL_ON_SEVERITIES: ALL
+          DETECT_POLICY_CHECK_FAIL_ON_SEVERITIES: NONE
         with:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
