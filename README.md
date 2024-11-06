@@ -1,6 +1,7 @@
 # Gitflow-CLI
 
-[![Build and Test](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build-and-test.yml)
+[![build](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml)
+<!-- [![blackduck](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/blackduck.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/blackduck.yml) -->
 
 Gitflow is a branching model that organizes feature development, releases, and hotfixes into dedicated branches, 
 providing a structured approach for managing complex software projects with routine release timelines.
@@ -8,7 +9,7 @@ providing a structured approach for managing complex software projects with rout
 The **gitflow-cli** automates release workflow process, saving considerable time and reducing the risk of errors. 
 It keeps your Git graph clean and consistent, enhancing project stability through semantic versioning.
 
-<img src="assets/gitflow-cli-demo.png" alt="gitflow-cli-demo" width="700" />
+<img src=".github/assets/gitflow-cli-demo.png" alt="gitflow-cli-demo" width="700" />
 
 ## Installation
 
@@ -106,7 +107,7 @@ If you want to contribute to this project, please read the [contributing guide](
 To contribute to **gitflow-cli**, we suggest setting up the Git hook below to comply with our contribution guidelines.
 
    ```bash
-   cp hooks/prepare-commit-msg .git/hooks/
+   cp .githooks/prepare-commit-msg .git/hooks/
    chmod +x .git/hooks/prepare-commit-msg
    ```
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# File to append the message to
+COMMIT_MSG_FILE=$1
+
+COMMITTER_NAME=$(git config user.name)
+COMMITTER_EMAIL=$(git config user.email)
+
+# Append signature to the commit message file
+printf "\n%s" "${COMMITTER_NAME} <${COMMITTER_EMAIL}>, on behalf of Mercedes-Benz Tech Innovation GmbH" >> "$COMMIT_MSG_FILE"

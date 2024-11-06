@@ -1,0 +1,31 @@
+name: Blackduck Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  blackduck-scan:
+    name: BlackDuck Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: BlackDuck Scan
+        uses: synopsys-sig/synopsys-action@v1.13.0
+        env:
+          DETECT_PROJECT_NAME: ${{ github.repository }}
+          DETECT_PROJECT_VERSION_LICENSE: MIT License
+          DETECT_GO_MOD_DEPENDENCY_TYPES_EXCLUDED: UNUSED
+          DETECT_POLICY_CHECK_FAIL_ON_SEVERITIES: ALL
+        with:
+          blackduck_url: ${{ vars.BLACKDUCK_URL }}
+          blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
+          blackduck_scan_full:  ${{ github.event_name != 'pull_request' }}
