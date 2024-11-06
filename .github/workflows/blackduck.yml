@@ -1,4 +1,4 @@
-name: blackduck
+name: Blackduck Scan
 
 on:
   push:
