@@ -4,12 +4,11 @@ on:
   push:
     branches:
       - main
-      - feature/blackduck-action
-  #pull_request:
-  #  branches:
-  #    - main
+  pull_request:
+    branches:
+      - main
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 3 * * *"
 
 jobs:
   blackduck-scan:
