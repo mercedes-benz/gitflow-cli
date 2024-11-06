@@ -1,15 +1,14 @@
 name: BlackDuck Scan
 
 on:
-  #push:
-
-  #  branches:
-  #    - feature/blackduck-action
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
   schedule:
-    - cron: '0 7 * * *'
+    - cron: '0 0 * * *'
 
 jobs:
   blackduck-scan:
