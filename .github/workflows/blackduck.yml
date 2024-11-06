@@ -28,6 +28,6 @@ jobs:
           DETECT_NOTICES_REPORT: true
           DETECT_POLICY_CHECK_FAIL_ON_SEVERITIES: ALL
         with:
-          blackduck_url: ${{ vars.BLACKDUCK_URL }}
+          blackduck_url: ${{ secrets.BLACKDUCK_URL }}
           blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
           blackduck_scan_full:  ${{ github.event_name != 'pull_request' }}
