@@ -2,6 +2,7 @@ name: BlackDuck Scan
 
 on:
   #push:
+
   #  branches:
   #    - feature/blackduck-action
   pull_request:
