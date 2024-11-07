@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/optimize-blackduck-scan
   pull_request:
     branches:
       - main
