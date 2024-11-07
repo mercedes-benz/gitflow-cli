@@ -3,13 +3,14 @@
 [![build](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml)
 [![blackduck](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/blackduck.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/blackduck.yml)
 
-Gitflow is a branching model that organizes feature development, releases, and hotfixes into dedicated branches, 
-providing a structured approach for managing complex software projects with routine release timelines.
+Gitflow is a [branching model](https://nvie.com/posts/a-successful-git-branching-model/) that organizes feature development, 
+releases, and hotfixes into dedicated branches, providing a structured approach to managing complex software projects with
+reliable releases based on [semantic versioning](https://semver.org/).
 
-The **gitflow-cli** automates release workflow process, saving considerable time and reducing the risk of errors. 
-It keeps your Git graph clean and consistent, enhancing project stability through semantic versioning.
+The **gitflow-cli** automates this release workflow process, saving time and reducing the risk of errors. 
+It maintains a clean and consistent Git graph, contributing to overall project stability.
 
-<img src=".github/assets/gitflow-cli-demo.png" alt="gitflow-cli-demo" width="700" />
+<img src=".github/assets/gitflow-cli-demo.png" alt="gitflow-cli-demo" width="600" />
 
 ## Installation
 
