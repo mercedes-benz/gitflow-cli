@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/optimize-blackduck-scan
   pull_request:
     branches:
       - main
@@ -24,7 +25,7 @@ jobs:
         env:
           DETECT_PROJECT_NAME: ${{ github.repository }}
           DETECT_PROJECT_VERSION_LICENSE: MIT License
-          DETECT_GO_MOD_DEPENDENCY_TYPES_EXCLUDED: UNUSED
+          #DETECT_GO_MOD_DEPENDENCY_TYPES_EXCLUDED: UNUSED
           DETECT_POLICY_CHECK_FAIL_ON_SEVERITIES: ALL
         with:
           blackduck_url: ${{ secrets.BLACKDUCK_URL }}
