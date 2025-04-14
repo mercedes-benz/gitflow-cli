@@ -62,6 +62,8 @@ const (
 	Incremental
 )
 
+const defaultVersionFile = "version.txt"
+
 type (
 	// PlugIns is the list of all registered plugins.
 	PlugIns []PlugIn
@@ -110,6 +112,7 @@ type (
 		MergeBranch(branchName string, mergeType MergeType) error
 		PullBranch(branchName string) error
 		DeleteBranch(branchName string) error
+		AddFile(file string) error
 		CommitChanges(message string) error
 		TagCommit(tagName string) error
 		PushChanges(branchName string) error
@@ -154,6 +157,7 @@ const (
 	pull          = "pull"
 	switch_       = "switch"
 	merge         = "merge"
+	add           = "add"
 	commit        = "commit"
 	branch        = "branch"
 	tag           = "tag"
@@ -192,6 +196,7 @@ type repository struct {
 	pullBranch          []string
 	deleteBranch        []string
 	forceDeleteBranch   []string
+	addFile             []string
 	commitAll           []string
 	tagCommit           []string
 	pushBranch          []string
@@ -253,6 +258,7 @@ func NewRepository(projectPath, remote string) Repository {
 		pullBranch:        []string{pull, remote},
 		deleteBranch:      []string{branch, delete},
 		forceDeleteBranch: []string{branch, forcedelete},
+		addFile:           []string{add},
 		commitAll:         []string{commit, all, message},
 		tagCommit:         []string{tag},
 		pushBranch:        []string{push, upstream, remote},
@@ -264,7 +270,7 @@ func NewRepository(projectPath, remote string) Repository {
 	}
 }
 
-// Create new version with major, minor, incremental, and qualifier.
+// NewVersion Create new version with major, minor, incremental, and qualifier.
 func NewVersion(major, minor, incremental string, args ...any) Version {
 	var version Version
 
@@ -286,7 +292,7 @@ func NewVersion(major, minor, incremental string, args ...any) Version {
 	return version
 }
 
-// Parse a version string with major, minor, incremental, and optional qualifier.
+// ParseVersion Parse a version string with major, minor, incremental, and optional qualifier.
 func ParseVersion(version string) (Version, error) {
 	var v Version
 
@@ -332,14 +338,8 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	}
 
 	// execute the first plugin that meets the precondition
-	for _, plugin := range plugInRegistry {
-		if plugin.Check(projectPath) {
-			if err := plugin.Start(branch, projectPath, args...); err != nil {
-				return err
-			}
-
-			return nil
-		}
+	if err := delegateToPlugin(branch, projectPath, args...); err != nil {
+		return err
 	}
 
 	return fmt.Errorf("no plugin meets the precondition for branch '%v' and project path '%v'", branch, projectPath)
@@ -359,20 +359,45 @@ func Finish(branch Branch, projectPath string) error {
 	}
 
 	// execute the first plugin that meets the precondition
-	for _, plugin := range plugInRegistry {
-		if plugin.Check(projectPath) {
-			if err := plugin.Finish(branch, projectPath); err != nil {
-				return err
-			}
-
-			return nil
-		}
+	if err := delegateToPlugin(branch, projectPath); err != nil {
+		return err
 	}
 
 	return fmt.Errorf("no plugin meets the precondition for branch '%v' and project path '%v'", branch, projectPath)
 }
 
-// Check if the number of arguments matches the expected number.
+func delegateToPlugin(branch Branch, projectPath string, args ...any) error {
+
+	for _, plugin := range plugInRegistry {
+		if plugin.Check(projectPath) {
+			if err := plugin.Start(branch, projectPath, args...); err != nil {
+				return err
+			}
+		}
+	}
+
+	repo := NewRepository(projectPath, Remote)
+	if err := repo.CheckoutBranch(Development.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	initVersion := NewVersion("1", "0", "0", "dev")
+	if err := os.WriteFile(defaultVersionFile, []byte(initVersion.String()), 0644); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	if err := repo.AddFile(defaultVersionFile); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	if err := repo.CommitChanges("Create versions file"); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	return delegateToPlugin(branch, projectPath, args...)
+}
+
+// ValidateArgumentsLength Check if the number of arguments matches the expected number.
 func ValidateArgumentsLength(expected int, args ...any) error {
 	if len(args) != expected {
 		return fmt.Errorf("expected %v arguments, but got %v", expected, len(args))
@@ -381,7 +406,7 @@ func ValidateArgumentsLength(expected int, args ...any) error {
 	return nil
 }
 
-// Check if all arguments are of a specific type.
+// ValidateArgumentsType Check if all arguments are of a specific type.
 func ValidateArgumentsType(t reflect.Type, args ...any) error {
 	for _, arg := range args {
 		if reflect.TypeOf(arg) != t {
@@ -392,7 +417,7 @@ func ValidateArgumentsType(t reflect.Type, args ...any) error {
 	return nil
 }
 
-// Check if some tools are available in the system.
+// ValidateToolsAvailability Check if some tools are available in the system.
 func ValidateToolsAvailability(tools ...string) error {
 	for _, tool := range tools {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -764,7 +789,28 @@ func (r *repository) DeleteBranch(branchName string) error {
 	return nil
 }
 
-// Stage and commit changes in the repository with a specific message.
+// AddFile Add file to git
+func (r *repository) AddFile(file string) error {
+	var err error
+	var commit *exec.Cmd
+	var output []byte
+
+	// log human-readable description of the git command
+	defer func() { Log(commit, output, err) }()
+
+	// automatically stage all modified and deleted files and do the commit
+	commit = exec.Command(Git, append(r.addFile, file)...)
+	commit.Dir = r.projectPath
+
+	// run git command to stage and commit changes
+	if output, err = commit.CombinedOutput(); err != nil {
+		return fmt.Errorf("git '%v' failed with %v: %s", commit, err, output)
+	}
+
+	return nil
+}
+
+// CommitChanges Stage and commit changes in the repository with a specific message.
 func (r *repository) CommitChanges(message string) error {
 	var err error
 	var commit *exec.Cmd
@@ -785,7 +831,7 @@ func (r *repository) CommitChanges(message string) error {
 	return nil
 }
 
-// Tag the latest commit in the repository with a specific tag name.
+// TagCommit Tag the latest commit in the repository with a specific tag name.
 func (r *repository) TagCommit(tagName string) error {
 	var err error
 	var tag *exec.Cmd
