@@ -34,29 +34,10 @@ From within the project directory the **gitflow-cli** can be built, run and inst
 
    **Note:** Make sure you have [Go](https://go.dev/doc/install) installed and that the `go/bin` directory is part of your PATH.
 
-## Preconditions
-
-To use **gitflow-cli**, ensure your project meets the basic structural requirements, particularly around Git branches and version management.
-
-### Git Branches
-
-Your repository must define a dedicated **production** and **development** branches (e.g. main and develop).
-These can be [customized](#configuration) as needed.
-
-### Version File
-
-Each project type may store version information in a different location.
-The **gitflow-cli** detects your project's context and automatically delegates tasks to the appropriate plugin based on the presence of specific files.
-
-Available Plugins
-
-| Plugin       | Description                                                 | Required File  | Status                                                             |
-|--------------|-------------------------------------------------------------|----------------|--------------------------------------------------------------------|
-| **standard** | Plugin for projects without a predefined technology stack.  | `version.txt`  | ![implemented](https://img.shields.io/badge/implemented-darkgreen) |
-| **maven**    | Plugin for [maven](https://maven.apache.org) projects.      | `pom.xml`      | ![implemented](https://img.shields.io/badge/implemented-darkgreen) |
-| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.          | `package.json` | ![planned](https://img.shields.io/badge/planned-yellow)            |
-
 ## Usage
+
+Before starting to use **gitflow-cli**, navigate to the Git repository you want to operate on.
+Make sure the repository meets all [preconditions](#preconditions).
 
 ### Release:
 
@@ -86,6 +67,28 @@ Check out the `hotfix/x.y.z` branch, create a quick patch, and push your changes
    ```bash
    gitflow-cli hotfix finish
    ```
+
+## Preconditions
+
+To use **gitflow-cli**, ensure your project meets the basic structural requirements, particularly around Git branches and version management.
+
+### Git Branches
+
+Your repository must define a dedicated **production** and **development** branches (e.g. main and develop).
+These can be [customized](#configuration) as needed.
+
+### Version File
+
+Each project type may store version information in a different location.
+The **gitflow-cli** detects your project's context and automatically delegates tasks to the appropriate plugin based on the presence of specific files.
+
+#### Available Plugins
+
+| Plugin       | Description                                                 | Required File  | Status                                                             |
+|--------------|-------------------------------------------------------------|----------------|--------------------------------------------------------------------|
+| **standard** | Plugin for projects without a predefined technology stack.  | `version.txt`  | ![implemented](https://img.shields.io/badge/implemented-darkgreen) |
+| **maven**    | Plugin for [maven](https://maven.apache.org) projects.      | `pom.xml`      | ![implemented](https://img.shields.io/badge/implemented-darkgreen) |
+| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.          | `package.json` | ![planned](https://img.shields.io/badge/planned-yellow)            |
 
 ## Configuration
 
