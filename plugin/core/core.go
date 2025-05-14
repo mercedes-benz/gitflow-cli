@@ -37,7 +37,7 @@ const (
 	Output
 )
 
-// Branche types for the Gitflow model on which the workflow automation commands operate.
+// Branch types for the Gitflow model on which the workflow automation commands operate.
 const (
 	_ Branch = iota
 	Production
@@ -77,10 +77,10 @@ type (
 	// MergeType represents merge types for repository merging operations.
 	MergeType int
 
-	// Type of version increment.
+	// VersionIncrement Type of version increment.
 	VersionIncrement int
 
-	// Default callback functions that run custom business logic for release and hotfix branches.
+	// StartCallback Default callback functions that run custom business logic for release and hotfix branches.
 	StartCallback  func(repo Repository, args ...any) error
 	FinishCallback func(repo Repository) error
 
@@ -88,6 +88,11 @@ type (
 	PlugIn interface {
 		Precondition
 		Workflow
+
+		Name() string
+
+		SnapshotQualifier() string
+		UpdateProjectVersion(next Version) error
 	}
 
 	// Precondition is the interface for checking if a plugin can be executed in a project directory.
@@ -99,7 +104,6 @@ type (
 	// Workflow is the interface for executing workflow automation commands in a project directory.
 	Workflow interface {
 		Start(branch Branch, projectPath string, args ...any) error
-		Finish(branch Branch, projectPath string) error
 	}
 
 	// Repository represents a version control system repository.
@@ -232,7 +236,7 @@ var branchSettings = map[string]Branch{
 	"hotfix":      Hotfix,
 }
 
-// Interal flags for controlling core package behavior.
+// Internal flags for controlling core package behavior.
 var loggingFlags Logging = StdOut | CmdLine | Output
 var undoChanges bool = false
 
@@ -347,6 +351,8 @@ func Start(branch Branch, projectPath string, args ...any) error {
 
 // Finish executes the first plugin that meets the precondition.
 func Finish(branch Branch, projectPath string) error {
+
+	// todo: begin: maybe generalize as well
 	plugInRegistryLock.Lock()
 	defer plugInRegistryLock.Unlock()
 
@@ -357,19 +363,278 @@ func Finish(branch Branch, projectPath string) error {
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
 		return fmt.Errorf("project path '%v' does not exist", projectPath)
 	}
+	// todo: end: maybe generalize as well
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range plugInRegistry {
 		if plugin.Check(projectPath) {
-			if err := plugin.Finish(branch, projectPath); err != nil {
+
+			// finish the workflow with the selected release business logic
+			repo := NewRepository(projectPath, Remote)
+
+			// check if required tools are available
+			// todo: fix it (create a hook)
+			//if err := ValidateToolsAvailability(tools...); err != nil {
+			//	return err
+			//}
+
+			// check if the repository prerequisites are met
+			if err := repo.IsClean(); err != nil {
 				return err
 			}
 
-			return nil
+			// format finish command messages
+			// todo: check if plugin returns a text
+			prefix := fmt.Sprintf("%v PlugIn Finish on branch", plugin.Name()) // todo: replace with String()
+			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
+			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
+			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
+
+			fmt.Println(called)
+
+			// select suitable business logic for the branch
+			switch branch {
+			case Release:
+
+				// run the release finish command
+				if err := releaseFinish(repo, plugin); err != nil {
+					fmt.Println(failed)
+					return err
+				}
+
+				fmt.Println(completed)
+				return nil
+
+			case Hotfix:
+
+				// run the hotfix finish command
+				if err := hotfixFinish(repo, plugin); err != nil {
+					fmt.Println(failed)
+					return err
+				}
+
+				fmt.Println(completed)
+				return nil
+
+			default:
+				return fmt.Errorf("unsupported branch: %v", branch)
+			}
 		}
 	}
 
 	return fmt.Errorf("no plugin meets the precondition for branch '%v' and project path '%v'", branch, projectPath)
+}
+
+// todo: p PlugIn - all values are nil, why?
+// todo: rename PlugIn in Plugin
+// Run the release finish command for the standard workflow.
+func releaseFinish(repo Repository, p PlugIn) error {
+	var releaseVersion Version
+
+	// check if the repository has a suitable release branch
+	if found, remotes, err := repo.HasBranch(Release); err != nil {
+		return err
+	} else if !found {
+		return fmt.Errorf("repository does not have a '%v' branch to finish", Release)
+	} else if len(remotes) > 1 {
+		return fmt.Errorf("repository must not have multiple '%v' branches", Release)
+	} else if version, err := ParseVersion(remotes[0]); err != nil {
+		return err
+	} else {
+		releaseVersion = version
+	}
+
+	// check if the repository has a develop branch
+	if found, _, err := repo.HasBranch(Development); err != nil {
+		return err
+	} else if !found {
+		return fmt.Errorf(
+			"repository does not have a '%v' branch to finish and merge with a '%v' branch",
+			Development, Release)
+	}
+
+	// checkout release branch
+	if err := repo.CheckoutBranch(releaseVersion.BranchName(Release)); err != nil {
+		return err
+	}
+
+	// checkout production branch
+	if err := repo.CheckoutBranch(Production.String()); err != nil {
+		return err
+	}
+
+	// merge release branch into current production branch (with merge commit --no-ff git flag)
+	if err := repo.MergeBranch(releaseVersion.BranchName(Release), NoFastForward); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// tag last commit with the release version number
+	if err := repo.TagCommit(releaseVersion.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// checkout develop branch
+	if err := repo.CheckoutBranch(Development.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// merge release branch into current develop branch (with merge commit --no-ff git flag)
+	if err := repo.MergeBranch(releaseVersion.BranchName(Release), NoFastForward); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// set project version to the next develop version ${major}.(${minor}+1).0-${qualifier} (change POM file)
+	if _, next, err := p.Version(repo.Local(), false, true, false); err != nil {
+		return repo.UndoAllChanges(err)
+	} else if err := p.UpdateProjectVersion(next.AddQualifier(p.SnapshotQualifier())); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// perform a git commit with a commit message
+	if err := repo.CommitChanges("Set next minor project version."); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// delete the release branch locally
+	if err := repo.DeleteBranch(releaseVersion.BranchName(Release)); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// checkout production branch (just for consistency that commands always end on production branch)
+	if err := repo.CheckoutBranch(Production.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// push all branches to remotes
+	if err := repo.PushAllChanges(); err != nil {
+		return err
+	}
+
+	// push all tags to remotes
+	if err := repo.PushAllTags(); err != nil {
+		return err
+	}
+
+	// delete the release branch remotely
+	if err := repo.PushDeletion(releaseVersion.BranchName(Release)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// todo: p PlugIn - alle werte sind nil, warum?
+// Run the release finish command for the standard workflow.
+func hotfixFinish(repo Repository, p PlugIn) error {
+	var hotfixVersion Version
+
+	// check if the repository has a suitable hotfix branch
+	if found, remotes, err := repo.HasBranch(Hotfix); err != nil {
+		return err
+	} else if !found {
+		return fmt.Errorf("repository does not have a '%v' branch to finish", Hotfix)
+	} else if len(remotes) > 1 {
+		return fmt.Errorf("repository must not have multiple '%v' branches", Hotfix)
+	} else if version, err := ParseVersion(remotes[0]); err != nil {
+		return err
+	} else {
+		hotfixVersion = version
+	}
+
+	// check if the repository has a develop branch
+	if found, _, err := repo.HasBranch(Development); err != nil {
+		return err
+	} else if !found {
+		return fmt.Errorf(
+			"repository does not have a '%v' branch to finish and merge with a '%v' branch",
+			Development, Hotfix)
+	}
+
+	// checkout hotfix branch
+	if err := repo.CheckoutBranch(hotfixVersion.BranchName(Hotfix)); err != nil {
+		return err
+	}
+
+	// checkout production branch
+	if err := repo.CheckoutBranch(Production.String()); err != nil {
+		return err
+	}
+
+	// merge hotfix branch into current production branch (with merge commit --no-ff git flag)
+	if err := repo.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// tag last commit with the hotfix version number
+	if err := repo.TagCommit(hotfixVersion.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// checkout develop branch
+	if err := repo.CheckoutBranch(Development.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// in order to avoid merge conflicts, set and commit pom.xml project version in develop branch equal
+	// with current hotfix branch and remember its commit hash (or find a better solution)
+	if currentVersion, _, err := p.Version(repo.Local(), false, false, false); err != nil {
+		return repo.UndoAllChanges(err)
+	} else {
+		// update project version to ${major}.${minor}.${increment + 1} (means: hotfix branch version)
+		if err := p.UpdateProjectVersion(hotfixVersion); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		// perform a git commit with a commit message
+		if err := repo.CommitChanges("Set hotfix version to avoid merge conflict."); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		// merge hotfix branch into current develop branch (with merge commit --no-ff git flag)
+		if err := repo.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		// remove previous commit with remembered commit hash, since it was committed just in order
+		// to avoid merge conflicts (or find a better solution)
+		// change version im develop Branch to the previous snapshot version (or find a better solution)
+		// but at the end the project version in develop branch should remain the same as before hotfix merge
+		if err := p.UpdateProjectVersion(currentVersion); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		// perform a git commit with a commit message
+		if err := repo.CommitChanges("Set version back to project version before hotfix merge."); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+	}
+
+	// delete the release branch locally
+	if err := repo.DeleteBranch(hotfixVersion.BranchName(Hotfix)); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// checkout production branch (just for consistency that commands always end on production branch)
+	if err := repo.CheckoutBranch(Production.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// push all branches to remotes
+	if err := repo.PushAllChanges(); err != nil {
+		return err
+	}
+
+	// push all tags to remotes
+	if err := repo.PushAllTags(); err != nil {
+		return err
+	}
+
+	// delete the hotfix branch remotely
+	if err := repo.PushDeletion(hotfixVersion.BranchName(Hotfix)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func delegateToPlugin(branch Branch, projectPath string, args ...any) error {
@@ -607,12 +872,12 @@ func (b Branch) String() string {
 	return branchNames[b]
 }
 
-// Return the local path of the repository.
+// Local Return the local path of the repository.
 func (r *repository) Local() string {
 	return r.projectPath
 }
 
-// Check if the repository under the project path is clean.
+// IsClean Check if the repository under the project path is clean.
 func (r *repository) IsClean() error {
 	var err error
 	var status *exec.Cmd
@@ -635,7 +900,7 @@ func (r *repository) IsClean() error {
 	return nil
 }
 
-// Check if a branch exists in the repository.
+// HasBranch Check if a branch exists in the repository.
 func (r *repository) HasBranch(branch Branch) (bool, []string, error) {
 	var remotes []string
 	var logs []any = make([]any, 0)
@@ -679,7 +944,7 @@ func (r *repository) HasBranch(branch Branch) (bool, []string, error) {
 	return len(remotes) > 0, remotes, nil
 }
 
-// Checkout a specific branch in the repository.
+// CheckoutBranch Checkout a specific branch in the repository.
 func (r *repository) CheckoutBranch(branchName string) error {
 	var err error
 	var checkout *exec.Cmd
@@ -700,7 +965,7 @@ func (r *repository) CheckoutBranch(branchName string) error {
 	return nil
 }
 
-// Create a new branch in the repository with a specific name.
+// CreateBranch Create a new branch in the repository with a specific name.
 func (r *repository) CreateBranch(branchName string) error {
 	var err error
 	var create *exec.Cmd
@@ -721,7 +986,7 @@ func (r *repository) CreateBranch(branchName string) error {
 	return nil
 }
 
-// Merge a branch into the current branch in the repository with a specific merge type.
+// MergeBranch Merge a branch into the current branch in the repository with a specific merge type.
 func (r *repository) MergeBranch(branchName string, mergeType MergeType) error {
 	var option string
 	var err error
@@ -759,7 +1024,7 @@ func (r *repository) MergeBranch(branchName string, mergeType MergeType) error {
 	return nil
 }
 
-// Pull changes in a branch from the remote repository.
+// PullBranch Pull changes in a branch from the remote repository.
 func (r *repository) PullBranch(branchName string) error {
 	var err error
 	var pull *exec.Cmd
@@ -780,7 +1045,7 @@ func (r *repository) PullBranch(branchName string) error {
 	return nil
 }
 
-// Delete a local branch in the repository with a specific name.
+// DeleteBranch Delete a local branch in the repository with a specific name.
 func (r *repository) DeleteBranch(branchName string) error {
 	var err error
 	var delete *exec.Cmd
@@ -864,7 +1129,7 @@ func (r *repository) TagCommit(tagName string) error {
 	return nil
 }
 
-// Push changes in a branch to the remote repository.
+// PushChanges Push changes in a branch to the remote repository.
 func (r *repository) PushChanges(branchName string) error {
 	var err error
 	var push *exec.Cmd
