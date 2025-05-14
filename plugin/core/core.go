@@ -87,10 +87,7 @@ type (
 	// PlugIn is the interface for all workflow automation plugins.
 	PlugIn interface {
 		Precondition
-		Workflow
-
-		Name() string
-
+		Name() string // todo: replace with String()
 		SnapshotQualifier() string
 		UpdateProjectVersion(next Version) error
 	}
@@ -99,11 +96,6 @@ type (
 	Precondition interface {
 		Check(projectPath string) bool
 		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
-	}
-
-	// Workflow is the interface for executing workflow automation commands in a project directory.
-	Workflow interface {
-		Start(branch Branch, projectPath string, args ...any) error
 	}
 
 	// Repository represents a version control system repository.
@@ -342,10 +334,101 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	}
 
 	// execute the first plugin that meets the precondition
-	if err := delegateToPlugin(branch, projectPath, args...); err != nil {
-		return err
+	for _, plugin := range plugInRegistry {
+		if plugin.Check(projectPath) {
+			// todo: this part can be generalized for both tasks (start and finish)
+			// get access to the local version control system
+			repo := NewRepository(projectPath, Remote)
+
+			// check if required tools are available
+			// todo: solve similar to another hook direct in plugin
+			//if err := ValidateToolsAvailability(tools...); err != nil {
+			//	return err
+			//}
+
+			// check if the repository prerequisites are met
+			if err := repo.IsClean(); err != nil {
+				return err
+			}
+
+			// format start command messages
+			prefix := fmt.Sprintf("%v PlugIn Start on branch", plugin.Name()) // todo: replace with String()
+			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
+			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
+			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
+
+			switch branch {
+			case Release:
+				fmt.Println(called)
+
+				// start command requires two arguments 'major' and 'minor'
+				if err := ValidateArgumentsLength(2, args...); err != nil {
+					return err
+				}
+
+				// start command requires all arguments to be of type bool
+				if err := ValidateArgumentsType(reflect.TypeOf(true), args...); err != nil {
+					return err
+				}
+
+				// run the release start command
+				// todo: do args optional and generic
+				//if err := start(repo, args[0].(bool), args[1].(bool)); err != nil {
+				if err := releaseStart(repo, plugin, args[0].(bool), args[1].(bool)); err != nil {
+					fmt.Println(failed)
+					return err
+				}
+
+				fmt.Println(completed)
+				return nil
+
+			case Hotfix:
+				fmt.Println(called)
+
+				// run the hotfix start command
+				if err := hotfixStart(repo, plugin); err != nil {
+					fmt.Println(failed)
+					return err
+				}
+
+				fmt.Println(completed)
+				return nil
+
+			default:
+				return fmt.Errorf("unsupported branch: %v", branch)
+			}
+		}
 	}
 
+	// todo: solve as a beforeStartHook
+	//if !pluginMatched {
+	//	repo := NewRepository(projectPath, Remote)
+	//	if err := repo.CheckoutBranch(Development.String()); err != nil {
+	//		return repo.UndoAllChanges(err)
+	//	}
+	//
+	//	initVersion := NewVersion("1", "0", "0", "dev")
+	//	if err := os.WriteFile(defaultVersionFile, []byte(initVersion.String()), 0644); err != nil {
+	//		return repo.UndoAllChanges(err)
+	//	}
+	//
+	//	if err := repo.AddFile(defaultVersionFile); err != nil {
+	//		return repo.UndoAllChanges(err)
+	//	}
+	//
+	//	if err := repo.CommitChanges("Create versions file"); err != nil {
+	//		return repo.UndoAllChanges(err)
+	//	}
+	//
+	//	for _, plugin := range plugInRegistry {
+	//		if plugin.Check(projectPath) {
+	//			pluginMatched = true
+	//			if err := plugin.Start(branch, projectPath, args...); err != nil {
+	//				return err
+	//			}
+	//		}
+	//	}
+	//}
 	return nil
 }
 
@@ -423,6 +506,139 @@ func Finish(branch Branch, projectPath string) error {
 	}
 
 	return fmt.Errorf("no plugin meets the precondition for branch '%v' and project path '%v'", branch, projectPath)
+}
+
+func releaseStart(repo Repository, p PlugIn, major, minor bool) error {
+	// check if the repository already has a release branch
+	if found, _, err := repo.HasBranch(Release); err != nil {
+		return err
+	} else if found {
+		return fmt.Errorf(
+			"repository already has a '%v' branch and only one '%v' branch is allowed at a time",
+			Release, Release)
+	}
+
+	// check if the repository has a develop branch // todo: has remote branch?
+	if found, _, err := repo.HasBranch(Development); err != nil {
+		return err
+	} else if !found {
+		return fmt.Errorf(
+			"repository does not have a '%v' branch to start a new '%v' branch from",
+			Development, Release)
+	}
+
+	// checkout develop branch
+	if err := repo.CheckoutBranch(Development.String()); err != nil {
+		return err
+	}
+
+	// read out the current and next project version ${major}.${minor}.${increment}-${qualifier}
+	current, next, err := p.Version(repo.Local(), major, minor, false)
+
+	if err != nil {
+		return err
+	}
+
+	// if --major Flag only
+	//   set the version of project to (${major}+1).0.0-${qualifier}
+	//   perform a git commit with a commit message
+	if next.VersionIncrement == Major {
+		if err := p.UpdateProjectVersion(next.AddQualifier(p.SnapshotQualifier())); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		if err := repo.CommitChanges("Set next major project version."); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		current = next
+	}
+
+	// create branch release/x.y.z based on the current develop branch without qualifier
+	// checkout release/x.y.z branch
+	if err := repo.CreateBranch(current.RemoveQualifier().BranchName(Release)); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// remove qualifier from the project version (change POM file)
+	if err := p.UpdateProjectVersion(current.RemoveQualifier()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// perform a git commit with a commit message
+	if err := repo.CommitChanges("Remove qualifier from project version."); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// if not clean: perform a git commit with a commit message because the previous step changed the POM file
+	if err := repo.IsClean(); err != nil {
+		if err := repo.CommitChanges("Update project dependencies with corresponding releases."); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+	}
+
+	// checkout production branch (just for consistency that commands always end on production branch)
+	if err := repo.CheckoutBranch(Production.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// push all branches to remotes
+	if err := repo.PushAllChanges(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func hotfixStart(repo Repository, p PlugIn) error {
+	// check if the repository already has a hotfix branch
+	if found, _, err := repo.HasBranch(Hotfix); err != nil {
+		return err
+	} else if found {
+		return fmt.Errorf(
+			"repository already has a '%v' branch and only one '%v' branch is allowed at a time",
+			Hotfix, Hotfix)
+	}
+
+	// checkout production branch
+	if err := repo.CheckoutBranch(Production.String()); err != nil {
+		return err
+	}
+
+	// read out the current and next project version ${major}.${minor}.${increment}-${qualifier}
+	_, next, err := p.Version(repo.Local(), false, false, true)
+
+	if err != nil {
+		return err
+	}
+
+	// create branch hotfix/${major}.${minor}.${increment + 1} based on the current production branch
+	// checkout hotfix/${major}.${minor}.${increment + 1} branch
+	if err := repo.CreateBranch(next.BranchName(Hotfix)); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// update project version to ${major}.${minor}.${increment + 1}
+	if err := p.UpdateProjectVersion(next); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// perform a git commit with a commit message
+	if err := repo.CommitChanges("Set next hotfix version."); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// checkout production branch (just for consistency that commands always end on production branch)
+	if err := repo.CheckoutBranch(Production.String()); err != nil {
+		return repo.UndoAllChanges(err)
+	}
+
+	// push all branches to remotes
+	if err := repo.PushAllChanges(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // todo: p PlugIn - all values are nil, why?
@@ -637,43 +853,6 @@ func hotfixFinish(repo Repository, p PlugIn) error {
 	return nil
 }
 
-func delegateToPlugin(branch Branch, projectPath string, args ...any) error {
-
-	pluginMatched := false
-
-	for _, plugin := range plugInRegistry {
-		if plugin.Check(projectPath) {
-			pluginMatched = true
-			if err := plugin.Start(branch, projectPath, args...); err != nil {
-				return err
-			}
-		}
-	}
-
-	if !pluginMatched {
-		repo := NewRepository(projectPath, Remote)
-		if err := repo.CheckoutBranch(Development.String()); err != nil {
-			return repo.UndoAllChanges(err)
-		}
-
-		initVersion := NewVersion("1", "0", "0", "dev")
-		if err := os.WriteFile(defaultVersionFile, []byte(initVersion.String()), 0644); err != nil {
-			return repo.UndoAllChanges(err)
-		}
-
-		if err := repo.AddFile(defaultVersionFile); err != nil {
-			return repo.UndoAllChanges(err)
-		}
-
-		if err := repo.CommitChanges("Create versions file"); err != nil {
-			return repo.UndoAllChanges(err)
-		}
-
-		return delegateToPlugin(branch, projectPath, args...)
-	}
-	return nil
-}
-
 // ValidateArgumentsLength Check if the number of arguments matches the expected number.
 func ValidateArgumentsLength(expected int, args ...any) error {
 	if len(args) != expected {
@@ -703,118 +882,6 @@ func ValidateToolsAvailability(tools ...string) error {
 	}
 
 	return nil
-}
-
-// StartWorkflow provides a default implementation for the start command of a workflow automation plugin.
-func StartWorkflow(start StartCallback, tools []string, branch Branch, plugIn, projectPath string, args ...any) error {
-	// get access to the local version control system
-	repo := NewRepository(projectPath, Remote)
-
-	// check if required tools are available
-	if err := ValidateToolsAvailability(tools...); err != nil {
-		return err
-	}
-
-	// check if the repository prerequisites are met
-	if err := repo.IsClean(); err != nil {
-		return err
-	}
-
-	// format start command messages
-	prefix := fmt.Sprintf("%v PlugIn Start on branch", plugIn)
-	called := fmt.Sprintf("%v %v called: %v", prefix, branch, repo.Local())
-	completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
-	failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
-
-	switch branch {
-	case Release:
-		fmt.Println(called)
-
-		// start command requires two arguments 'major' and 'minor'
-		if err := ValidateArgumentsLength(2, args...); err != nil {
-			return err
-		}
-
-		// start command requires all arguments to be of type bool
-		if err := ValidateArgumentsType(reflect.TypeOf(true), args...); err != nil {
-			return err
-		}
-
-		// run the release start command
-		if err := start(repo, args[0].(bool), args[1].(bool)); err != nil {
-			fmt.Println(failed)
-			return err
-		}
-
-		fmt.Println(completed)
-		return nil
-
-	case Hotfix:
-		fmt.Println(called)
-
-		// run the hotfix start command
-		if err := start(repo); err != nil {
-			fmt.Println(failed)
-			return err
-		}
-
-		fmt.Println(completed)
-		return nil
-
-	default:
-		return fmt.Errorf("unsupported branch: %v", branch)
-	}
-}
-
-// FinishWorkflow provides a default implementation for the finish command of a workflow automation plugin.
-func FinishWorkflow(finish FinishCallback, tools []string, branch Branch, plugIn, projectPath string) error {
-	// get access to the local version control system
-	repo := NewRepository(projectPath, Remote)
-
-	// check if required tools are available
-	if err := ValidateToolsAvailability(tools...); err != nil {
-		return err
-	}
-
-	// check if the repository prerequisites are met
-	if err := repo.IsClean(); err != nil {
-		return err
-	}
-
-	// format finish command messages
-	prefix := fmt.Sprintf("%v PlugIn Finish on branch", plugIn)
-	called := fmt.Sprintf("%v %v called: %v", prefix, branch, repo.Local())
-	completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
-	failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
-
-	switch branch {
-	case Release:
-		fmt.Println(called)
-
-		// run the release finish command
-		if err := finish(repo); err != nil {
-			fmt.Println(failed)
-			return err
-		}
-
-		fmt.Println(completed)
-		return nil
-
-	case Hotfix:
-		fmt.Println(called)
-
-		// run the hotfix finish command
-		if err := finish(repo); err != nil {
-			fmt.Println(failed)
-			return err
-		}
-
-		fmt.Println(completed)
-		return nil
-
-	default:
-		return fmt.Errorf("unsupported branch: %v", branch)
-	}
 }
 
 // Log a message to Go standard logging based on logging flags and variadic arguments.
