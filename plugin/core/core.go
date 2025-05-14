@@ -342,7 +342,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 		return err
 	}
 
-	return fmt.Errorf("no plugin meets the precondition for branch '%v' and project path '%v'", branch, projectPath)
+	return nil
 }
 
 // Finish executes the first plugin that meets the precondition.
@@ -374,33 +374,39 @@ func Finish(branch Branch, projectPath string) error {
 
 func delegateToPlugin(branch Branch, projectPath string, args ...any) error {
 
+	pluginMatched := false
+
 	for _, plugin := range plugInRegistry {
 		if plugin.Check(projectPath) {
+			pluginMatched = true
 			if err := plugin.Start(branch, projectPath, args...); err != nil {
 				return err
 			}
 		}
 	}
 
-	repo := NewRepository(projectPath, Remote)
-	if err := repo.CheckoutBranch(Development.String()); err != nil {
-		return repo.UndoAllChanges(err)
-	}
+	if !pluginMatched {
+		repo := NewRepository(projectPath, Remote)
+		if err := repo.CheckoutBranch(Development.String()); err != nil {
+			return repo.UndoAllChanges(err)
+		}
 
-	initVersion := NewVersion("1", "0", "0", "dev")
-	if err := os.WriteFile(defaultVersionFile, []byte(initVersion.String()), 0644); err != nil {
-		return repo.UndoAllChanges(err)
-	}
+		initVersion := NewVersion("1", "0", "0", "dev")
+		if err := os.WriteFile(defaultVersionFile, []byte(initVersion.String()), 0644); err != nil {
+			return repo.UndoAllChanges(err)
+		}
 
-	if err := repo.AddFile(defaultVersionFile); err != nil {
-		return repo.UndoAllChanges(err)
-	}
+		if err := repo.AddFile(defaultVersionFile); err != nil {
+			return repo.UndoAllChanges(err)
+		}
 
-	if err := repo.CommitChanges("Create versions file"); err != nil {
-		return repo.UndoAllChanges(err)
-	}
+		if err := repo.CommitChanges("Create versions file"); err != nil {
+			return repo.UndoAllChanges(err)
+		}
 
-	return delegateToPlugin(branch, projectPath, args...)
+		return delegateToPlugin(branch, projectPath, args...)
+	}
+	return nil
 }
 
 // ValidateArgumentsLength Check if the number of arguments matches the expected number.
