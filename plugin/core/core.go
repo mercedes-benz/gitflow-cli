@@ -359,8 +359,14 @@ func Finish(branch Branch, projectPath string) error {
 	}
 
 	// execute the first plugin that meets the precondition
-	if err := delegateToPlugin(branch, projectPath); err != nil {
-		return err
+	for _, plugin := range plugInRegistry {
+		if plugin.Check(projectPath) {
+			if err := plugin.Finish(branch, projectPath); err != nil {
+				return err
+			}
+
+			return nil
+		}
 	}
 
 	return fmt.Errorf("no plugin meets the precondition for branch '%v' and project path '%v'", branch, projectPath)
