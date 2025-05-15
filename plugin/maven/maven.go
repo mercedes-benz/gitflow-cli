@@ -14,9 +14,9 @@ import (
 	"github.com/mercedes-benz/gitflow-cli/plugin/core"
 )
 
-// NewPlugIn create plugin for the mvn build tool.
-func NewPlugIn() core.PlugIn {
-	return &mavenPlugIn{
+// NewPlugin create plugin for the mvn build tool.
+func NewPlugin() core.Plugin {
+	return &mavenPlugin{
 		majorVersion:           []string{helper, evaluate, fmt.Sprintf(expression, major), quiet, stdout},
 		minorVersion:           []string{helper, evaluate, fmt.Sprintf(expression, minor), quiet, stdout},
 		incrementalVersion:     []string{helper, evaluate, fmt.Sprintf(expression, incremental), quiet, stdout},
@@ -60,7 +60,7 @@ const (
 )
 
 // MavenPlugIn is the plugin for the mvn build tool.
-type mavenPlugIn struct {
+type mavenPlugin struct {
 	majorVersion           []string
 	minorVersion           []string
 	incrementalVersion     []string
@@ -72,22 +72,22 @@ type mavenPlugIn struct {
 	useReleases            []string
 }
 
-func (p *mavenPlugIn) Name() string {
+func (p *mavenPlugin) Name() string {
 	return name
 }
 
-func (p *mavenPlugIn) SnapshotQualifier() string {
+func (p *mavenPlugin) SnapshotQualifier() string {
 	return snapshotQualifier
 }
 
 // Check if the plugin can be executed in a project directory.
-func (p *mavenPlugIn) Check(projectPath string) bool {
+func (p *mavenPlugin) Check(projectPath string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
 	return !os.IsNotExist(err)
 }
 
 // Version the current and next version of the mvn project.
-func (p *mavenPlugIn) Version(projectPath string, major, minor, incremental bool) (core.Version, core.Version, error) {
+func (p *mavenPlugin) Version(projectPath string, major, minor, incremental bool) (core.Version, core.Version, error) {
 	var currentMajor, currentMinor, currentIncremental, qualifier, nextMajor, nextMinor, nextIncremental string
 	var logs []any = make([]any, 0)
 
@@ -230,10 +230,10 @@ func (p *mavenPlugIn) Version(projectPath string, major, minor, incremental bool
 
 // Register plugin for the mvn build tool.
 func init() {
-	core.Register(NewPlugIn())
+	core.Register(NewPlugin())
 }
 
-func (p *mavenPlugIn) UpdateProjectVersion(next core.Version) error {
+func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 	var err error
 	var versionCommand *exec.Cmd
 	var output []byte
@@ -255,7 +255,7 @@ func (p *mavenPlugIn) UpdateProjectVersion(next core.Version) error {
 
 // todo: this should be a hook
 //// Replaces any -SNAPSHOT versions with the corresponding release version (if it has been released).
-//func (p *mavenPlugIn) updateProjectObjectModelReleases(projectPath string) error {
+//func (p *mavenPlugin) updateProjectObjectModelReleases(projectPath string) error {
 //	var err error
 //	var releasesCommand *exec.Cmd
 //	var output []byte

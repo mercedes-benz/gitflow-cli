@@ -66,8 +66,8 @@ const (
 //const defaultVersionFile = "version.txt"
 
 type (
-	// PlugIns is the list of all registered plugins.
-	PlugIns []PlugIn
+	// Plugins is the list of all registered plugins.
+	Plugins []Plugin
 
 	// Logging controls logging behavior for all repository operations.
 	Logging int
@@ -85,8 +85,8 @@ type (
 	StartCallback  func(repo Repository, args ...any) error
 	FinishCallback func(repo Repository) error
 
-	// PlugIn is the interface for all workflow automation plugins.
-	PlugIn interface {
+	// Plugin is the interface for all workflow automation plugins.
+	Plugin interface {
 		Precondition
 		Name() string // todo: replace with String()
 		SnapshotQualifier() string
@@ -234,8 +234,8 @@ var loggingFlags Logging = StdOut | CmdLine | Output
 var undoChanges bool = false
 
 // PlugInRegistry is the global list of all registered plugins.
-var plugInRegistry PlugIns
-var plugInRegistryLock sync.Mutex
+var pluginRegistry Plugins
+var pluginRegistryLock sync.Mutex
 
 // NoQualifier is the default empty qualifier for versions.
 var noQualifier = ""
@@ -315,16 +315,16 @@ func ParseVersion(version string) (Version, error) {
 }
 
 // Register adds a plugin to the global list of all registered plugins.
-func Register(plugin PlugIn) {
-	plugInRegistryLock.Lock()
-	defer plugInRegistryLock.Unlock()
-	plugInRegistry = append(plugInRegistry, plugin)
+func Register(plugin Plugin) {
+	pluginRegistryLock.Lock()
+	defer pluginRegistryLock.Unlock()
+	pluginRegistry = append(pluginRegistry, plugin)
 }
 
 // Start executes the first plugin that meets the precondition.
 func Start(branch Branch, projectPath string, args ...any) error {
-	plugInRegistryLock.Lock()
-	defer plugInRegistryLock.Unlock()
+	pluginRegistryLock.Lock()
+	defer pluginRegistryLock.Unlock()
 
 	// apply suitable settings from the global configuration to the core package
 	applySettings()
@@ -335,7 +335,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	}
 
 	// execute the first plugin that meets the precondition
-	for _, plugin := range plugInRegistry {
+	for _, plugin := range pluginRegistry {
 		if plugin.Check(projectPath) {
 			// todo: this part can be generalized for both tasks (start and finish)
 			// get access to the local version control system
@@ -353,7 +353,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 			}
 
 			// format start command messages
-			prefix := fmt.Sprintf("%v PlugIn Start on branch", plugin.Name()) // todo: replace with String()
+			prefix := fmt.Sprintf("%v Plugin Start on branch", plugin.Name()) // todo: replace with String()
 			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
 			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
 			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
@@ -421,7 +421,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	//		return repo.UndoAllChanges(err)
 	//	}
 	//
-	//	for _, plugin := range plugInRegistry {
+	//	for _, plugin := range pluginRegistry {
 	//		if plugin.Check(projectPath) {
 	//			pluginMatched = true
 	//			if err := plugin.Start(branch, projectPath, args...); err != nil {
@@ -437,8 +437,8 @@ func Start(branch Branch, projectPath string, args ...any) error {
 func Finish(branch Branch, projectPath string) error {
 
 	// todo: begin: maybe generalize as well
-	plugInRegistryLock.Lock()
-	defer plugInRegistryLock.Unlock()
+	pluginRegistryLock.Lock()
+	defer pluginRegistryLock.Unlock()
 
 	// apply suitable settings from the global configuration to the core package
 	applySettings()
@@ -450,7 +450,7 @@ func Finish(branch Branch, projectPath string) error {
 	// todo: end: maybe generalize as well
 
 	// execute the first plugin that meets the precondition
-	for _, plugin := range plugInRegistry {
+	for _, plugin := range pluginRegistry {
 		if plugin.Check(projectPath) {
 
 			// finish the workflow with the selected release business logic
@@ -469,7 +469,7 @@ func Finish(branch Branch, projectPath string) error {
 
 			// format finish command messages
 			// todo: check if plugin returns a text
-			prefix := fmt.Sprintf("%v PlugIn Finish on branch", plugin.Name()) // todo: replace with String()
+			prefix := fmt.Sprintf("%v Plugin Finish on branch", plugin.Name()) // todo: replace with String()
 			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
 			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
 			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
@@ -1090,7 +1090,7 @@ func (v Version) RemoveQualifier() Version {
 	return NewVersion(v.Major, v.Minor, v.Incremental, noQualifier, v.VersionIncrement)
 }
 
-func releaseStart(repo Repository, p PlugIn, major, minor bool) error {
+func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 	// check if the repository already has a release branch
 	if found, _, err := repo.HasBranch(Release); err != nil {
 		return err
@@ -1181,7 +1181,7 @@ func releaseStart(repo Repository, p PlugIn, major, minor bool) error {
 	return nil
 }
 
-func hotfixStart(repo Repository, p PlugIn) error {
+func hotfixStart(repo Repository, p Plugin) error {
 	// check if the repository already has a hotfix branch
 	if found, _, err := repo.HasBranch(Hotfix); err != nil {
 		return err
@@ -1232,10 +1232,10 @@ func hotfixStart(repo Repository, p PlugIn) error {
 	return nil
 }
 
-// todo: p PlugIn - all values are nil, why?
-// todo: rename PlugIn in Plugin
+// todo: p Plugin - all values are nil, why?
+// todo: rename Plugin in Plugin
 // Run the release finish command for the standard workflow.
-func releaseFinish(repo Repository, p PlugIn) error {
+func releaseFinish(repo Repository, p Plugin) error {
 	var releaseVersion Version
 
 	// check if the repository has a suitable release branch
@@ -1330,9 +1330,9 @@ func releaseFinish(repo Repository, p PlugIn) error {
 	return nil
 }
 
-// todo: p PlugIn - alle werte sind nil, warum?
+// todo: p Plugin - alle werte sind nil, warum?
 // Run the release finish command for the standard workflow.
-func hotfixFinish(repo Repository, p PlugIn) error {
+func hotfixFinish(repo Repository, p Plugin) error {
 	var hotfixVersion Version
 
 	// check if the repository has a suitable hotfix branch

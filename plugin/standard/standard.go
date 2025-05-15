@@ -15,9 +15,9 @@ import (
 	"github.com/mercedes-benz/gitflow-cli/plugin/core"
 )
 
-// NewPlugIn Create plugin for the standard workflow.
-func NewPlugIn() core.PlugIn {
-	return &standardPlugIn{}
+// NewPlugin Create plugin for the standard workflow.
+func NewPlugin() core.Plugin {
+	return &standardPlugin{}
 }
 
 // Name of the standard plugin.
@@ -30,7 +30,7 @@ const preconditionFile = "version.txt"
 const snapshotQualifier = "dev"
 
 // StandardPlugIn is the plugin for the standard workflow.
-type standardPlugIn struct {
+type standardPlugin struct {
 	majorVersion           []string
 	minorVersion           []string
 	incrementalVersion     []string
@@ -41,22 +41,22 @@ type standardPlugIn struct {
 	setVersion             []string
 }
 
-func (p *standardPlugIn) Name() string {
+func (p *standardPlugin) Name() string {
 	return name
 }
 
-func (p *standardPlugIn) SnapshotQualifier() string {
+func (p *standardPlugin) SnapshotQualifier() string {
 	return snapshotQualifier
 }
 
 // Check if the plugin can be executed in a project directory.
-func (p *standardPlugIn) Check(projectPath string) bool {
+func (p *standardPlugin) Check(projectPath string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
 	return !os.IsNotExist(err)
 }
 
 // Version evaluates the current and next version of the standard project.
-func (p *standardPlugIn) Version(projectPath string, major, minor, incremental bool) (core.Version, core.Version, error) {
+func (p *standardPlugin) Version(projectPath string, major, minor, incremental bool) (core.Version, core.Version, error) {
 	// current and next version of the standard project
 	var currentVersion, nextVersion core.Version
 	var errMajor, errMinor, errIncremental error
@@ -99,11 +99,11 @@ func (p *standardPlugIn) Version(projectPath string, major, minor, incremental b
 
 // Register plugin for the standard workflow.
 func init() {
-	core.Register(NewPlugIn())
+	core.Register(NewPlugin())
 }
 
 // UpdateProjectVersion Sets the project's version
-func (p *standardPlugIn) UpdateProjectVersion(next core.Version) error {
+func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
 
 	if err := os.WriteFile(preconditionFile, []byte(next.String()), 0644); err != nil {
 		return fmt.Errorf("failed to write in file %v next project version %v", preconditionFile, next.String())
