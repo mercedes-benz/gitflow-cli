@@ -6,14 +6,11 @@ SPDX-License-Identifier: MIT
 package core
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"reflect"
-	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -54,17 +51,6 @@ const (
 	FastForward
 )
 
-// Version increment types for the workflow automation commands.
-const (
-	None VersionIncrement = iota
-	Major
-	Minor
-	Incremental
-)
-
-// todo: should be solved as a hook
-//const defaultVersionFile = "version.txt"
-
 type (
 	// Plugins is the list of all registered plugins.
 	Plugins []Plugin
@@ -77,9 +63,6 @@ type (
 
 	// MergeType represents merge types for repository merging operations.
 	MergeType int
-
-	// VersionIncrement Type of version increment.
-	VersionIncrement int
 
 	// Plugin is the interface for all workflow automation plugins.
 	Plugin interface {
@@ -94,16 +77,7 @@ type (
 		Check(projectPath string) bool
 		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
 	}
-
-	// Version represents a version-stamp with a major, minor, incremental part, and optionally empty qualifier.
-	Version struct {
-		VersionIncrement                     VersionIncrement
-		Major, Minor, Incremental, Qualifier string
-	}
 )
-
-// NoVersion is the default version without any parts.
-var NoVersion Version
 
 // Settings group for the core package.
 const settingsGroup = "core"
@@ -113,15 +87,6 @@ const loggingSetting = "logging"
 
 // UndoSetting controls undo-behavior for all local changes in a repository.
 const undoSetting = "undo"
-
-// VersionStamp is the format for version strings.
-const versionStamp = "%v.%v.%v"
-
-// VersionStampWithQualifier is the format for version strings with a qualifier.
-const versionStampWithQualifier = "%v.%v.%v-%v"
-
-// VersionExpression is the regular expression for version strings with optional qualifier.
-const versionExpression = `(\d+)\.(\d+)\.(\d+)(?:-(\w+))?$`
 
 // Git version control system tool commands.
 const (
@@ -188,57 +153,6 @@ var undoChanges = false
 // PlugInRegistry is the global list of all registered plugins.
 var pluginRegistry Plugins
 var pluginRegistryLock sync.Mutex
-
-// todo: what is this?
-// NoQualifier is the default empty qualifier for versions.
-var noQualifier = ""
-
-// NewVersion Create new version with major, minor, incremental, and qualifier.
-func NewVersion(major, minor, incremental string, args ...any) Version {
-	var version Version
-
-	// look for qualifier and version increment type in the arguments
-	for _, arg := range args {
-		switch arg := arg.(type) {
-		case string:
-			version.Qualifier = arg
-
-		case VersionIncrement:
-			version.VersionIncrement = arg
-		}
-	}
-
-	// set major, minor, and incremental version parts
-	version.Major = major
-	version.Minor = minor
-	version.Incremental = incremental
-	return version
-}
-
-// ParseVersion Parse a version string with major, minor, incremental, and optional qualifier.
-func ParseVersion(version string) (Version, error) {
-	var v Version
-
-	// match a version string with optional qualifier
-	matches := regexp.MustCompile(versionExpression).FindStringSubmatch(version)
-
-	// check if the version string matches the regular expression
-	if matches == nil {
-		return v, fmt.Errorf("invalid version string: %v", version)
-	}
-
-	// set the major, minor, and incremental version parts
-	v.Major = matches[1]
-	v.Minor = matches[2]
-	v.Incremental = matches[3]
-
-	// check if the version string has a qualifier
-	if len(matches) == 5 {
-		v.Qualifier = matches[4]
-	}
-
-	return v, nil
-}
 
 // Register adds a plugin to the global list of all registered plugins.
 func Register(plugin Plugin) {
@@ -332,63 +246,6 @@ func (l Logging) String() string {
 // String representation of a branch type.
 func (b Branch) String() string {
 	return branchNames[b]
-}
-
-// Format a version string with major, minor, incremental, and optionally empty qualifier.
-func (v Version) String() string {
-	if v.Qualifier == noQualifier {
-		return fmt.Sprintf(versionStamp, v.Major, v.Minor, v.Incremental)
-	}
-
-	return fmt.Sprintf(versionStampWithQualifier, v.Major, v.Minor, v.Incremental, v.Qualifier)
-}
-
-// BranchName Create a branch name with a specific version and branch type.
-func (v Version) BranchName(branch Branch) string {
-	return fmt.Sprintf("%v/%v", branch, v)
-}
-
-// Increment Determine next version based on version increment type and next major, minor, and incremental version strings.
-func (current Version) Increment(increment VersionIncrement, nextMajor, nextMinor, nextIncremental string) (Version, error) {
-	switch increment {
-	case Major:
-		return NewVersion(nextMajor, "0", "0", current.Qualifier, increment), nil
-
-	case Minor:
-		return NewVersion(current.Major, nextMinor, "0", current.Qualifier, increment), nil
-
-	case Incremental:
-		return NewVersion(current.Major, current.Minor, nextIncremental, current.Qualifier, increment), nil
-
-	default:
-		return NoVersion, fmt.Errorf("unsupported version increment type: %v", increment)
-	}
-}
-
-// Next Determine the next version based on the current version and the version increment type.
-func (current Version) Next(increment VersionIncrement) (Version, error) {
-	nextMajor, errMajor := strconv.Atoi(current.Major)
-	nextMinor, errMinor := strconv.Atoi(current.Minor)
-	nextIncremental, errIncremental := strconv.Atoi(current.Incremental)
-
-	if errMajor != nil || errMinor != nil || errIncremental != nil {
-		return NoVersion, errors.Join(fmt.Errorf("invalid version parts: %v", current), errMajor, errMinor, errIncremental)
-	}
-
-	nextMajor++
-	nextMinor++
-	nextIncremental++
-	return current.Increment(increment, strconv.Itoa(nextMajor), strconv.Itoa(nextMinor), strconv.Itoa(nextIncremental))
-}
-
-// AddQualifier Add a qualifier to the version.
-func (v Version) AddQualifier(qualifier string) Version {
-	return NewVersion(v.Major, v.Minor, v.Incremental, qualifier, v.VersionIncrement)
-}
-
-// RemoveQualifier Remove the qualifier from the version.
-func (v Version) RemoveQualifier() Version {
-	return NewVersion(v.Major, v.Minor, v.Incremental, noQualifier, v.VersionIncrement)
 }
 
 // Apply suitable settings from the global configuration to the core package.
