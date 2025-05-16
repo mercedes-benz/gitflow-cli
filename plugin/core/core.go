@@ -24,16 +24,6 @@ const (
 	Remote = "origin"
 )
 
-// Logging bit flags for controlling logging behavior for all repository operations.
-const (
-	_ Logging = 1 << iota
-	Off
-	StdErr
-	StdOut
-	CmdLine
-	Output
-)
-
 // Branch types for the Gitflow model on which the workflow automation commands operate.
 const (
 	_ Branch = iota
@@ -54,9 +44,6 @@ const (
 type (
 	// Plugins is the list of all registered plugins.
 	Plugins []Plugin
-
-	// Logging controls logging behavior for all repository operations.
-	Logging int
 
 	// Branch represents branch types in the Gitflow model.
 	Branch int
@@ -81,9 +68,6 @@ type (
 
 // Settings group for the core package.
 const settingsGroup = "core"
-
-// LoggingSetting controls logging behavior for all repository operations.
-const loggingSetting = "logging"
 
 // UndoSetting controls undo-behavior for all local changes in a repository.
 const undoSetting = "undo"
@@ -121,15 +105,6 @@ const (
 	hard          = "--hard"
 )
 
-// LoggingNames maps logging flags to their names.
-var loggingNames = map[Logging]string{
-	Off:     "off",
-	StdErr:  "stderr",
-	StdOut:  "stdout",
-	CmdLine: "cmdline",
-	Output:  "output",
-}
-
 // BranchNames maps branch types to their names.
 var branchNames = map[Branch]string{
 	Production:  "main",
@@ -146,8 +121,6 @@ var branchSettings = map[string]Branch{
 	"hotfix":      Hotfix,
 }
 
-// Internal flags for controlling core package behavior.
-var loggingFlags = StdOut | CmdLine | Output
 var undoChanges = false
 
 // PlugInRegistry is the global list of all registered plugins.
@@ -191,56 +164,6 @@ func ValidateToolsAvailability(tools ...string) error {
 	}
 
 	return nil
-}
-
-// Log a message to Go standard logging based on logging flags and variadic arguments.
-func Log(message ...any) {
-	println := func() {
-		for _, msg := range message {
-			switch msg := msg.(type) {
-			case string:
-				if len(msg) > 0 && (loggingFlags&CmdLine != 0 || loggingFlags&Output != 0) {
-					log.Println(msg)
-				}
-
-			case *exec.Cmd:
-				if msg != nil && len(msg.String()) > 0 && loggingFlags&CmdLine != 0 {
-					log.Println(msg.String())
-				}
-
-			case []byte:
-				if len(msg) > 0 && loggingFlags&Output != 0 {
-					output := strings.TrimRight(string(msg), "\n\r")
-					log.Println(output)
-				}
-
-			case error:
-				if msg != nil && len(msg.Error()) > 0 && loggingFlags&Output != 0 {
-					log.Println(msg.Error())
-				}
-
-			default:
-				if msg != nil && len(fmt.Sprintf("%v", msg)) > 0 && loggingFlags&Output != 0 {
-					log.Println(msg)
-				}
-			}
-		}
-	}
-
-	if loggingFlags&StdErr != 0 {
-		log.SetOutput(os.Stderr)
-		println()
-	}
-
-	if loggingFlags&StdOut != 0 {
-		log.SetOutput(os.Stdout)
-		println()
-	}
-}
-
-// String representation of a logging flag (only one allowed at a time).
-func (l Logging) String() string {
-	return loggingNames[l]
 }
 
 // String representation of a branch type.
