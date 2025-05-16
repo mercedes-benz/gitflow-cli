@@ -43,7 +43,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 			}
 
 			// format start command messages
-			prefix := fmt.Sprintf("%v Plugin Start on branch", plugin.Name()) // todo: replace with String()
+			prefix := fmt.Sprintf("%v Plugin Start on branch", plugin.String())
 			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
 			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
 			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
@@ -159,7 +159,7 @@ func Finish(branch Branch, projectPath string) error {
 
 			// format finish command messages
 			// todo: check if plugin returns a text
-			prefix := fmt.Sprintf("%v Plugin Finish on branch", plugin.Name()) // todo: replace with String()
+			prefix := fmt.Sprintf("%v Plugin Finish on branch", plugin.String()) // todo: replace with String()
 			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
 			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
 			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())

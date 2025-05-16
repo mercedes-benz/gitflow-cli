@@ -30,13 +30,21 @@ func NewPlugin() core.Plugin {
 }
 
 // Name of the mvn plugin.
-const name = "Maven"
+const pluginName = "Maven"
 
-// Precondition file name for mvn projects.
+// Precondition file pluginName for mvn projects.
 const preconditionFile = "pom.xml"
 
 // Snapshot qualifier for mvn projects.
 const snapshotQualifier = "SNAPSHOT"
+
+func (p *mavenPlugin) String() string {
+	return pluginName
+}
+
+func (p *mavenPlugin) SnapshotQualifier() string {
+	return snapshotQualifier
+}
 
 // Maven build tool commands.
 const (
@@ -70,14 +78,6 @@ type mavenPlugin struct {
 	nextIncrementalVersion []string
 	setVersion             []string
 	useReleases            []string
-}
-
-func (p *mavenPlugin) Name() string {
-	return name
-}
-
-func (p *mavenPlugin) SnapshotQualifier() string {
-	return snapshotQualifier
 }
 
 // Check if the plugin can be executed in a project directory.

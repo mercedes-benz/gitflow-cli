@@ -81,17 +81,12 @@ type (
 	// VersionIncrement Type of version increment.
 	VersionIncrement int
 
-	// todo: check if this is still needed
-	//// StartCallback Default callback functions that run custom business logic for release and hotfix branches.
-	//StartCallback  func(repo Repository, args ...any) error
-	//FinishCallback func(repo Repository) error
-
 	// Plugin is the interface for all workflow automation plugins.
 	Plugin interface {
 		Precondition
-		Name() string // todo: replace with String()
 		SnapshotQualifier() string
 		UpdateProjectVersion(next Version) error
+		fmt.Stringer
 	}
 
 	// Precondition is the interface for checking if a plugin can be executed in a project directory.

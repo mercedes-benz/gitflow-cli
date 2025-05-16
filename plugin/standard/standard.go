@@ -21,9 +21,9 @@ func NewPlugin() core.Plugin {
 }
 
 // Name of the standard plugin.
-const name = "Standard"
+const pluginName = "Standard"
 
-// Precondition file name for standard projects.
+// Precondition file pluginName for standard projects.
 const preconditionFile = "version.txt"
 
 // Snapshot qualifier for mvn projects.
@@ -31,18 +31,10 @@ const snapshotQualifier = "dev"
 
 // StandardPlugIn is the plugin for the standard workflow.
 type standardPlugin struct {
-	majorVersion           []string
-	minorVersion           []string
-	incrementalVersion     []string
-	qualifier              []string
-	nextMajorVersion       []string
-	nextMinorVersion       []string
-	nextIncrementalVersion []string
-	setVersion             []string
 }
 
-func (p *standardPlugin) Name() string {
-	return name
+func (p *standardPlugin) String() string {
+	return pluginName
 }
 
 func (p *standardPlugin) SnapshotQualifier() string {
