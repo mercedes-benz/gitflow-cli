@@ -158,8 +158,7 @@ func Finish(branch Branch, projectPath string) error {
 			}
 
 			// format finish command messages
-			// todo: check if plugin returns a text
-			prefix := fmt.Sprintf("%v Plugin Finish on branch", plugin.String()) // todo: replace with String()
+			prefix := fmt.Sprintf("%v Plugin Finish on branch", plugin.String())
 			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
 			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
 			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
@@ -200,6 +199,11 @@ func Finish(branch Branch, projectPath string) error {
 }
 
 func releaseStart(repo Repository, p Plugin, major, minor bool) error {
+
+	if err := p.BeforeReleaseStartHook(); err != nil {
+		return err
+	}
+
 	// check if the repository already has a release branch
 	if found, _, err := repo.HasBranch(Release); err != nil {
 		return err
@@ -261,14 +265,9 @@ func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 		return repo.UndoAllChanges(err)
 	}
 
-	// todo: add hook here
-	// todo: content for mvn plugin
-	/**
-	// execute https://www.mojohaus.org/versions/versions-maven-plugin/use-releases-mojo.html
-	if err := p.updateProjectObjectModelReleases(repo.Local()); err != nil {
+	if err := p.AfterUpdateProjectVersionHook(); err != nil {
 		return repo.UndoAllChanges(err)
 	}
-	*/
 
 	// if not clean: perform a git commit with a commit message because the previous step changed the POM file
 	if err := repo.IsClean(); err != nil {
@@ -341,8 +340,6 @@ func hotfixStart(repo Repository, p Plugin) error {
 	return nil
 }
 
-// todo: p Plugin - all values are nil, why?
-// todo: rename Plugin in Plugin
 // Run the release finish command for the standard workflow.
 func releaseFinish(repo Repository, p Plugin) error {
 	var releaseVersion Version
@@ -439,7 +436,6 @@ func releaseFinish(repo Repository, p Plugin) error {
 	return nil
 }
 
-// todo: p Plugin - alle werte sind nil, warum?
 // Run the release finish command for the standard workflow.
 func hotfixFinish(repo Repository, p Plugin) error {
 	var hotfixVersion Version

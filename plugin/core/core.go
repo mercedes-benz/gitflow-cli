@@ -57,6 +57,12 @@ type (
 		SnapshotQualifier() string
 		UpdateProjectVersion(next Version) error
 		fmt.Stringer
+		Hooks
+	}
+
+	Hooks interface {
+		BeforeReleaseStartHook() error
+		AfterUpdateProjectVersionHook() error
 	}
 
 	// Precondition is the interface for checking if a plugin can be executed in a project directory.

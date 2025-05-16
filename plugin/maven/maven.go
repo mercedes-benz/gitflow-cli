@@ -243,7 +243,6 @@ func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 
 	// update version information
 	versionCommand = exec.Command(core.Maven, append(p.setVersion, fmt.Sprintf(newVersion, next))...)
-	//versionCommand.Dir = projectPath // TODO: maybe can be removed?
 
 	// run mvn to update version information of the mvn project
 	if output, err = versionCommand.CombinedOutput(); err != nil {
@@ -253,24 +252,26 @@ func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 	return nil
 }
 
-// todo: this should be a hook
-//// Replaces any -SNAPSHOT versions with the corresponding release version (if it has been released).
-//func (p *mavenPlugin) updateProjectObjectModelReleases(projectPath string) error {
-//	var err error
-//	var releasesCommand *exec.Cmd
-//	var output []byte
-//
-//	// log human-readable description of the mvn command
-//	defer func() { core.Log(releasesCommand, output, err) }()
-//
-//	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
-//	releasesCommand = exec.Command(core.Maven, p.useReleases...)
-//	releasesCommand.Dir = projectPath
-//
-//	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
-//	if output, err = releasesCommand.CombinedOutput(); err != nil {
-//		return fmt.Errorf("mvn releases update failed with %v: %s", err, output)
-//	}
-//
-//	return nil
-//}
+func (p *mavenPlugin) BeforeReleaseStartHook() error {
+	fmt.Println("Before Release Start Hook")
+	return nil
+}
+
+func (p *mavenPlugin) AfterUpdateProjectVersionHook() error {
+	fmt.Println("After Update Project Version Hook")
+
+	var err error
+	var releasesCommand *exec.Cmd
+	var output []byte
+
+	// log human-readable description of the mvn command
+	defer func() { core.Log(releasesCommand, output, err) }()
+	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
+	releasesCommand = exec.Command(core.Maven, p.useReleases...)
+
+	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
+	if output, err = releasesCommand.CombinedOutput(); err != nil {
+		return fmt.Errorf("mvn releases update failed with %v: %s", err, output)
+	}
+	return nil
+}

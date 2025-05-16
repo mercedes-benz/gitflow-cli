@@ -103,3 +103,13 @@ func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
 
 	return nil
 }
+
+func (p *standardPlugin) BeforeReleaseStartHook() error {
+	fmt.Println("Before Release Start Hook")
+	return nil
+}
+
+func (p *standardPlugin) AfterUpdateProjectVersionHook() error {
+	fmt.Println("After Update Project Version Hook")
+	return nil
+}
