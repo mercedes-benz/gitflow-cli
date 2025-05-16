@@ -41,8 +41,13 @@ func (p *standardPlugin) SnapshotQualifier() string {
 	return snapshotQualifier
 }
 
-// Check if the plugin can be executed in a project directory.
-func (p *standardPlugin) Check(projectPath string) bool {
+// RequiredTools list of required command line tools
+func (p *standardPlugin) RequiredTools() []string {
+	return []string{}
+}
+
+// CheckRequiredFile Check if the plugin can be executed in a project directory.
+func (p *standardPlugin) CheckRequiredFile(projectPath string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
 	return !os.IsNotExist(err)
 }

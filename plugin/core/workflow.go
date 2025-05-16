@@ -26,16 +26,14 @@ func Start(branch Branch, projectPath string, args ...any) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if plugin.Check(projectPath) {
-			// todo: this part can be generalized for both tasks (start and finish)
+		if plugin.CheckRequiredFile(projectPath) {
 			// get access to the local version control system
 			repo := NewRepository(projectPath, Remote)
 
 			// check if required tools are available
-			// todo: solve similar to another hook direct in plugin
-			//if err := ValidateToolsAvailability(tools...); err != nil {
-			//	return err
-			//}
+			if err := ValidateToolsAvailability(plugin.RequiredTools()...); err != nil {
+				return err
+			}
 
 			// check if the repository prerequisites are met
 			if err := repo.IsClean(); err != nil {
@@ -63,8 +61,6 @@ func Start(branch Branch, projectPath string, args ...any) error {
 				}
 
 				// run the release start command
-				// todo: do args optional and generic
-				//if err := start(repo, args[0].(bool), args[1].(bool)); err != nil {
 				if err := releaseStart(repo, plugin, args[0].(bool), args[1].(bool)); err != nil {
 					fmt.Println(failed)
 					return err
@@ -112,7 +108,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	//	}
 	//
 	//	for _, plugin := range pluginRegistry {
-	//		if plugin.Check(projectPath) {
+	//		if plugin.CheckRequiredFile(projectPath) {
 	//			pluginMatched = true
 	//			if err := plugin.Start(branch, projectPath, args...); err != nil {
 	//				return err
@@ -126,7 +122,6 @@ func Start(branch Branch, projectPath string, args ...any) error {
 // Finish executes the first plugin that meets the precondition.
 func Finish(branch Branch, projectPath string) error {
 
-	// todo: begin: maybe generalize as well
 	pluginRegistryLock.Lock()
 	defer pluginRegistryLock.Unlock()
 
@@ -137,20 +132,18 @@ func Finish(branch Branch, projectPath string) error {
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
 		return fmt.Errorf("project path '%v' does not exist", projectPath)
 	}
-	// todo: end: maybe generalize as well
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if plugin.Check(projectPath) {
+		if plugin.CheckRequiredFile(projectPath) {
 
 			// finish the workflow with the selected release business logic
 			repo := NewRepository(projectPath, Remote)
 
 			// check if required tools are available
-			// todo: fix it (create a hook)
-			//if err := ValidateToolsAvailability(tools...); err != nil {
-			//	return err
-			//}
+			if err := ValidateToolsAvailability(plugin.RequiredTools()...); err != nil {
+				return err
+			}
 
 			// check if the repository prerequisites are met
 			if err := repo.IsClean(); err != nil {

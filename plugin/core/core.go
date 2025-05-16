@@ -20,7 +20,6 @@ import (
 // Tools and names required for the workflow automation commands.
 const (
 	Git    = "git"
-	Maven  = "mvn"
 	Remote = "origin"
 )
 
@@ -53,11 +52,11 @@ type (
 
 	// Plugin is the interface for all workflow automation plugins.
 	Plugin interface {
+		Hooks
 		Precondition
 		SnapshotQualifier() string
 		UpdateProjectVersion(next Version) error
 		fmt.Stringer
-		Hooks
 	}
 
 	Hooks interface {
@@ -67,7 +66,8 @@ type (
 
 	// Precondition is the interface for checking if a plugin can be executed in a project directory.
 	Precondition interface {
-		Check(projectPath string) bool
+		CheckRequiredFile(projectPath string) bool
+		RequiredTools() []string
 		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
 	}
 )
@@ -161,9 +161,8 @@ func ValidateArgumentsType(t reflect.Type, args ...any) error {
 }
 
 // ValidateToolsAvailability Check if some tools are available in the system.
-// todo: should be implemented by each plugin
 func ValidateToolsAvailability(tools ...string) error {
-	for _, tool := range tools {
+	for _, tool := range append(tools, Git) {
 		if _, err := exec.LookPath(tool); err != nil {
 			return fmt.Errorf("tool '%v' is not available on the system", tool)
 		}

@@ -38,6 +38,15 @@ const preconditionFile = "pom.xml"
 // Snapshot qualifier for mvn projects.
 const snapshotQualifier = "SNAPSHOT"
 
+const (
+	Maven = "mvn"
+)
+
+// RequiredTools list of required command line tools
+func (p *mavenPlugin) RequiredTools() []string {
+	return []string{Maven}
+}
+
 func (p *mavenPlugin) String() string {
 	return pluginName
 }
@@ -80,8 +89,8 @@ type mavenPlugin struct {
 	useReleases            []string
 }
 
-// Check if the plugin can be executed in a project directory.
-func (p *mavenPlugin) Check(projectPath string) bool {
+// CheckRequiredFile Check if the plugin can be executed in a project directory.
+func (p *mavenPlugin) CheckRequiredFile(projectPath string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
 	return !os.IsNotExist(err)
 }
@@ -95,31 +104,31 @@ func (p *mavenPlugin) Version(projectPath string, major, minor, incremental bool
 	defer func() { core.Log(logs...) }()
 
 	// evaluate the major version of the mvn project
-	majorCommand := exec.Command(core.Maven, p.majorVersion...)
+	majorCommand := exec.Command(Maven, p.majorVersion...)
 	majorCommand.Dir = projectPath
 
 	// evaluate the minor version of the mvn project
-	minorCommand := exec.Command(core.Maven, p.minorVersion...)
+	minorCommand := exec.Command(Maven, p.minorVersion...)
 	minorCommand.Dir = projectPath
 
 	// evaluate the incremental version of the mvn project
-	incrementalCommand := exec.Command(core.Maven, p.incrementalVersion...)
+	incrementalCommand := exec.Command(Maven, p.incrementalVersion...)
 	incrementalCommand.Dir = projectPath
 
 	// evaluate the qualifier of the mvn project
-	qualifierCommand := exec.Command(core.Maven, p.qualifier...)
+	qualifierCommand := exec.Command(Maven, p.qualifier...)
 	qualifierCommand.Dir = projectPath
 
 	// evaluate the next major version of the mvn project
-	nextMajorCommand := exec.Command(core.Maven, p.nextMajorVersion...)
+	nextMajorCommand := exec.Command(Maven, p.nextMajorVersion...)
 	nextMajorCommand.Dir = projectPath
 
 	// evaluate the next minor version of the mvn project
-	nextMinorCommand := exec.Command(core.Maven, p.nextMinorVersion...)
+	nextMinorCommand := exec.Command(Maven, p.nextMinorVersion...)
 	nextMinorCommand.Dir = projectPath
 
 	// evaluate the next incremental version of the mvn project
-	nextIncrementalCommand := exec.Command(core.Maven, p.nextIncrementalVersion...)
+	nextIncrementalCommand := exec.Command(Maven, p.nextIncrementalVersion...)
 	nextIncrementalCommand.Dir = projectPath
 
 	// run mvn to evaluate the major version of the mvn project
@@ -242,7 +251,7 @@ func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 	defer func() { core.Log(versionCommand, output, err) }()
 
 	// update version information
-	versionCommand = exec.Command(core.Maven, append(p.setVersion, fmt.Sprintf(newVersion, next))...)
+	versionCommand = exec.Command(Maven, append(p.setVersion, fmt.Sprintf(newVersion, next))...)
 
 	// run mvn to update version information of the mvn project
 	if output, err = versionCommand.CombinedOutput(); err != nil {
@@ -267,7 +276,7 @@ func (p *mavenPlugin) AfterUpdateProjectVersionHook() error {
 	// log human-readable description of the mvn command
 	defer func() { core.Log(releasesCommand, output, err) }()
 	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
-	releasesCommand = exec.Command(core.Maven, p.useReleases...)
+	releasesCommand = exec.Command(Maven, p.useReleases...)
 
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
 	if output, err = releasesCommand.CombinedOutput(); err != nil {
