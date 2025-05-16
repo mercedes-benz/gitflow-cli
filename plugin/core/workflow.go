@@ -87,6 +87,60 @@ func Start(branch Branch, projectPath string, args ...any) error {
 		}
 	}
 
+	return handleNoPluginPrecondition(branch, projectPath, args)
+
+}
+
+func handleNoPluginPrecondition(branch Branch, projectPath string, args []any) error {
+	repo := NewRepository(projectPath, Remote)
+	switch branch {
+	case Release:
+		if err := repo.CheckoutBranch(Development.String()); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		initVersion := NewVersion("1", "0", "0", "dev")
+
+		if err := os.WriteFile("version.txt", []byte(initVersion.String()), 0644); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		if err := repo.AddFile("version.txt"); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		if err := repo.CommitChanges("Create versions file"); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		if err := Start(branch, projectPath, args); err != nil {
+			return err
+		}
+
+	case Hotfix:
+		if err := repo.CheckoutBranch(Production.String()); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		initVersion := NewVersion("1", "0", "0")
+
+		if err := os.WriteFile("version.txt", []byte(initVersion.String()), 0644); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		if err := repo.AddFile("version.txt"); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		if err := repo.CommitChanges("Create versions file"); err != nil {
+			return repo.UndoAllChanges(err)
+		}
+
+		return nil
+
+	default:
+		return fmt.Errorf("unsupported branch: %v", branch)
+	}
 	return nil
 }
 
