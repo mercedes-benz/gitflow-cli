@@ -110,7 +110,36 @@ func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
 }
 
 func (p *standardPlugin) BeforeReleaseStartHook() error {
-	fmt.Println("Before Release Start Hook")
+
+	// todo: solve as a beforeStartHook
+	//if !pluginMatched {
+	//	repo := NewRepository(projectPath, Remote)
+	//	if err := repo.CheckoutBranch(Development.String()); err != nil {
+	//		return repo.UndoAllChanges(err)
+	//	}
+	//
+	//	initVersion := NewVersion("1", "0", "0", "dev")
+	//	if err := os.WriteFile(defaultVersionFile, []byte(initVersion.String()), 0644); err != nil {
+	//		return repo.UndoAllChanges(err)
+	//	}
+	//
+	//	if err := repo.AddFile(defaultVersionFile); err != nil {
+	//		return repo.UndoAllChanges(err)
+	//	}
+	//
+	//	if err := repo.CommitChanges("Create versions file"); err != nil {
+	//		return repo.UndoAllChanges(err)
+	//	}
+	//
+	//	for _, plugin := range pluginRegistry {
+	//		if plugin.CheckRequiredFile(projectPath) {
+	//			pluginMatched = true
+	//			if err := plugin.Start(branch, projectPath, args...); err != nil {
+	//				return err
+	//			}
+	//		}
+	//	}
+	//}
 	return nil
 }
 
