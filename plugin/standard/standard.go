@@ -109,6 +109,29 @@ func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
 	return nil
 }
 
-func (p *standardPlugin) beforeReleaseStart(repo core.Repository) error {
+func (p *standardPlugin) beforeReleaseStart(repository core.Repository) error {
+	if err := repository.CheckoutBranch(core.Development.String()); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	// Check if a precondition file already exists
+	versionFilePath := filepath.Join(repository.Local(), preconditionFile)
+	if _, err := os.Stat(versionFilePath); err == nil {
+		return nil
+	}
+
+	initVersion := core.NewVersion("1", "0", "0", snapshotQualifier)
+	if err := os.WriteFile(preconditionFile, []byte(initVersion.String()), 0644); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	if err := repository.AddFile(preconditionFile); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	if err := repository.CommitChanges("Create versions file"); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
 	return nil
 }
