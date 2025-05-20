@@ -171,10 +171,6 @@ func executePluginFinish(plugin Plugin, branch Branch, projectPath string) error
 
 func releaseStart(plugin Plugin, repository Repository, major, minor bool) error {
 
-	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.BeforeReleaseStartHook, repository); err != nil {
-		return repository.UndoAllChanges(err)
-	}
-
 	// check if the repository already has a release branch
 	if found, _, err := repository.HasBranch(Release); err != nil {
 		return err
@@ -196,6 +192,10 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 	// checkout develop branch
 	if err := repository.CheckoutBranch(Development.String()); err != nil {
 		return err
+	}
+
+	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.BeforeReleaseStartHook, repository); err != nil {
+		return repository.UndoAllChanges(err)
 	}
 
 	// read out the current and next project version ${major}.${minor}.${increment}-${qualifier}
