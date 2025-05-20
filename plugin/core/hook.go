@@ -37,7 +37,7 @@ func (r *HookRegistry) Register(pluginName string, hookType HookType, fn HookFun
 	r.hooks[hookType][pluginName] = fn
 }
 
-// Execute führt einen Hook aus, wenn er für das angegebene Plugin registriert ist
+// Execute runs a hook if it is registered for the specified plugin
 func (r *HookRegistry) Execute(pluginName string, hookType HookType) error {
 	if fn, ok := r.hooks[hookType][pluginName]; ok {
 		return fn()
