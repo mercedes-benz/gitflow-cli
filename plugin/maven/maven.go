@@ -29,7 +29,7 @@ func NewPlugin() core.Plugin {
 	}
 
 	// Register hooks dynamically for this plugin
-	core.GlobalHooks.Register(pluginName, core.ReleaseStartAfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
+	core.GlobalHooks.Register(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
 
 	return plugin
 }
@@ -268,7 +268,7 @@ func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 
 // afterUpdateProjectVersion is executed after updating the project version
 func (p *mavenPlugin) afterUpdateProjectVersion() error {
-	fmt.Println("After Update Project Version Hook")
+	fmt.Println("AfterHook Update Project Version Hook")
 
 	var err error
 	var releasesCommand *exec.Cmd

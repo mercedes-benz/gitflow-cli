@@ -8,11 +8,15 @@ package core
 // HookType defines the different hook types
 type HookType string
 
-const (
-	ReleaseStartBeforeHook                    HookType = "ReleaseStartBeforeHook"
-	ReleaseStartAfterHook                     HookType = "ReleaseStartAfterHook"
-	ReleaseStartAfterUpdateProjectVersionHook HookType = "ReleaseStartAfterUpdateProjectVersionHook"
-)
+var ReleaseStartHooks = struct {
+	BeforeHook                    HookType
+	AfterHook                     HookType
+	AfterUpdateProjectVersionHook HookType
+}{
+	BeforeHook:                    "ReleaseStart.BeforeHook",
+	AfterHook:                     "ReleaseStart.AfterHook",
+	AfterUpdateProjectVersionHook: "ReleaseStart.AfterUpdateProjectVersionHook",
+}
 
 // HookFunction is the signature for hook functions
 type HookFunction func() error

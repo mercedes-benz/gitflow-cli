@@ -163,7 +163,7 @@ func Finish(branch Branch, projectPath string) error {
 
 func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 
-	if err := GlobalHooks.Execute(p.String(), ReleaseStartBeforeHook); err != nil {
+	if err := GlobalHooks.Execute(p.String(), ReleaseStartHooks.BeforeHook); err != nil {
 		return repo.UndoAllChanges(err)
 	}
 
@@ -228,8 +228,8 @@ func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 		return repo.UndoAllChanges(err)
 	}
 
-	// After updating the project version
-	if err := GlobalHooks.Execute(p.String(), ReleaseStartAfterUpdateProjectVersionHook); err != nil {
+	// AfterHook updating the project version
+	if err := GlobalHooks.Execute(p.String(), ReleaseStartHooks.AfterUpdateProjectVersionHook); err != nil {
 		return repo.UndoAllChanges(err)
 	}
 
@@ -250,7 +250,7 @@ func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 		return err
 	}
 
-	if err := GlobalHooks.Execute(p.String(), ReleaseStartAfterHook); err != nil {
+	if err := GlobalHooks.Execute(p.String(), ReleaseStartHooks.AfterHook); err != nil {
 		return repo.UndoAllChanges(err)
 	}
 
