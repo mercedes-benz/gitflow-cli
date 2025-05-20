@@ -109,6 +109,6 @@ func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
 	return nil
 }
 
-func (p *standardPlugin) beforeReleaseStart() error {
+func (p *standardPlugin) beforeReleaseStart(plugin core.Plugin, repo core.Repository) error {
 	return nil
 }

@@ -8,6 +8,7 @@ package core
 // HookType defines the different hook types
 type HookType string
 
+// ReleaseStartHooks groups all hooks for the ReleaseStart workflow
 var ReleaseStartHooks = struct {
 	BeforeReleaseStartHook        HookType
 	AfterUpdateProjectVersionHook HookType
@@ -17,7 +18,7 @@ var ReleaseStartHooks = struct {
 }
 
 // HookFunction is the signature for hook functions
-type HookFunction func() error
+type HookFunction func(plugin Plugin, repo Repository) error
 
 // HookRegistry manages the registration and execution of hooks
 type HookRegistry struct {
@@ -40,9 +41,9 @@ func (r *HookRegistry) RegisterHook(pluginName string, hookType HookType, fn Hoo
 }
 
 // ExecuteHook runs a hook if it is registered for the specified plugin
-func (r *HookRegistry) ExecuteHook(pluginName string, hookType HookType) error {
+func (r *HookRegistry) ExecuteHook(pluginName string, hookType HookType, plugin Plugin, repository Repository) error {
 	if fn, ok := r.hooks[hookType][pluginName]; ok {
-		return fn()
+		return fn(plugin, repository)
 	}
 	return nil
 }

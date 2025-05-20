@@ -27,16 +27,11 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
 		if plugin.CheckRequiredFile(projectPath) {
-			if err := executePluginStart(plugin, branch, projectPath, args...); err != nil {
-				return err
-			}
+			return executePluginStart(plugin, branch, projectPath, args...)
 		}
 	}
 	// execute fallback plugin
-	if err := executePluginStart(fallbackPlugin, branch, projectPath, args...); err != nil {
-		return err
-	}
-	return nil
+	return executePluginStart(fallbackPlugin, branch, projectPath, args...)
 }
 
 func executePluginStart(plugin Plugin, branch Branch, projectPath string, args ...any) error {
@@ -116,17 +111,11 @@ func Finish(branch Branch, projectPath string) error {
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
 		if plugin.CheckRequiredFile(projectPath) {
-			if err := executePluginFinish(plugin, branch, projectPath); err != nil {
-				return err
-			}
+			return executePluginFinish(plugin, branch, projectPath)
 		}
 	}
 	// execute fallback plugin
-	if err := executePluginFinish(fallbackPlugin, branch, projectPath); err != nil {
-		return err
-	}
-
-	return nil
+	return executePluginFinish(fallbackPlugin, branch, projectPath)
 }
 
 func executePluginFinish(plugin Plugin, branch Branch, projectPath string) error {
@@ -182,7 +171,7 @@ func executePluginFinish(plugin Plugin, branch Branch, projectPath string) error
 
 func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 
-	if err := GlobalHooks.ExecuteHook(p.String(), ReleaseStartHooks.BeforeReleaseStartHook); err != nil {
+	if err := GlobalHooks.ExecuteHook(p.String(), ReleaseStartHooks.BeforeReleaseStartHook, p, repo); err != nil {
 		return repo.UndoAllChanges(err)
 	}
 
@@ -248,7 +237,7 @@ func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 	}
 
 	// AfterHook updating the project version
-	if err := GlobalHooks.ExecuteHook(p.String(), ReleaseStartHooks.AfterUpdateProjectVersionHook); err != nil {
+	if err := GlobalHooks.ExecuteHook(p.String(), ReleaseStartHooks.AfterUpdateProjectVersionHook, p, repo); err != nil {
 		return repo.UndoAllChanges(err)
 	}
 

@@ -34,6 +34,11 @@ func NewPlugin() core.Plugin {
 	return plugin
 }
 
+// RegisterPlugin plugin for the mvn build tool.
+func init() {
+	core.RegisterPlugin(NewPlugin())
+}
+
 // Name of the mvn plugin.
 const pluginName = "Maven"
 
@@ -242,11 +247,6 @@ func (p *mavenPlugin) Version(projectPath string, major, minor, incremental bool
 	return currentVersion, nextVersion, nil
 }
 
-// RegisterPlugin plugin for the mvn build tool.
-func init() {
-	core.RegisterPlugin(NewPlugin())
-}
-
 func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 	var err error
 	var versionCommand *exec.Cmd
@@ -267,7 +267,7 @@ func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 }
 
 // afterUpdateProjectVersion is executed after updating the project version
-func (p *mavenPlugin) afterUpdateProjectVersion() error {
+func (p *mavenPlugin) afterUpdateProjectVersion(plugin core.Plugin, repository core.Repository) error {
 	fmt.Println("AfterHook Update Project Version Hook")
 
 	var err error
@@ -278,6 +278,8 @@ func (p *mavenPlugin) afterUpdateProjectVersion() error {
 	defer func() { core.Log(releasesCommand, output, err) }()
 	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
 	releasesCommand = exec.Command(Maven, p.useReleases...)
+	// todo: implement repository.ProjektPath
+	//releasesCommand.Dir = projectPath
 
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
 	if output, err = releasesCommand.CombinedOutput(); err != nil {
