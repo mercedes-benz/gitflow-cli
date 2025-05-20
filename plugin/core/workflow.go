@@ -32,6 +32,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 			}
 		}
 	}
+	// execute fallback plugin
 	if err := executePluginStart(fallbackPlugin, branch, projectPath, args...); err != nil {
 		return err
 	}
@@ -120,6 +121,7 @@ func Finish(branch Branch, projectPath string) error {
 			}
 		}
 	}
+	// execute fallback plugin
 	if err := executePluginFinish(fallbackPlugin, branch, projectPath); err != nil {
 		return err
 	}
