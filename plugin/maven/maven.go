@@ -16,7 +16,7 @@ import (
 
 // NewPlugin create plugin for the mvn build tool.
 func NewPlugin() core.Plugin {
-	return &mavenPlugin{
+	plugin := &mavenPlugin{
 		majorVersion:           []string{helper, evaluate, fmt.Sprintf(expression, major), quiet, stdout},
 		minorVersion:           []string{helper, evaluate, fmt.Sprintf(expression, minor), quiet, stdout},
 		incrementalVersion:     []string{helper, evaluate, fmt.Sprintf(expression, incremental), quiet, stdout},
@@ -27,6 +27,11 @@ func NewPlugin() core.Plugin {
 		setVersion:             []string{versions, noBackups},
 		useReleases:            []string{releases, noBackups, failNotReplaced},
 	}
+
+	// Register hooks dynamically for this plugin
+	core.GlobalHooks.Register(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
+
+	return plugin
 }
 
 // Name of the mvn plugin.
@@ -261,13 +266,9 @@ func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 	return nil
 }
 
-func (p *mavenPlugin) BeforeReleaseStartHook() error {
-	fmt.Println("Before Release Start Hook")
-	return nil
-}
-
-func (p *mavenPlugin) AfterUpdateProjectVersionHook() error {
-	fmt.Println("After Update Project Version Hook")
+// afterUpdateProjectVersion is executed after updating the project version
+func (p *mavenPlugin) afterUpdateProjectVersion() error {
+	fmt.Println("AfterHook Update Project Version Hook")
 
 	var err error
 	var releasesCommand *exec.Cmd

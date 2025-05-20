@@ -163,8 +163,8 @@ func Finish(branch Branch, projectPath string) error {
 
 func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 
-	if err := p.BeforeReleaseStartHook(); err != nil {
-		return err
+	if err := GlobalHooks.Execute(p.String(), ReleaseStartHooks.BeforeHook); err != nil {
+		return repo.UndoAllChanges(err)
 	}
 
 	// check if the repository already has a release branch
@@ -228,7 +228,8 @@ func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 		return repo.UndoAllChanges(err)
 	}
 
-	if err := p.AfterUpdateProjectVersionHook(); err != nil {
+	// AfterHook updating the project version
+	if err := GlobalHooks.Execute(p.String(), ReleaseStartHooks.AfterUpdateProjectVersionHook); err != nil {
 		return repo.UndoAllChanges(err)
 	}
 
@@ -247,6 +248,10 @@ func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 	// push all branches to remotes
 	if err := repo.PushAllChanges(); err != nil {
 		return err
+	}
+
+	if err := GlobalHooks.Execute(p.String(), ReleaseStartHooks.AfterHook); err != nil {
+		return repo.UndoAllChanges(err)
 	}
 
 	return nil
