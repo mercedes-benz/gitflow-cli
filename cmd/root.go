@@ -33,7 +33,7 @@ func Execute() {
 
 // Initialize Cobra flags and configuration settings.
 func init() {
-	// sets the passed functions to be run when each command's Execute method is called
+	// sets the passed functions to be run when each command's ExecuteHook method is called
 	cobra.OnInitialize(initConfiguration)
 
 	// add subcommands to the root command

@@ -28,10 +28,15 @@ func NewPlugin() core.Plugin {
 		useReleases:            []string{releases, noBackups, failNotReplaced},
 	}
 
-	// Register hooks dynamically for this plugin
-	core.GlobalHooks.Register(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
+	// RegisterPlugin hooks dynamically for this plugin
+	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
 
 	return plugin
+}
+
+// RegisterPlugin plugin for the mvn build tool.
+func init() {
+	core.RegisterPlugin(NewPlugin())
 }
 
 // Name of the mvn plugin.
@@ -242,11 +247,6 @@ func (p *mavenPlugin) Version(projectPath string, major, minor, incremental bool
 	return currentVersion, nextVersion, nil
 }
 
-// Register plugin for the mvn build tool.
-func init() {
-	core.Register(NewPlugin())
-}
-
 func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 	var err error
 	var versionCommand *exec.Cmd
@@ -267,8 +267,8 @@ func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 }
 
 // afterUpdateProjectVersion is executed after updating the project version
-func (p *mavenPlugin) afterUpdateProjectVersion() error {
-	fmt.Println("AfterHook Update Project Version Hook")
+func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) error {
+	fmt.Println("After Update Project Version Hook")
 
 	var err error
 	var releasesCommand *exec.Cmd
@@ -278,6 +278,8 @@ func (p *mavenPlugin) afterUpdateProjectVersion() error {
 	defer func() { core.Log(releasesCommand, output, err) }()
 	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
 	releasesCommand = exec.Command(Maven, p.useReleases...)
+	// todo: implement repository.ProjectPath
+	//releasesCommand.Dir = projectPath
 
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
 	if output, err = releasesCommand.CombinedOutput(); err != nil {

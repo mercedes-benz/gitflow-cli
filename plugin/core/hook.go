@@ -8,18 +8,17 @@ package core
 // HookType defines the different hook types
 type HookType string
 
+// ReleaseStartHooks groups all hooks for the ReleaseStart workflow
 var ReleaseStartHooks = struct {
-	BeforeHook                    HookType
-	AfterHook                     HookType
+	BeforeReleaseStartHook        HookType
 	AfterUpdateProjectVersionHook HookType
 }{
-	BeforeHook:                    "ReleaseStart.BeforeHook",
-	AfterHook:                     "ReleaseStart.AfterHook",
+	BeforeReleaseStartHook:        "ReleaseStart.BeforeReleaseStartHook",
 	AfterUpdateProjectVersionHook: "ReleaseStart.AfterUpdateProjectVersionHook",
 }
 
 // HookFunction is the signature for hook functions
-type HookFunction func() error
+type HookFunction func(repository Repository) error
 
 // HookRegistry manages the registration and execution of hooks
 type HookRegistry struct {
@@ -33,18 +32,18 @@ func NewHookRegistry() *HookRegistry {
 	}
 }
 
-// Register registers a hook callback for a specific hook type
-func (r *HookRegistry) Register(pluginName string, hookType HookType, fn HookFunction) {
+// RegisterHook registers a hook callback for a specific hook type
+func (r *HookRegistry) RegisterHook(pluginName string, hookType HookType, hookFunction HookFunction) {
 	if _, exists := r.hooks[hookType]; !exists {
 		r.hooks[hookType] = make(map[string]HookFunction)
 	}
-	r.hooks[hookType][pluginName] = fn
+	r.hooks[hookType][pluginName] = hookFunction
 }
 
-// Execute runs a hook if it is registered for the specified plugin
-func (r *HookRegistry) Execute(pluginName string, hookType HookType) error {
-	if fn, ok := r.hooks[hookType][pluginName]; ok {
-		return fn()
+// ExecuteHook runs a hook if it is registered for the specified plugin
+func (r *HookRegistry) ExecuteHook(plugin Plugin, hookType HookType, repository Repository) error {
+	if hookFunction, ok := r.hooks[hookType][plugin.String()]; ok {
+		return hookFunction(repository)
 	}
 	return nil
 }

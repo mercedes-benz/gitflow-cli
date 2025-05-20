@@ -126,12 +126,18 @@ var undoChanges = false
 // PluginRegistry is the global list of all registered plugins.
 var pluginRegistry Plugins
 var pluginRegistryLock sync.Mutex
+var fallbackPlugin Plugin
 
-// Register adds a plugin to the global list of all registered plugins.
-func Register(plugin Plugin) {
+// RegisterPlugin adds a plugin to the global list of all registered plugins.
+func RegisterPlugin(plugin Plugin) {
 	pluginRegistryLock.Lock()
 	defer pluginRegistryLock.Unlock()
 	pluginRegistry = append(pluginRegistry, plugin)
+}
+
+// RegisterFallbackPlugin RegisterPlugin adds a fallback plugin
+func RegisterFallbackPlugin(plugin Plugin) {
+	fallbackPlugin = plugin
 }
 
 // ValidateArgumentsLength Check if the number of arguments matches the expected number.
