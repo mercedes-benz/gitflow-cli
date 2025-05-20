@@ -52,16 +52,10 @@ type (
 
 	// Plugin is the interface for all workflow automation plugins.
 	Plugin interface {
-		Hooks
 		Precondition
 		SnapshotQualifier() string
 		UpdateProjectVersion(next Version) error
 		fmt.Stringer
-	}
-
-	Hooks interface {
-		BeforeReleaseStartHook() error
-		AfterUpdateProjectVersionHook() error
 	}
 
 	// Precondition is the interface for checking if a plugin can be executed in a project directory.
@@ -129,7 +123,7 @@ var branchSettings = map[string]Branch{
 
 var undoChanges = false
 
-// PlugInRegistry is the global list of all registered plugins.
+// PluginRegistry is the global list of all registered plugins.
 var pluginRegistry Plugins
 var pluginRegistryLock sync.Mutex
 
