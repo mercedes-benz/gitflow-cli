@@ -18,12 +18,12 @@ import (
 // NewPlugin creates plugin for the standard workflow.
 func NewPlugin() core.Plugin {
 	plugin := &standardPlugin{}
-	core.GlobalHooks.Register(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.beforeHook)
+	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.BeforeReleaseStartHook, plugin.beforeReleaseStart)
 	return plugin
 }
 
 func init() {
-	core.RegisterFallback(NewPlugin())
+	core.RegisterFallbackPlugin(NewPlugin())
 }
 
 // Name of the standard plugin.
@@ -109,6 +109,6 @@ func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
 	return nil
 }
 
-func (p *standardPlugin) beforeHook() error {
+func (p *standardPlugin) beforeReleaseStart() error {
 	return nil
 }

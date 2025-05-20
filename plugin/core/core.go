@@ -128,15 +128,15 @@ var pluginRegistry Plugins
 var pluginRegistryLock sync.Mutex
 var fallbackPlugin Plugin
 
-// Register adds a plugin to the global list of all registered plugins.
-func Register(plugin Plugin) {
+// RegisterPlugin adds a plugin to the global list of all registered plugins.
+func RegisterPlugin(plugin Plugin) {
 	pluginRegistryLock.Lock()
 	defer pluginRegistryLock.Unlock()
 	pluginRegistry = append(pluginRegistry, plugin)
 }
 
-// RegisterFallback Register adds a fallback plugin
-func RegisterFallback(plugin Plugin) {
+// RegisterFallbackPlugin RegisterPlugin adds a fallback plugin
+func RegisterFallbackPlugin(plugin Plugin) {
 	fallbackPlugin = plugin
 }
 

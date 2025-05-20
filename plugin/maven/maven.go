@@ -28,8 +28,8 @@ func NewPlugin() core.Plugin {
 		useReleases:            []string{releases, noBackups, failNotReplaced},
 	}
 
-	// Register hooks dynamically for this plugin
-	core.GlobalHooks.Register(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
+	// RegisterPlugin hooks dynamically for this plugin
+	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
 
 	return plugin
 }
@@ -242,9 +242,9 @@ func (p *mavenPlugin) Version(projectPath string, major, minor, incremental bool
 	return currentVersion, nextVersion, nil
 }
 
-// Register plugin for the mvn build tool.
+// RegisterPlugin plugin for the mvn build tool.
 func init() {
-	core.Register(NewPlugin())
+	core.RegisterPlugin(NewPlugin())
 }
 
 func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {

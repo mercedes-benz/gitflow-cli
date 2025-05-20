@@ -9,12 +9,10 @@ package core
 type HookType string
 
 var ReleaseStartHooks = struct {
-	BeforeHook                    HookType
-	AfterHook                     HookType
+	BeforeReleaseStartHook        HookType
 	AfterUpdateProjectVersionHook HookType
 }{
-	BeforeHook:                    "ReleaseStart.BeforeHook",
-	AfterHook:                     "ReleaseStart.AfterHook",
+	BeforeReleaseStartHook:        "ReleaseStart.BeforeReleaseStartHook",
 	AfterUpdateProjectVersionHook: "ReleaseStart.AfterUpdateProjectVersionHook",
 }
 
@@ -33,16 +31,16 @@ func NewHookRegistry() *HookRegistry {
 	}
 }
 
-// Register registers a hook callback for a specific hook type
-func (r *HookRegistry) Register(pluginName string, hookType HookType, fn HookFunction) {
+// RegisterHook registers a hook callback for a specific hook type
+func (r *HookRegistry) RegisterHook(pluginName string, hookType HookType, fn HookFunction) {
 	if _, exists := r.hooks[hookType]; !exists {
 		r.hooks[hookType] = make(map[string]HookFunction)
 	}
 	r.hooks[hookType][pluginName] = fn
 }
 
-// Execute runs a hook if it is registered for the specified plugin
-func (r *HookRegistry) Execute(pluginName string, hookType HookType) error {
+// ExecuteHook runs a hook if it is registered for the specified plugin
+func (r *HookRegistry) ExecuteHook(pluginName string, hookType HookType) error {
 	if fn, ok := r.hooks[hookType][pluginName]; ok {
 		return fn()
 	}
