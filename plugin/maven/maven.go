@@ -29,7 +29,7 @@ func NewPlugin() core.Plugin {
 	}
 
 	// Register hooks dynamically for this plugin
-	core.GlobalHooks.Register(pluginName, core.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
+	core.GlobalHooks.Register(pluginName, core.ReleaseStartAfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
 
 	return plugin
 }

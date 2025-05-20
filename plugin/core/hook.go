@@ -9,9 +9,9 @@ package core
 type HookType string
 
 const (
-	BeforeReleaseStartHook        HookType = "BeforeReleaseStart"
-	AfterUpdateProjectVersionHook HookType = "AfterUpdateProjectVersion"
-	// Add more hook types here
+	ReleaseStartBeforeHook                    HookType = "ReleaseStartBeforeHook"
+	ReleaseStartAfterHook                     HookType = "ReleaseStartAfterHook"
+	ReleaseStartAfterUpdateProjectVersionHook HookType = "ReleaseStartAfterUpdateProjectVersionHook"
 )
 
 // HookFunction is the signature for hook functions
