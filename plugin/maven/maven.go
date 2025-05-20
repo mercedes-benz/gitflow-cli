@@ -267,8 +267,8 @@ func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
 }
 
 // afterUpdateProjectVersion is executed after updating the project version
-func (p *mavenPlugin) afterUpdateProjectVersion(plugin core.Plugin, repository core.Repository) error {
-	fmt.Println("AfterHook Update Project Version Hook")
+func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) error {
+	fmt.Println("After Update Project Version Hook")
 
 	var err error
 	var releasesCommand *exec.Cmd

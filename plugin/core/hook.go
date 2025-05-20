@@ -18,7 +18,7 @@ var ReleaseStartHooks = struct {
 }
 
 // HookFunction is the signature for hook functions
-type HookFunction func(plugin Plugin, repo Repository) error
+type HookFunction func(repository Repository) error
 
 // HookRegistry manages the registration and execution of hooks
 type HookRegistry struct {
@@ -33,17 +33,17 @@ func NewHookRegistry() *HookRegistry {
 }
 
 // RegisterHook registers a hook callback for a specific hook type
-func (r *HookRegistry) RegisterHook(pluginName string, hookType HookType, fn HookFunction) {
+func (r *HookRegistry) RegisterHook(pluginName string, hookType HookType, hookFunction HookFunction) {
 	if _, exists := r.hooks[hookType]; !exists {
 		r.hooks[hookType] = make(map[string]HookFunction)
 	}
-	r.hooks[hookType][pluginName] = fn
+	r.hooks[hookType][pluginName] = hookFunction
 }
 
 // ExecuteHook runs a hook if it is registered for the specified plugin
-func (r *HookRegistry) ExecuteHook(pluginName string, hookType HookType, plugin Plugin, repository Repository) error {
-	if fn, ok := r.hooks[hookType][pluginName]; ok {
-		return fn(plugin, repository)
+func (r *HookRegistry) ExecuteHook(plugin Plugin, hookType HookType, repository Repository) error {
+	if fn, ok := r.hooks[hookType][plugin.String()]; ok {
+		return fn(repository)
 	}
 	return nil
 }
