@@ -163,11 +163,8 @@ func Finish(branch Branch, projectPath string) error {
 
 func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 
-	// Before updating the project version
-	if GlobalHooks.HasHook(p.String(), BeforeReleaseStartHook) {
-		if err := GlobalHooks.Execute(p.String(), BeforeReleaseStartHook); err != nil {
-			return repo.UndoAllChanges(err)
-		}
+	if err := GlobalHooks.Execute(p.String(), BeforeReleaseStartHook); err != nil {
+		return repo.UndoAllChanges(err)
 	}
 
 	// check if the repository already has a release branch
@@ -232,10 +229,8 @@ func releaseStart(repo Repository, p Plugin, major, minor bool) error {
 	}
 
 	// After updating the project version
-	if GlobalHooks.HasHook(p.String(), AfterUpdateProjectVersionHook) {
-		if err := GlobalHooks.Execute(p.String(), AfterUpdateProjectVersionHook); err != nil {
-			return repo.UndoAllChanges(err)
-		}
+	if err := GlobalHooks.Execute(p.String(), AfterUpdateProjectVersionHook); err != nil {
+		return repo.UndoAllChanges(err)
 	}
 
 	// if not clean: perform a git commit with a commit message because the previous step changed the POM file

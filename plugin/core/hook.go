@@ -37,7 +37,7 @@ func (r *HookRegistry) Register(pluginName string, hookType HookType, fn HookFun
 	r.hooks[hookType][pluginName] = fn
 }
 
-// Execute executes the registered hook of a specific type for a specific plugin
+// Execute tries to execute a hook if it exists, returns nil if no hook is registered
 func (r *HookRegistry) Execute(pluginName string, hookType HookType) error {
 	if handlers, exists := r.hooks[hookType]; exists {
 		if fn, ok := handlers[pluginName]; ok {
@@ -45,15 +45,6 @@ func (r *HookRegistry) Execute(pluginName string, hookType HookType) error {
 		}
 	}
 	return nil
-}
-
-// HasHook checks if a hook of a specific type is registered for a plugin
-func (r *HookRegistry) HasHook(pluginName string, hookType HookType) bool {
-	if handlers, exists := r.hooks[hookType]; exists {
-		_, ok := handlers[pluginName]
-		return ok
-	}
-	return false
 }
 
 // GlobalHooks is the global hook registry
