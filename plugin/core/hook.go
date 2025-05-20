@@ -42,8 +42,8 @@ func (r *HookRegistry) RegisterHook(pluginName string, hookType HookType, hookFu
 
 // ExecuteHook runs a hook if it is registered for the specified plugin
 func (r *HookRegistry) ExecuteHook(plugin Plugin, hookType HookType, repository Repository) error {
-	if fn, ok := r.hooks[hookType][plugin.String()]; ok {
-		return fn(repository)
+	if hookFunction, ok := r.hooks[hookType][plugin.String()]; ok {
+		return hookFunction(repository)
 	}
 	return nil
 }
