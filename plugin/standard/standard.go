@@ -15,9 +15,15 @@ import (
 	"github.com/mercedes-benz/gitflow-cli/plugin/core"
 )
 
-// NewPlugin Create plugin for the standard workflow.
+// NewPlugin creates plugin for the standard workflow.
 func NewPlugin() core.Plugin {
-	return &standardPlugin{}
+	plugin := &standardPlugin{}
+	core.GlobalHooks.Register(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.beforeHook)
+	return plugin
+}
+
+func init() {
+	core.RegisterFallback(NewPlugin())
 }
 
 // Name of the standard plugin.
@@ -29,7 +35,7 @@ const preconditionFile = "version.txt"
 // Snapshot qualifier for mvn projects.
 const snapshotQualifier = "dev"
 
-// StandardPlugIn is the plugin for the standard workflow.
+// standardPlugin is the plugin for the standard workflow.
 type standardPlugin struct {
 }
 
@@ -41,12 +47,12 @@ func (p *standardPlugin) SnapshotQualifier() string {
 	return snapshotQualifier
 }
 
-// RequiredTools list of required command line tools
+// RequiredTools returns list of required command line tools.
 func (p *standardPlugin) RequiredTools() []string {
 	return []string{}
 }
 
-// CheckRequiredFile Check if the plugin can be executed in a project directory.
+// CheckRequiredFile checks if the plugin can be executed in a project directory.
 func (p *standardPlugin) CheckRequiredFile(projectPath string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
 	return !os.IsNotExist(err)
@@ -94,17 +100,15 @@ func (p *standardPlugin) Version(projectPath string, major, minor, incremental b
 	return currentVersion, nextVersion, errors.Join(errMajor, errMinor, errIncremental)
 }
 
-// Register plugin for the standard workflow.
-func init() {
-	core.Register(NewPlugin())
-}
-
-// UpdateProjectVersion Sets the project's version
+// UpdateProjectVersion updates the project's version
 func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
-
 	if err := os.WriteFile(preconditionFile, []byte(next.String()), 0644); err != nil {
 		return fmt.Errorf("failed to write in file %v next project version %v", preconditionFile, next.String())
 	}
 
+	return nil
+}
+
+func (p *standardPlugin) beforeHook() error {
 	return nil
 }

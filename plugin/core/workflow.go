@@ -27,66 +27,75 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
 		if plugin.CheckRequiredFile(projectPath) {
-			// get access to the local version control system
-			repo := NewRepository(projectPath, Remote)
-
-			// check if required tools are available
-			if err := ValidateToolsAvailability(plugin.RequiredTools()...); err != nil {
+			if err := executePluginStart(plugin, branch, projectPath, args...); err != nil {
 				return err
-			}
-
-			// check if the repository prerequisites are met
-			if err := repo.IsClean(); err != nil {
-				return err
-			}
-
-			// format start command messages
-			prefix := fmt.Sprintf("%v Plugin Start on branch", plugin.String())
-			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
-			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
-			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
-
-			switch branch {
-			case Release:
-				fmt.Println(called)
-
-				// start command requires two arguments 'major' and 'minor'
-				if err := ValidateArgumentsLength(2, args...); err != nil {
-					return err
-				}
-
-				// start command requires all arguments to be of type bool
-				if err := ValidateArgumentsType(reflect.TypeOf(true), args...); err != nil {
-					return err
-				}
-
-				// run the release start command
-				if err := releaseStart(repo, plugin, args[0].(bool), args[1].(bool)); err != nil {
-					fmt.Println(failed)
-					return err
-				}
-
-				fmt.Println(completed)
-				return nil
-
-			case Hotfix:
-				fmt.Println(called)
-
-				// run the hotfix start command
-				if err := hotfixStart(repo, plugin); err != nil {
-					fmt.Println(failed)
-					return err
-				}
-
-				fmt.Println(completed)
-				return nil
-
-			default:
-				return fmt.Errorf("unsupported branch: %v", branch)
 			}
 		}
 	}
+	if err := executePluginStart(fallbackPlugin, branch, projectPath, args...); err != nil {
+		return err
+	}
 	return nil
+}
+
+func executePluginStart(plugin Plugin, branch Branch, projectPath string, args ...any) error {
+	// get access to the local version control system
+	repo := NewRepository(projectPath, Remote)
+
+	// check if required tools are available
+	if err := ValidateToolsAvailability(plugin.RequiredTools()...); err != nil {
+		return err
+	}
+
+	// check if the repository prerequisites are met
+	if err := repo.IsClean(); err != nil {
+		return err
+	}
+
+	// format start command messages
+	prefix := fmt.Sprintf("%v Plugin Start on branch", plugin.String())
+	called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
+	completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
+	failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
+
+	switch branch {
+	case Release:
+		fmt.Println(called)
+
+		// start command requires two arguments 'major' and 'minor'
+		if err := ValidateArgumentsLength(2, args...); err != nil {
+			return err
+		}
+
+		// start command requires all arguments to be of type bool
+		if err := ValidateArgumentsType(reflect.TypeOf(true), args...); err != nil {
+			return err
+		}
+
+		// run the release start command
+		if err := releaseStart(repo, plugin, args[0].(bool), args[1].(bool)); err != nil {
+			fmt.Println(failed)
+			return err
+		}
+
+		fmt.Println(completed)
+		return nil
+
+	case Hotfix:
+		fmt.Println(called)
+
+		// run the hotfix start command
+		if err := hotfixStart(repo, plugin); err != nil {
+			fmt.Println(failed)
+			return err
+		}
+
+		fmt.Println(completed)
+		return nil
+
+	default:
+		return fmt.Errorf("unsupported branch: %v", branch)
+	}
 }
 
 // Finish executes the first plugin that meets the precondition.
@@ -106,59 +115,67 @@ func Finish(branch Branch, projectPath string) error {
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
 		if plugin.CheckRequiredFile(projectPath) {
-
-			// finish the workflow with the selected release business logic
-			repo := NewRepository(projectPath, Remote)
-
-			// check if required tools are available
-			if err := ValidateToolsAvailability(plugin.RequiredTools()...); err != nil {
+			if err := executePluginFinish(plugin, branch, projectPath); err != nil {
 				return err
-			}
-
-			// check if the repository prerequisites are met
-			if err := repo.IsClean(); err != nil {
-				return err
-			}
-
-			// format finish command messages
-			prefix := fmt.Sprintf("%v Plugin Finish on branch", plugin.String())
-			called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
-			completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
-			failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
-
-			fmt.Println(called)
-
-			// select suitable business logic for the branch
-			switch branch {
-			case Release:
-
-				// run the release finish command
-				if err := releaseFinish(repo, plugin); err != nil {
-					fmt.Println(failed)
-					return err
-				}
-
-				fmt.Println(completed)
-				return nil
-
-			case Hotfix:
-
-				// run the hotfix finish command
-				if err := hotfixFinish(repo, plugin); err != nil {
-					fmt.Println(failed)
-					return err
-				}
-
-				fmt.Println(completed)
-				return nil
-
-			default:
-				return fmt.Errorf("unsupported branch: %v", branch)
 			}
 		}
 	}
+	if err := executePluginFinish(fallbackPlugin, branch, projectPath); err != nil {
+		return err
+	}
 
-	return fmt.Errorf("no plugin meets the precondition for branch '%v' and project path '%v'", branch, projectPath)
+	return nil
+}
+
+func executePluginFinish(plugin Plugin, branch Branch, projectPath string) error {
+	// finish the workflow with the selected release business logic
+	repo := NewRepository(projectPath, Remote)
+
+	// check if required tools are available
+	if err := ValidateToolsAvailability(plugin.RequiredTools()...); err != nil {
+		return err
+	}
+
+	// check if the repository prerequisites are met
+	if err := repo.IsClean(); err != nil {
+		return err
+	}
+
+	// format finish command messages
+	prefix := fmt.Sprintf("%v Plugin Finish on branch", plugin.String())
+	called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repo.Local())
+	completed := fmt.Sprintf("%v %v completed: %v", prefix, branch, repo.Local())
+	failed := fmt.Sprintf("%v %v failed: %v", prefix, branch, repo.Local())
+
+	fmt.Println(called)
+
+	// select suitable business logic for the branch
+	switch branch {
+	case Release:
+
+		// run the release finish command
+		if err := releaseFinish(repo, plugin); err != nil {
+			fmt.Println(failed)
+			return err
+		}
+
+		fmt.Println(completed)
+		return nil
+
+	case Hotfix:
+
+		// run the hotfix finish command
+		if err := hotfixFinish(repo, plugin); err != nil {
+			fmt.Println(failed)
+			return err
+		}
+
+		fmt.Println(completed)
+		return nil
+
+	default:
+		return fmt.Errorf("unsupported branch: %v", branch)
+	}
 }
 
 func releaseStart(repo Repository, p Plugin, major, minor bool) error {
