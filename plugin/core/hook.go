@@ -37,12 +37,10 @@ func (r *HookRegistry) Register(pluginName string, hookType HookType, fn HookFun
 	r.hooks[hookType][pluginName] = fn
 }
 
-// Execute tries to execute a hook if it exists, returns nil if no hook is registered
+// Execute führt einen Hook aus, wenn er für das angegebene Plugin registriert ist
 func (r *HookRegistry) Execute(pluginName string, hookType HookType) error {
-	if handlers, exists := r.hooks[hookType]; exists {
-		if fn, ok := handlers[pluginName]; ok {
-			return fn()
-		}
+	if fn, ok := r.hooks[hookType][pluginName]; ok {
+		return fn()
 	}
 	return nil
 }
