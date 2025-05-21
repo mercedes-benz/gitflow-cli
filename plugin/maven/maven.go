@@ -278,8 +278,7 @@ func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) erro
 	defer func() { core.Log(releasesCommand, output, err) }()
 	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
 	releasesCommand = exec.Command(Maven, p.useReleases...)
-	// todo: implement repository.ProjectPath
-	//releasesCommand.Dir = projectPath
+	releasesCommand.Dir = repository.Local()
 
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
 	if output, err = releasesCommand.CombinedOutput(); err != nil {
