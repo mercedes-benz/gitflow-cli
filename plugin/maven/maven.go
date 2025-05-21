@@ -61,6 +61,10 @@ func (p *mavenPlugin) String() string {
 	return pluginName
 }
 
+func (p *mavenPlugin) PreconditionFile() string {
+	return preconditionFile
+}
+
 func (p *mavenPlugin) SnapshotQualifier() string {
 	return snapshotQualifier
 }
@@ -99,8 +103,8 @@ type mavenPlugin struct {
 	useReleases            []string
 }
 
-// CheckRequiredFile Check if the plugin can be executed in a project directory.
-func (p *mavenPlugin) CheckRequiredFile(projectPath string) bool {
+// CheckPreconditionFile Check if the plugin can be executed in a project directory.
+func (p *mavenPlugin) CheckPreconditionFile(projectPath string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
 	return !os.IsNotExist(err)
 }
@@ -278,8 +282,7 @@ func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) erro
 	defer func() { core.Log(releasesCommand, output, err) }()
 	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
 	releasesCommand = exec.Command(Maven, p.useReleases...)
-	// todo: implement repository.ProjectPath
-	//releasesCommand.Dir = projectPath
+	releasesCommand.Dir = repository.Local()
 
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
 	if output, err = releasesCommand.CombinedOutput(); err != nil {

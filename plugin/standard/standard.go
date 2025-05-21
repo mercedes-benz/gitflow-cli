@@ -19,6 +19,7 @@ import (
 func NewPlugin() core.Plugin {
 	plugin := &standardPlugin{}
 	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.BeforeReleaseStartHook, plugin.beforeReleaseStart)
+	core.GlobalHooks.RegisterHook(pluginName, core.HotfixStartHooks.BeforeHotfixStartHook, plugin.beforeHotfixStart)
 	return plugin
 }
 
@@ -43,6 +44,10 @@ func (p *standardPlugin) String() string {
 	return pluginName
 }
 
+func (p *standardPlugin) PreconditionFile() string {
+	return preconditionFile
+}
+
 func (p *standardPlugin) SnapshotQualifier() string {
 	return snapshotQualifier
 }
@@ -52,8 +57,8 @@ func (p *standardPlugin) RequiredTools() []string {
 	return []string{}
 }
 
-// CheckRequiredFile checks if the plugin can be executed in a project directory.
-func (p *standardPlugin) CheckRequiredFile(projectPath string) bool {
+// CheckPreconditionFile checks if the plugin can be executed in a project directory.
+func (p *standardPlugin) CheckPreconditionFile(projectPath string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
 	return !os.IsNotExist(err)
 }
@@ -121,6 +126,33 @@ func (p *standardPlugin) beforeReleaseStart(repository core.Repository) error {
 	}
 
 	initVersion := core.NewVersion("1", "0", "0", snapshotQualifier)
+	if err := os.WriteFile(preconditionFile, []byte(initVersion.String()), 0644); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	if err := repository.AddFile(preconditionFile); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	if err := repository.CommitChanges("Create versions file"); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	return nil
+}
+
+func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
+	if err := repository.CheckoutBranch(core.Production.String()); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	// Check if a precondition file already exists
+	versionFilePath := filepath.Join(repository.Local(), preconditionFile)
+	if _, err := os.Stat(versionFilePath); err == nil {
+		return nil
+	}
+
+	initVersion := core.NewVersion("1", "0", "0")
 	if err := os.WriteFile(preconditionFile, []byte(initVersion.String()), 0644); err != nil {
 		return repository.UndoAllChanges(err)
 	}

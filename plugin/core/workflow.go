@@ -26,7 +26,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if plugin.CheckRequiredFile(projectPath) {
+		if plugin.CheckPreconditionFile(projectPath) {
 			return executePluginStart(plugin, branch, projectPath, args...)
 		}
 	}
@@ -110,7 +110,7 @@ func Finish(branch Branch, projectPath string) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if plugin.CheckRequiredFile(projectPath) {
+		if plugin.CheckPreconditionFile(projectPath) {
 			return executePluginFinish(plugin, branch, projectPath)
 		}
 	}
@@ -180,7 +180,7 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 			Release, Release)
 	}
 
-	// check if the repository has a develop branch // todo: has remote branch?
+	// check if the repository has a develop branch
 	if found, _, err := repository.HasBranch(Development); err != nil {
 		return err
 	} else if !found {
@@ -274,6 +274,10 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	// checkout production branch
 	if err := repository.CheckoutBranch(Production.String()); err != nil {
 		return err
+	}
+
+	if err := GlobalHooks.ExecuteHook(plugin, HotfixStartHooks.BeforeHotfixStartHook, repository); err != nil {
+		return repository.UndoAllChanges(err)
 	}
 
 	// read out the current and next project version ${major}.${minor}.${increment}-${qualifier}
@@ -459,36 +463,32 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// in order to avoid merge conflicts, set and commit pom.xml project version in develop branch equal
-	// with current hotfix branch and remember its commit hash (or find a better solution)
-	if currentVersion, _, err := plugin.Version(repository.Local(), false, false, false); err != nil {
-		return repository.UndoAllChanges(err)
+	// merge hotfix branch into current develop branch (mit --no-ff Flag)
+	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
+		if repository.HasConflicts() {
+			if err := repository.CheckoutFile(plugin.PreconditionFile()); err != nil {
+				return repository.UndoAllChanges(err)
+			}
+
+			if err := repository.AddFile(plugin.PreconditionFile()); err != nil {
+				return repository.UndoAllChanges(err)
+			}
+
+			if err := repository.ContinueMerge(); err != nil {
+				return repository.UndoAllChanges(err)
+			}
+		} else {
+			return repository.UndoAllChanges(err)
+		}
 	} else {
-		// update project version to ${major}.${minor}.${increment + 1} (means: hotfix branch version)
-		if err := plugin.UpdateProjectVersion(hotfixVersion); err != nil {
+		// if required file does not exist
+		if _, next, err := plugin.Version(repository.Local(), false, true, false); err != nil {
+			return repository.UndoAllChanges(err)
+		} else if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.SnapshotQualifier())); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 
-		// perform a git commit with a commit message
-		if err := repository.CommitChanges("Set hotfix version to avoid merge conflict."); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		// merge hotfix branch into current develop branch (with merge commit --no-ff git flag)
-		if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		// remove previous commit with remembered commit hash, since it was committed just in order
-		// to avoid merge conflicts (or find a better solution)
-		// change version im develop Branch to the previous snapshot version (or find a better solution)
-		// but at the end the project version in develop branch should remain the same as before hotfix merge
-		if err := plugin.UpdateProjectVersion(currentVersion); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		// perform a git commit with a commit message
-		if err := repository.CommitChanges("Set version back to project version before hotfix merge."); err != nil {
+		if err := repository.CommitChanges("Set next minor project version."); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 	}

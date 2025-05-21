@@ -13,8 +13,15 @@ var ReleaseStartHooks = struct {
 	BeforeReleaseStartHook        HookType
 	AfterUpdateProjectVersionHook HookType
 }{
-	BeforeReleaseStartHook:        "ReleaseStart.BeforeReleaseStartHook",
-	AfterUpdateProjectVersionHook: "ReleaseStart.AfterUpdateProjectVersionHook",
+	BeforeReleaseStartHook:        "ReleaseStart_BeforeReleaseStartHook",
+	AfterUpdateProjectVersionHook: "ReleaseStart_AfterUpdateProjectVersionHook",
+}
+
+// HotfixStartHooks groups all hooks for the HotfixStart workflow
+var HotfixStartHooks = struct {
+	BeforeHotfixStartHook HookType
+}{
+	BeforeHotfixStartHook: "HotfixStart_BeforeHotfixStartHook",
 }
 
 // HookFunction is the signature for hook functions
