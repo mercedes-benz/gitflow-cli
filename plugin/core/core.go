@@ -60,7 +60,8 @@ type (
 
 	// Precondition is the interface for checking if a plugin can be executed in a project directory.
 	Precondition interface {
-		CheckRequiredFile(projectPath string) bool
+		PreconditionFile() string
+		CheckPreconditionFile(projectPath string) bool
 		RequiredTools() []string
 		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
 	}

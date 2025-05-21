@@ -26,7 +26,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if plugin.CheckRequiredFile(projectPath) {
+		if plugin.CheckPreconditionFile(projectPath) {
 			return executePluginStart(plugin, branch, projectPath, args...)
 		}
 	}
@@ -110,7 +110,7 @@ func Finish(branch Branch, projectPath string) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if plugin.CheckRequiredFile(projectPath) {
+		if plugin.CheckPreconditionFile(projectPath) {
 			return executePluginFinish(plugin, branch, projectPath)
 		}
 	}
@@ -466,11 +466,11 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 	// merge hotfix branch into current develop branch (mit --no-ff Flag)
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
 		if repository.HasConflicts() {
-			if err := repository.CheckoutFile("version.txt"); err != nil {
+			if err := repository.CheckoutFile(plugin.PreconditionFile()); err != nil {
 				return repository.UndoAllChanges(err)
 			}
 
-			if err := repository.AddFile("version.txt"); err != nil {
+			if err := repository.AddFile(plugin.PreconditionFile()); err != nil {
 				return repository.UndoAllChanges(err)
 			}
 
@@ -478,6 +478,17 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 				return repository.UndoAllChanges(err)
 			}
 		} else {
+			return repository.UndoAllChanges(err)
+		}
+	} else {
+		// if required file does not exist
+		if _, next, err := plugin.Version(repository.Local(), false, true, false); err != nil {
+			return repository.UndoAllChanges(err)
+		} else if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.SnapshotQualifier())); err != nil {
+			return repository.UndoAllChanges(err)
+		}
+
+		if err := repository.CommitChanges("Set next minor project version."); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 	}

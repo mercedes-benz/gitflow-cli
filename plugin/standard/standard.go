@@ -44,6 +44,10 @@ func (p *standardPlugin) String() string {
 	return pluginName
 }
 
+func (p *standardPlugin) PreconditionFile() string {
+	return preconditionFile
+}
+
 func (p *standardPlugin) SnapshotQualifier() string {
 	return snapshotQualifier
 }
@@ -53,8 +57,8 @@ func (p *standardPlugin) RequiredTools() []string {
 	return []string{}
 }
 
-// CheckRequiredFile checks if the plugin can be executed in a project directory.
-func (p *standardPlugin) CheckRequiredFile(projectPath string) bool {
+// CheckPreconditionFile checks if the plugin can be executed in a project directory.
+func (p *standardPlugin) CheckPreconditionFile(projectPath string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
 	return !os.IsNotExist(err)
 }
