@@ -463,35 +463,23 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	if plugin.CheckRequiredFile(repository.Local()) {
-		// update project version to current hotfix version to avoid merge commits
-		if err := plugin.UpdateProjectVersion(hotfixVersion); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		// perform a git commit with a commit message
-		if err := repository.CommitChanges("Set hotfix version to avoid merge conflict."); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-	}
-
-	// merge hotfix branch into current develop branch (with merge commit --no-ff git flag)
+	// merge hotfix branch into current develop branch (mit --no-ff Flag)
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
-		return repository.UndoAllChanges(err)
-	}
+		if repository.HasConflicts() {
+			if err := repository.CheckoutFile("version.txt"); err != nil {
+				return repository.UndoAllChanges(err)
+			}
 
-	// set development version to the next minor version
-	if nextVersion, err := hotfixVersion.Next(Minor); err != nil {
-		return repository.UndoAllChanges(err)
-	} else {
-		if err := plugin.UpdateProjectVersion(nextVersion); err != nil {
+			if err := repository.AddFile("version.txt"); err != nil {
+				return repository.UndoAllChanges(err)
+			}
+
+			if err := repository.ContinueMerge(); err != nil {
+				return repository.UndoAllChanges(err)
+			}
+		} else {
 			return repository.UndoAllChanges(err)
 		}
-	}
-
-	// perform a git commit with a commit message
-	if err := repository.CommitChanges("Set version back to project version before hotfix merge."); err != nil {
-		return repository.UndoAllChanges(err)
 	}
 
 	// delete the release branch locally

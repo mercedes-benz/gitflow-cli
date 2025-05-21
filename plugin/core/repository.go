@@ -19,6 +19,9 @@ type (
 		IsClean() error
 		HasBranch(branch Branch) (bool, []string, error)
 		CheckoutBranch(branchName string) error
+		CheckoutFile(fileName string) error
+		HasConflicts() bool
+		ContinueMerge() error
 		CreateBranch(branchName string) error
 		MergeBranch(branchName string, mergeType MergeType) error
 		PullBranch(branchName string) error
@@ -88,6 +91,43 @@ func NewRepository(projectPath, remote string) Repository {
 // Local Return the local path of the repository.
 func (r *repository) Local() string {
 	return r.projectPath
+}
+
+func (r *repository) HasConflicts() bool {
+	cmd := exec.Command("git", "diff", "--name-only", "--diff-filter=U")
+	cmd.Dir = r.projectPath
+	output, err := cmd.Output()
+
+	if err != nil {
+		return false
+	}
+
+	return len(output) > 0
+}
+
+func (r *repository) CheckoutFile(fileName string) error {
+	var err error
+	var checkout *exec.Cmd
+	var output []byte
+
+	// log human-readable description of the git command
+	defer func() { Log(checkout, output, err) }()
+
+	checkout = exec.Command(Git, "checkout", "--ours", fileName)
+	checkout.Dir = r.projectPath
+
+	if output, err = checkout.CombinedOutput(); err != nil {
+		return fmt.Errorf("git checkout file '%v' failed with %v: %s", fileName, err, output)
+	}
+
+	return nil
+}
+
+func (r *repository) ContinueMerge() error {
+	cmd := exec.Command("git", "commit", "--no-edit")
+	cmd.Dir = r.projectPath
+
+	return cmd.Run()
 }
 
 // IsClean Check if the repository under the project path is clean.
