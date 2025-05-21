@@ -84,11 +84,13 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 
 #### Available Plugins
 
-| Plugin       | Description                                                 | Required File  | Status                                                             |
-|--------------|-------------------------------------------------------------|----------------|--------------------------------------------------------------------|
-| **standard** | Plugin for projects without a predefined technology stack.  | `version.txt`  | ![implemented](https://img.shields.io/badge/implemented-darkgreen) |
-| **maven**    | Plugin for [maven](https://maven.apache.org) projects.      | `pom.xml`      | ![implemented](https://img.shields.io/badge/implemented-darkgreen) |
-| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.          | `package.json` | ![planned](https://img.shields.io/badge/planned-yellow)            |
+| Plugin       | Description                                                | Required File  | Status                                                             |
+|--------------|------------------------------------------------------------|----------------|--------------------------------------------------------------------|
+| **standard** | Plugin for projects without a predefined technology stack. | `version.txt`  | ![implemented](https://img.shields.io/badge/implemented-darkgreen) |
+| **maven**    | Plugin for [maven](https://maven.apache.org) projects.     | `pom.xml`      | ![implemented](https://img.shields.io/badge/implemented-darkgreen) |
+| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.         | `package.json` | ![planned](https://img.shields.io/badge/planned-yellow)            |
+
+**Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
 
 ## Configuration
 
@@ -135,4 +137,4 @@ Please visit <https://www.mercedes-benz-techinnovation.com/en/imprint/> for info
 
 Notice: Before you use the program in productive use, please take all necessary precautions,
 e.g. testing and verifying the program with regard to your specific use.
-The source code has been tested solely for our own use cases, which might differ from yours. 
+The source code has been tested solely for our own use cases, which might differ from yours.
