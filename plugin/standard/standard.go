@@ -28,14 +28,11 @@ func init() {
 	core.RegisterFallbackPlugin(NewPlugin())
 }
 
-// Name of the standard plugin.
 const pluginName = "Standard"
 
-// Precondition file pluginName for standard projects.
-const preconditionFile = "version.txt"
+const versionFile = "version.txt"
 
-// Snapshot qualifier for mvn projects.
-const snapshotQualifier = "dev"
+const versionQualifier = "dev"
 
 // standardPlugin is the plugin for the standard workflow.
 type standardPlugin struct {
@@ -45,12 +42,12 @@ func (p *standardPlugin) String() string {
 	return pluginName
 }
 
-func (p *standardPlugin) PreconditionFile() string {
-	return preconditionFile
+func (p *standardPlugin) VersionFile() string {
+	return versionFile
 }
 
-func (p *standardPlugin) SnapshotQualifier() string {
-	return snapshotQualifier
+func (p *standardPlugin) VersionQualifier() string {
+	return versionQualifier
 }
 
 // RequiredTools returns list of required command line tools.
@@ -58,9 +55,9 @@ func (p *standardPlugin) RequiredTools() []string {
 	return []string{}
 }
 
-// CheckPreconditionFile checks if the plugin can be executed in a project directory.
-func (p *standardPlugin) CheckPreconditionFile(projectPath string) bool {
-	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
+// CheckVersionFile checks if the plugin can be executed in a project directory.
+func (p *standardPlugin) CheckVersionFile(projectPath string) bool {
+	_, err := os.Stat(filepath.Join(projectPath, versionFile))
 	return !os.IsNotExist(err)
 }
 
@@ -70,9 +67,9 @@ func (p *standardPlugin) Version(projectPath string, major, minor, incremental b
 	var currentVersion, nextVersion core.Version
 	var errMajor, errMinor, errIncremental error
 
-	// read the version from the precondition file
-	if bytes, err := os.ReadFile(filepath.Join(projectPath, preconditionFile)); err != nil {
-		return core.NoVersion, core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, preconditionFile)
+	// read the version from the version file
+	if bytes, err := os.ReadFile(filepath.Join(projectPath, versionFile)); err != nil {
+		return core.NoVersion, core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, versionFile)
 	} else {
 		if current, err := core.ParseVersion(strings.Trim(string(bytes), "\n\r")); err != nil {
 			return core.NoVersion, core.NoVersion, err
@@ -108,8 +105,8 @@ func (p *standardPlugin) Version(projectPath string, major, minor, incremental b
 
 // UpdateProjectVersion updates the project's version
 func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
-	if err := os.WriteFile(preconditionFile, []byte(next.String()), 0644); err != nil {
-		return fmt.Errorf("failed to write in file %v next project version %v", preconditionFile, next.String())
+	if err := os.WriteFile(versionFile, []byte(next.String()), 0644); err != nil {
+		return fmt.Errorf("failed to write in file %v next project version %v", versionFile, next.String())
 	}
 
 	return nil
@@ -120,18 +117,18 @@ func (p *standardPlugin) beforeReleaseStart(repository core.Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// Check if a precondition file already exists
-	versionFilePath := filepath.Join(repository.Local(), preconditionFile)
+	// Check if a version file already exists
+	versionFilePath := filepath.Join(repository.Local(), versionFile)
 	if _, err := os.Stat(versionFilePath); err == nil {
 		return nil
 	}
 
-	initVersion := core.NewVersion("1", "0", "0", snapshotQualifier)
-	if err := os.WriteFile(preconditionFile, []byte(initVersion.String()), 0644); err != nil {
+	initVersion := core.NewVersion("1", "0", "0", versionQualifier)
+	if err := os.WriteFile(versionFile, []byte(initVersion.String()), 0644); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
-	if err := repository.AddFile(preconditionFile); err != nil {
+	if err := repository.AddFile(versionFile); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -147,18 +144,18 @@ func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// Check if a precondition file already exists
-	versionFilePath := filepath.Join(repository.Local(), preconditionFile)
+	// Check if a version file already exists
+	versionFilePath := filepath.Join(repository.Local(), versionFile)
 	if _, err := os.Stat(versionFilePath); err == nil {
 		return nil
 	}
 
 	initVersion := core.NewVersion("1", "0", "0")
-	if err := os.WriteFile(preconditionFile, []byte(initVersion.String()), 0644); err != nil {
+	if err := os.WriteFile(versionFile, []byte(initVersion.String()), 0644); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
-	if err := repository.AddFile(preconditionFile); err != nil {
+	if err := repository.AddFile(versionFile); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -171,7 +168,7 @@ func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 
 func (p *standardPlugin) afterMergeIntoDevelopment(repository core.Repository) error {
 
-	filesEqual, err := repository.CompareFiles(core.Production.String(), core.Development.String(), preconditionFile, preconditionFile)
+	filesEqual, err := repository.CompareFiles(core.Production.String(), core.Development.String(), versionFile, versionFile)
 
 	if err != nil {
 		return repository.UndoAllChanges(err)
@@ -181,7 +178,7 @@ func (p *standardPlugin) afterMergeIntoDevelopment(repository core.Repository) e
 	if filesEqual {
 		if _, next, err := p.Version(repository.Local(), false, true, false); err != nil {
 			return repository.UndoAllChanges(err)
-		} else if err := p.UpdateProjectVersion(next.AddQualifier(p.SnapshotQualifier())); err != nil {
+		} else if err := p.UpdateProjectVersion(next.AddQualifier(p.VersionQualifier())); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 

@@ -52,18 +52,13 @@ type (
 
 	// Plugin is the interface for all workflow automation plugins.
 	Plugin interface {
-		Precondition
-		SnapshotQualifier() string
-		UpdateProjectVersion(next Version) error
-		fmt.Stringer
-	}
-
-	// Precondition is the interface for checking if a plugin can be executed in a project directory.
-	Precondition interface {
-		PreconditionFile() string
-		CheckPreconditionFile(projectPath string) bool
+		VersionFile() string
+		VersionQualifier() string
+		CheckVersionFile(projectPath string) bool
 		RequiredTools() []string
 		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
+		UpdateProjectVersion(next Version) error
+		fmt.Stringer
 	}
 )
 

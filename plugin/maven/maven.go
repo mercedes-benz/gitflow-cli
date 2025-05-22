@@ -39,14 +39,11 @@ func init() {
 	core.RegisterPlugin(NewPlugin())
 }
 
-// Name of the mvn plugin.
 const pluginName = "Maven"
 
-// Precondition file pluginName for mvn projects.
-const preconditionFile = "pom.xml"
+const versionFile = "pom.xml"
 
-// Snapshot qualifier for mvn projects.
-const snapshotQualifier = "SNAPSHOT"
+const versionQualifier = "SNAPSHOT"
 
 const (
 	Maven = "mvn"
@@ -61,12 +58,12 @@ func (p *mavenPlugin) String() string {
 	return pluginName
 }
 
-func (p *mavenPlugin) PreconditionFile() string {
-	return preconditionFile
+func (p *mavenPlugin) VersionFile() string {
+	return versionFile
 }
 
-func (p *mavenPlugin) SnapshotQualifier() string {
-	return snapshotQualifier
+func (p *mavenPlugin) VersionQualifier() string {
+	return versionQualifier
 }
 
 // Maven build tool commands.
@@ -103,9 +100,9 @@ type mavenPlugin struct {
 	useReleases            []string
 }
 
-// CheckPreconditionFile Check if the plugin can be executed in a project directory.
-func (p *mavenPlugin) CheckPreconditionFile(projectPath string) bool {
-	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
+// CheckVersionFile Check if the plugin can be executed in a project directory.
+func (p *mavenPlugin) CheckVersionFile(projectPath string) bool {
+	_, err := os.Stat(filepath.Join(projectPath, versionFile))
 	return !os.IsNotExist(err)
 }
 

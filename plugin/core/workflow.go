@@ -26,7 +26,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if plugin.CheckPreconditionFile(projectPath) {
+		if plugin.CheckVersionFile(projectPath) {
 			return executePluginStart(plugin, branch, projectPath, args...)
 		}
 	}
@@ -110,7 +110,7 @@ func Finish(branch Branch, projectPath string) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if plugin.CheckPreconditionFile(projectPath) {
+		if plugin.CheckVersionFile(projectPath) {
 			return executePluginFinish(plugin, branch, projectPath)
 		}
 	}
@@ -209,7 +209,7 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 	//   set the version of project to (${major}+1).0.0-${qualifier}
 	//   perform a git commit with a commit message
 	if next.VersionIncrement == Major {
-		if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.SnapshotQualifier())); err != nil {
+		if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.VersionQualifier())); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 
@@ -375,7 +375,7 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 	// set project version to the next develop version ${major}.(${minor}+1).0-${qualifier} (change POM file)
 	if _, next, err := plugin.Version(repository.Local(), false, true, false); err != nil {
 		return repository.UndoAllChanges(err)
-	} else if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.SnapshotQualifier())); err != nil {
+	} else if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.VersionQualifier())); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -466,11 +466,11 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 	// merge hotfix branch into current develop branch
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
 		if repository.HasConflicts() {
-			if err := repository.CheckoutFile(plugin.PreconditionFile()); err != nil {
+			if err := repository.CheckoutFile(plugin.VersionFile()); err != nil {
 				return repository.UndoAllChanges(err)
 			}
 
-			if err := repository.AddFile(plugin.PreconditionFile()); err != nil {
+			if err := repository.AddFile(plugin.VersionFile()); err != nil {
 				return repository.UndoAllChanges(err)
 			}
 
