@@ -34,6 +34,7 @@ type (
 		PushAllTags() error
 		PushDeletion(branchName string) error
 		UndoAllChanges(cause error) error
+		CompareFiles(sourceBranch, targetBranch, sourceFile, targetFile string) (bool, error)
 	}
 )
 
@@ -89,6 +90,7 @@ func NewRepository(projectPath, remote string) Repository {
 }
 
 // Local Return the local path of the repository.
+// todo: rename method
 func (r *repository) Local() string {
 	return r.projectPath
 }
@@ -560,4 +562,33 @@ func (r *repository) UndoAllChanges(cause error) error {
 
 	// always return the original cause if no error occurred
 	return cause
+}
+
+// CompareFiles compares the content of a file in two different branches
+func (r *repository) CompareFiles(sourceBranch, targetBranch, sourceFile, targetFile string) (bool, error) {
+	var err error
+	var diff *exec.Cmd
+	var output []byte
+
+	// log human-readable description of the git command
+	defer func() { Log(diff, output, err) }()
+
+	// Execute git diff to compare the files
+	diff = exec.Command(Git, "diff", "--quiet", fmt.Sprintf("%s:%s", sourceBranch, sourceFile), fmt.Sprintf("%s:%s", targetBranch, targetFile))
+	diff.Dir = r.projectPath
+
+	// If exit code is 0, it means no differences (identical content)
+	// If exit code is 1, there are differences
+	if err = diff.Run(); err != nil {
+		// Check if it's the expected exit code 1 (differences found)
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			// Differences found, files are not identical
+			return false, nil
+		}
+		// Other error occurred
+		return false, fmt.Errorf("error comparing files: %v", err)
+	}
+
+	// No error means the files are identical
+	return true, nil
 }

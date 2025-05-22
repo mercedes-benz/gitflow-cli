@@ -20,6 +20,7 @@ func NewPlugin() core.Plugin {
 	plugin := &standardPlugin{}
 	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.BeforeReleaseStartHook, plugin.beforeReleaseStart)
 	core.GlobalHooks.RegisterHook(pluginName, core.HotfixStartHooks.BeforeHotfixStartHook, plugin.beforeHotfixStart)
+	core.GlobalHooks.RegisterHook(pluginName, core.HotfixFinishHooks.AfterMergeIntoDevelopmentHook, plugin.afterMergeIntoDevelopment)
 	return plugin
 }
 
@@ -165,5 +166,30 @@ func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
+	return nil
+}
+
+func (p *standardPlugin) afterMergeIntoDevelopment(repository core.Repository) error {
+
+	filesEqual, err := repository.CompareFiles(core.Production.String(), core.Development.String(), preconditionFile, preconditionFile)
+
+	if err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	// if versions are identical, update the version in the development branch (possible only if hotfix start created initil version)
+	if filesEqual {
+		if _, next, err := p.Version(repository.Local(), false, true, false); err != nil {
+			return repository.UndoAllChanges(err)
+		} else if err := p.UpdateProjectVersion(next.AddQualifier(p.SnapshotQualifier())); err != nil {
+			return repository.UndoAllChanges(err)
+		}
+
+		if err := repository.CommitChanges("Set next minor project version."); err != nil {
+			return repository.UndoAllChanges(err)
+		}
+	}
+
+	// If different versions, do nothing and proceed normally
 	return nil
 }

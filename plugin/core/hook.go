@@ -24,6 +24,13 @@ var HotfixStartHooks = struct {
 	BeforeHotfixStartHook: "HotfixStart_BeforeHotfixStartHook",
 }
 
+// HotfixFinishHooks groups all hooks for the HotfixFinish workflow
+var HotfixFinishHooks = struct {
+	AfterMergeIntoDevelopmentHook HookType
+}{
+	AfterMergeIntoDevelopmentHook: "HotfixFinish_AfterMergeIntoDevelopmentHook",
+}
+
 // HookFunction is the signature for hook functions
 type HookFunction func(repository Repository) error
 

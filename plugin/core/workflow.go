@@ -463,7 +463,7 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// merge hotfix branch into current develop branch (mit --no-ff Flag)
+	// merge hotfix branch into current develop branch
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
 		if repository.HasConflicts() {
 			if err := repository.CheckoutFile(plugin.PreconditionFile()); err != nil {
@@ -480,17 +480,10 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 		} else {
 			return repository.UndoAllChanges(err)
 		}
-	} else {
-		// if required file does not exist
-		if _, next, err := plugin.Version(repository.Local(), false, true, false); err != nil {
-			return repository.UndoAllChanges(err)
-		} else if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.SnapshotQualifier())); err != nil {
-			return repository.UndoAllChanges(err)
-		}
+	}
 
-		if err := repository.CommitChanges("Set next minor project version."); err != nil {
-			return repository.UndoAllChanges(err)
-		}
+	if err := GlobalHooks.ExecuteHook(plugin, HotfixFinishHooks.AfterMergeIntoDevelopmentHook, repository); err != nil {
+		return repository.UndoAllChanges(err)
 	}
 
 	// delete the release branch locally
