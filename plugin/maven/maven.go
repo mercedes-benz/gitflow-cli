@@ -7,11 +7,8 @@ package maven
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-
 	"github.com/mercedes-benz/gitflow-cli/plugin/core"
+	"os/exec"
 )
 
 // NewPlugin create plugin for the mvn build tool.
@@ -98,12 +95,6 @@ type mavenPlugin struct {
 	nextIncrementalVersion []string
 	setVersion             []string
 	useReleases            []string
-}
-
-// CheckVersionFile Check if the plugin can be executed in a project directory.
-func (p *mavenPlugin) CheckVersionFile(projectPath string) bool {
-	_, err := os.Stat(filepath.Join(projectPath, versionFile))
-	return !os.IsNotExist(err)
 }
 
 // Version the current and next version of the mvn project.

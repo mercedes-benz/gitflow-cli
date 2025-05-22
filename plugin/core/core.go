@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -54,7 +55,6 @@ type (
 	Plugin interface {
 		VersionFile() string
 		VersionQualifier() string
-		CheckVersionFile(projectPath string) bool
 		RequiredTools() []string
 		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
 		UpdateProjectVersion(next Version) error
@@ -134,6 +134,12 @@ func RegisterPlugin(plugin Plugin) {
 // RegisterFallbackPlugin RegisterPlugin adds a fallback plugin
 func RegisterFallbackPlugin(plugin Plugin) {
 	fallbackPlugin = plugin
+}
+
+// CheckVersionFile checks if version file is found
+func CheckVersionFile(projectPath string, versionFile string) bool {
+	_, err := os.Stat(filepath.Join(projectPath, versionFile))
+	return !os.IsNotExist(err)
 }
 
 // ValidateArgumentsLength Check if the number of arguments matches the expected number.

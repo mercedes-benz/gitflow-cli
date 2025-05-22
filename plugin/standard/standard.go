@@ -55,12 +55,6 @@ func (p *standardPlugin) RequiredTools() []string {
 	return []string{}
 }
 
-// CheckVersionFile checks if the plugin can be executed in a project directory.
-func (p *standardPlugin) CheckVersionFile(projectPath string) bool {
-	_, err := os.Stat(filepath.Join(projectPath, versionFile))
-	return !os.IsNotExist(err)
-}
-
 // Version evaluates the current and next version of the standard project.
 func (p *standardPlugin) Version(projectPath string, major, minor, incremental bool) (core.Version, core.Version, error) {
 	// current and next version of the standard project
