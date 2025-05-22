@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -52,18 +53,12 @@ type (
 
 	// Plugin is the interface for all workflow automation plugins.
 	Plugin interface {
-		Precondition
-		SnapshotQualifier() string
-		UpdateProjectVersion(next Version) error
-		fmt.Stringer
-	}
-
-	// Precondition is the interface for checking if a plugin can be executed in a project directory.
-	Precondition interface {
-		PreconditionFile() string
-		CheckPreconditionFile(projectPath string) bool
+		VersionFile() string
+		VersionQualifier() string
 		RequiredTools() []string
 		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
+		UpdateProjectVersion(next Version) error
+		fmt.Stringer
 	}
 )
 
@@ -139,6 +134,12 @@ func RegisterPlugin(plugin Plugin) {
 // RegisterFallbackPlugin RegisterPlugin adds a fallback plugin
 func RegisterFallbackPlugin(plugin Plugin) {
 	fallbackPlugin = plugin
+}
+
+// CheckVersionFile checks if version file is found
+func CheckVersionFile(projectPath string, versionFile string) bool {
+	_, err := os.Stat(filepath.Join(projectPath, versionFile))
+	return !os.IsNotExist(err)
 }
 
 // ValidateArgumentsLength Check if the number of arguments matches the expected number.

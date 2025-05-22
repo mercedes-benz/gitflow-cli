@@ -7,11 +7,8 @@ package maven
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-
 	"github.com/mercedes-benz/gitflow-cli/plugin/core"
+	"os/exec"
 )
 
 // NewPlugin create plugin for the mvn build tool.
@@ -39,14 +36,11 @@ func init() {
 	core.RegisterPlugin(NewPlugin())
 }
 
-// Name of the mvn plugin.
 const pluginName = "Maven"
 
-// Precondition file pluginName for mvn projects.
-const preconditionFile = "pom.xml"
+const versionFile = "pom.xml"
 
-// Snapshot qualifier for mvn projects.
-const snapshotQualifier = "SNAPSHOT"
+const versionQualifier = "SNAPSHOT"
 
 const (
 	Maven = "mvn"
@@ -61,12 +55,12 @@ func (p *mavenPlugin) String() string {
 	return pluginName
 }
 
-func (p *mavenPlugin) PreconditionFile() string {
-	return preconditionFile
+func (p *mavenPlugin) VersionFile() string {
+	return versionFile
 }
 
-func (p *mavenPlugin) SnapshotQualifier() string {
-	return snapshotQualifier
+func (p *mavenPlugin) VersionQualifier() string {
+	return versionQualifier
 }
 
 // Maven build tool commands.
@@ -101,12 +95,6 @@ type mavenPlugin struct {
 	nextIncrementalVersion []string
 	setVersion             []string
 	useReleases            []string
-}
-
-// CheckPreconditionFile Check if the plugin can be executed in a project directory.
-func (p *mavenPlugin) CheckPreconditionFile(projectPath string) bool {
-	_, err := os.Stat(filepath.Join(projectPath, preconditionFile))
-	return !os.IsNotExist(err)
 }
 
 // Version the current and next version of the mvn project.
