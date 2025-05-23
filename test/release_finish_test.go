@@ -38,8 +38,7 @@ func TestReleaseFinish(t *testing.T) {
 	env.ExecuteGit("push", "-u", "origin", "release/1.0.0")
 
 	// WHEN: The command "gitflow-cli release start" is executed
-	output := env.ExecuteGitflow("release", "finish")
-	t.Logf("Command output: %s", output)
+	env.ExecuteGitflow("release", "finish")
 
 	// THEN: The release branch should have been created
 

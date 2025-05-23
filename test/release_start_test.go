@@ -31,8 +31,7 @@ func TestReleaseStart(t *testing.T) {
 	env.ExecuteGit("push", "-u", "origin", "develop")
 
 	// WHEN: The command "gitflow-cli release start" is executed
-	output := env.ExecuteGitflow("release", "start")
-	t.Logf("Command output: %s", output)
+	env.ExecuteGitflow("release", "start")
 
 	// THEN: The release branch should have been created
 	releaseBranch := "release/1.0.0"
@@ -41,9 +40,10 @@ func TestReleaseStart(t *testing.T) {
 	env.AssertBranchExists("origin/" + releaseBranch)
 
 	currentBranch := env.GetCurrentBranch()
-	assert.Equal(t, releaseBranch, currentBranch, "Current branch should be the release branch")
+	assert.Equal(t, releaseBranch, currentBranch)
 
 	env.AssertCommitsAhead(releaseBranch, "develop", 1)
+
 	commitMessage := env.GetCommitMessage(releaseBranch)
 	assert.Equal(t, "Remove qualifier from project version.", commitMessage, "Commit message should be 'Remove qualifier from project version.'")
 

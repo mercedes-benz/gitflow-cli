@@ -111,6 +111,9 @@ func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 	output, err := io.ReadAll(r)
 	require.NoError(env.t, err)
 
+	// Log the command output
+	env.t.Logf("Command output for 'gitflow-cli %s':\n%s", strings.Join(args, " "), string(output))
+
 	return string(output)
 }
 
