@@ -187,10 +187,18 @@ func (env *GitTestEnv) AssertFileEquals(path, expectedContent, branch string, in
 }
 
 // AssertCommitMessageEquals checks if the commit message at the given branch and index matches the expected message
-func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, branch string, index int) {
+// index specifies which commit to retrieve:
+// 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
+func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, branch string, index ...int) {
 	env.t.Helper()
-	actualMessage := env.getCommitMessage(branch, index)
-	assert.Equal(env.t, expectedMessage, actualMessage, "Commit message of %s~%d should be '%s' but was '%s'", branch, index, expectedMessage, actualMessage)
+
+	indexValue := 0
+	if len(index) > 0 && index[0] > 0 {
+		indexValue = index[0]
+	}
+
+	actualMessage := env.getCommitMessage(branch, indexValue)
+	assert.Equal(env.t, expectedMessage, actualMessage, "Commit message of %s~%d should be '%s' but was '%s'", branch, indexValue, expectedMessage, actualMessage)
 }
 
 // AssertTagEquals checks if the tag at the given branch and index matches the expected tag

@@ -30,7 +30,7 @@ func TestReleaseStart(t *testing.T) {
 
 	// The version.txt in the release branch should be correctly updated
 	env.AssertFileEquals("version.txt", "1.0.0", releaseBranch)
-	env.AssertCommitMessageEquals("Remove qualifier from project version.", releaseBranch, 0)
+	env.AssertCommitMessageEquals("Remove qualifier from project version.", releaseBranch)
 
 	assert.Equal(t, releaseBranch, env.GetCurrentBranch(), "Current branch should be the release branch")
 }
