@@ -172,67 +172,67 @@ func (env *GitTestEnv) GetCurrentBranch() string {
 }
 
 // AssertFileEquals checks if a file in a branch has the expected content
-// index specifies which commit to retrieve:
+// depth specifies which commit to retrieve:
 // 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
-func (env *GitTestEnv) AssertFileEquals(path, expectedContent, commitRef string, index ...int) {
+func (env *GitTestEnv) AssertFileEquals(path, expectedContent, commitRef string, depth ...int) {
 	env.t.Helper()
 
-	if len(index) > 0 && index[0] > 0 {
-		commitRef = fmt.Sprintf("%s~%d", commitRef, index[0])
+	if len(depth) > 0 && depth[0] > 0 {
+		commitRef = fmt.Sprintf("%s~%d", commitRef, depth[0])
 	}
 
 	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, path))
 	assert.Equal(env.t, expectedContent, fileContent, "File %s in %s has unexpected content", path, commitRef)
 }
 
-// AssertCommitMessageEquals checks if the commit message at the given branch and index matches the expected message
-// index specifies which commit to retrieve:
+// AssertCommitMessageEquals checks if the commit message at the given branch and depth matches the expected message
+// depth specifies which commit to retrieve:
 // 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
-func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, commitRef string, index ...int) {
+func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, commitRef string, depth ...int) {
 	env.t.Helper()
 
-	indexValue := 0
-	if len(index) > 0 && index[0] > 0 {
-		indexValue = index[0]
+	depthValue := 0
+	if len(depth) > 0 && depth[0] > 0 {
+		depthValue = depth[0]
 	}
 
-	actualMessage := env.getCommitMessage(commitRef, indexValue)
-	assert.Equal(env.t, expectedMessage, actualMessage, "Commit message of %s~%d should be '%s' but was '%s'", commitRef, indexValue, expectedMessage, actualMessage)
+	actualMessage := env.getCommitMessage(commitRef, depthValue)
+	assert.Equal(env.t, expectedMessage, actualMessage, "Commit message of %s~%d should be '%s' but was '%s'", commitRef, depthValue, expectedMessage, actualMessage)
 }
 
-// AssertTagEquals checks if the tag at the given branch and index matches the expected tag
-// index specifies which commit to retrieve:
+// AssertTagEquals checks if the tag at the given branch and depth matches the expected tag
+// depth specifies which commit to retrieve:
 // 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
-func (env *GitTestEnv) AssertTagEquals(expectedTag, commitRef string, index ...int) {
+func (env *GitTestEnv) AssertTagEquals(expectedTag, commitRef string, depth ...int) {
 	env.t.Helper()
 
-	indexValue := 0
-	if len(index) > 0 && index[0] > 0 {
-		indexValue = index[0]
+	depthValue := 0
+	if len(depth) > 0 && depth[0] > 0 {
+		depthValue = depth[0]
 	}
 
-	actualTag := env.getTag(commitRef, indexValue)
-	assert.Equal(env.t, expectedTag, actualTag, "Tag of %s~%d should be '%s' but was '%s'", commitRef, indexValue, expectedTag, actualTag)
+	actualTag := env.getTag(commitRef, depthValue)
+	assert.Equal(env.t, expectedTag, actualTag, "Tag of %s~%d should be '%s' but was '%s'", commitRef, depthValue, expectedTag, actualTag)
 }
 
 // GetCommitMessage gets the message of a specific commit
-// index specifies which commit to retrieve:
+// depth specifies which commit to retrieve:
 // 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
-func (env *GitTestEnv) getCommitMessage(commitRef string, index ...int) string {
+func (env *GitTestEnv) getCommitMessage(commitRef string, depth ...int) string {
 	env.t.Helper()
 
 	commitOffset := "HEAD"
-	if len(index) > 0 && index[0] > 0 {
-		// If index is provided and > 0, get older commits
-		commitOffset = fmt.Sprintf("HEAD~%d", index[0])
+	if len(depth) > 0 && depth[0] > 0 {
+		// If depth is provided and > 0, get older commits
+		commitOffset = fmt.Sprintf("HEAD~%d", depth[0])
 	}
 
 	args := []string{"log", "-1", "--pretty=%B"}
 	if commitRef != "" {
 		// If commitRef is specified, use it as the base reference
-		if len(index) > 0 && index[0] > 0 {
+		if len(depth) > 0 && depth[0] > 0 {
 			// For a specific commitRef with offset
-			args = append(args, fmt.Sprintf("%s~%d", commitRef, index[0]))
+			args = append(args, fmt.Sprintf("%s~%d", commitRef, depth[0]))
 		} else {
 			// For the commitRef itself
 			args = append(args, commitRef)
@@ -247,9 +247,9 @@ func (env *GitTestEnv) getCommitMessage(commitRef string, index ...int) string {
 }
 
 // GetTag gets all tags pointing to a specific commit
-// index specifies which commit to retrieve:
+// depth specifies which commit to retrieve:
 // 0 = HEAD or specified commit (latest), 1 = HEAD~1 (previous commit), etc.
-func (env *GitTestEnv) getTag(commit string, index ...int) string {
+func (env *GitTestEnv) getTag(commit string, depth ...int) string {
 	env.t.Helper()
 
 	commitRef := "HEAD"
@@ -257,12 +257,12 @@ func (env *GitTestEnv) getTag(commit string, index ...int) string {
 		commitRef = commit
 	}
 
-	if len(index) > 0 && index[0] > 0 {
-		// If index is provided and > 0, get older commits
+	if len(depth) > 0 && depth[0] > 0 {
+		// If depth is provided and > 0, get older commits
 		if commit != "" {
-			commitRef = fmt.Sprintf("%s~%d", commit, index[0])
+			commitRef = fmt.Sprintf("%s~%d", commit, depth[0])
 		} else {
-			commitRef = fmt.Sprintf("HEAD~%d", index[0])
+			commitRef = fmt.Sprintf("HEAD~%d", depth[0])
 		}
 	}
 
