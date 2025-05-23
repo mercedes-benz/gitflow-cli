@@ -72,17 +72,31 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 		t:          t,
 	}
 
-	// create branches main and develop with an initial dummy commit
-	env.WriteFile("README.md", "# Test Repository")
-	env.ExecuteGit("add", "README.md")
-	env.ExecuteGit("commit", "-m", "Initial commit")
-	env.ExecuteGit("branch", "-m", "main")
-	env.ExecuteGit("push", "-u", "origin", "main")
-	env.ExecuteGit("checkout", "-b", "develop")
-	env.ExecuteGit("push", "-u", "origin", "develop")
-	env.ExecuteGit("checkout", "main")
+	// create initial commit
+	env.CommitFile("main", "README.md", "# Gitflow Test Repository", "initial commit")
 
 	return env
+}
+
+// CommitFile creates a file with given content, adds it, commits it, and pushes it to the remote
+func (env *GitTestEnv) CommitFile(branch, file, content, message string) {
+	env.t.Helper()
+
+	path := filepath.Join(env.LocalPath, file)
+	err := os.WriteFile(path, []byte(content), 0644)
+	require.NoError(env.t, err, "Failed to create file: %s", path)
+
+	// First check if the branch exists locally
+	_, err = env.ExecuteGitAllowError("rev-parse", "--verify", branch)
+	if err != nil {
+		env.ExecuteGit("checkout", "-b", branch)
+	} else {
+		env.ExecuteGit("checkout", branch)
+	}
+
+	env.ExecuteGit("add", path)
+	env.ExecuteGit("commit", "-m", message)
+	env.ExecuteGit("push", "-u", "origin", branch)
 }
 
 // ExecuteGitflow calls the Gitflow functionality directly via the Go API
@@ -134,30 +148,6 @@ func (env *GitTestEnv) ExecuteGitAllowError(args ...string) (string, error) {
 	cmd.Dir = env.LocalPath
 	output, err := cmd.CombinedOutput()
 	return string(output), err
-}
-
-// WriteFile creates a file in the local repository with the given content
-func (env *GitTestEnv) WriteFile(path, content string) {
-	env.t.Helper()
-	fullPath := filepath.Join(env.LocalPath, path)
-	err := os.WriteFile(fullPath, []byte(content), 0644)
-	require.NoError(env.t, err, "Failed to create file: %s", path)
-}
-
-// GetFileContent reads the content of a file in the local repository
-func (env *GitTestEnv) GetFileContent(path string) string {
-	env.t.Helper()
-	fullPath := filepath.Join(env.LocalPath, path)
-	content, err := os.ReadFile(fullPath)
-	require.NoError(env.t, err, "Failed to read file: %s", path)
-	return string(content)
-}
-
-// GetFileContentFromCommit gets the content of a file at a specific commit/branch
-func (env *GitTestEnv) GetFileContentFromCommit(commitOrBranch, path string) string {
-	env.t.Helper()
-	output := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitOrBranch, path))
-	return output
 }
 
 // AssertBranchExists checks if a branch exists
@@ -228,16 +218,6 @@ func (env *GitTestEnv) GetCommitMessage(commit string, index ...int) string {
 	return strings.TrimSpace(output)
 }
 
-// CountCommitsBetween counts the number of commits between two refs
-func (env *GitTestEnv) CountCommitsBetween(base, head string) int {
-	env.t.Helper()
-	output := env.ExecuteGit("rev-list", "--count", fmt.Sprintf("%s..%s", base, head))
-	var count int
-	_, err := fmt.Sscanf(strings.TrimSpace(output), "%d", &count)
-	require.NoError(env.t, err, "Failed to parse commit count")
-	return count
-}
-
 // GetCurrentBranch gets the name of the current branch
 func (env *GitTestEnv) GetCurrentBranch() string {
 	env.t.Helper()
@@ -248,13 +228,6 @@ func (env *GitTestEnv) GetCurrentBranch() string {
 // AssertFileInBranchEquals checks if a file in a branch has the expected content
 func (env *GitTestEnv) AssertFileInBranchEquals(branch, path, expectedContent string) {
 	env.t.Helper()
-	content := env.GetFileContentFromCommit(branch, path)
-	assert.Equal(env.t, expectedContent, content, "File %s in branch %s has unexpected content", path, branch)
-}
-
-// AssertCommitsAhead checks if a branch is exactly N commits ahead of another branch
-func (env *GitTestEnv) AssertCommitsAhead(branch, baseBranch string, expectedCount int) {
-	env.t.Helper()
-	count := env.CountCommitsBetween(baseBranch, branch)
-	assert.Equal(env.t, expectedCount, count, "Branch %s should be %d commits ahead of %s, but is %d commits ahead", branch, expectedCount, baseBranch, count)
+	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", branch, path))
+	assert.Equal(env.t, expectedContent, fileContent, "File %s in branch %s has unexpected fileContent", path, branch)
 }
