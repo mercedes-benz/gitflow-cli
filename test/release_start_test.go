@@ -21,8 +21,6 @@ func TestReleaseStart(t *testing.T) {
 	env.ExecuteGit("add", "README.md")
 	env.ExecuteGit("commit", "-m", "Initial commit")
 	env.ExecuteGit("branch", "-m", "main")
-
-	// Push to remote
 	env.ExecuteGit("push", "-u", "origin", "main")
 
 	// Create development branch
