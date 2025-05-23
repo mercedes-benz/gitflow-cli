@@ -98,11 +98,10 @@ func (p *standardPlugin) Version(projectPath string, major, minor, incremental b
 }
 
 // UpdateProjectVersion updates the project's version
-func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
-	if err := os.WriteFile(versionFile, []byte(next.String()), 0644); err != nil {
-		return fmt.Errorf("failed to write in file %v next project version %v", versionFile, next.String())
+func (p *standardPlugin) UpdateProjectVersion(repository core.Repository, next core.Version) error {
+	if err := repository.WriteFile(versionFile, next.String()); err != nil {
+		return err
 	}
-
 	return nil
 }
 
@@ -172,7 +171,7 @@ func (p *standardPlugin) afterMergeIntoDevelopment(repository core.Repository) e
 	if filesEqual {
 		if _, next, err := p.Version(repository.Local(), false, true, false); err != nil {
 			return repository.UndoAllChanges(err)
-		} else if err := p.UpdateProjectVersion(next.AddQualifier(p.VersionQualifier())); err != nil {
+		} else if err := p.UpdateProjectVersion(repository, next.AddQualifier(p.VersionQualifier())); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 
