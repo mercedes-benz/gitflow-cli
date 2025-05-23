@@ -79,33 +79,23 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 	env.t.Helper()
 
-	// Redirect output to capture it
-	oldStdout := os.Stdout
-	oldStderr := os.Stderr
+	// Set command line arguments with the --path parameter
+	os.Args = append([]string{"gitflow-cli", "--path", env.LocalPath}, args...)
+
+	// Capture output using a pipe
 	r, w, err := os.Pipe()
 	require.NoError(env.t, err)
 
-	os.Stdout = w
-	os.Stderr = w
+	// Save original stdout/stderr and replace with pipe
+	oldStdout, oldStderr := os.Stdout, os.Stderr
+	os.Stdout, os.Stderr = w, w
 
-	// Save original arguments
-	oldArgs := os.Args
-
-	// Create new test arguments with the --path parameter
-	// Keep os.Args[0] (program name) and add the --path parameter and the provided args
-	testArgs := append([]string{oldArgs[0], "--path", env.LocalPath}, args...)
-	os.Args = testArgs
-
-	// Execute the main function to load the plugins as well
+	// Execute the command
 	cmd.Execute()
 
-	// Restore the original arguments
-	os.Args = oldArgs
-
-	// Restore standard outputs
+	// Restore original stdout/stderr and close the write end of pipe
+	os.Stdout, os.Stderr = oldStdout, oldStderr
 	w.Close()
-	os.Stdout = oldStdout
-	os.Stderr = oldStderr
 
 	// Read the captured output
 	output, err := io.ReadAll(r)
