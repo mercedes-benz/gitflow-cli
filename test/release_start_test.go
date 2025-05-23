@@ -29,8 +29,7 @@ func TestReleaseStart(t *testing.T) {
 
 	assert.Equal(t, releaseBranch, env.GetCurrentBranch(), "Current branch should be the release branch")
 
-	commitMessage := env.GetCommitMessage(releaseBranch)
-	assert.Equal(t, "Remove qualifier from project version.", commitMessage, "Commit message should indicate removing qualifier from project version.'")
+	env.AssertCommitMessageEquals("Remove qualifier from project version.", releaseBranch, 0)
 
 	env.AssertFileInBranchEquals(releaseBranch, "version.txt", "1.0.0")
 }

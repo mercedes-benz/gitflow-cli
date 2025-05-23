@@ -24,14 +24,14 @@ func TestReleaseFinish(t *testing.T) {
 
 	// THEN
 
-	// main branch
-	assert.Equal(t, "Merge branch 'release/1.0.0'", env.GetCommitMessage("main"))
-	assert.Equal(t, "1.0.0", env.GetTag("main"))
+	// Check main branch state
+	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0'", "main", 0)
+	assert.Equal(t, "1.0.0", env.GetTag("main"), "Latest commit in main should be tagged with release version")
+	env.AssertFileInBranchEquals("main", "version.txt", "1.0.0")
 
-	// develop branch
-	assert.Equal(t, "Set next minor project version.", env.GetCommitMessage("develop"))
-	assert.Equal(t, "Merge branch 'release/1.0.0' into develop", env.GetCommitMessage("develop", 1))
-
+	// Check develop branch state
+	env.AssertCommitMessageEquals("Set next minor project version.", "develop", 0)
+	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0' into develop", "develop", 1)
 	env.AssertFileInBranchEquals("develop", "version.txt", "1.1.0-dev")
 
 	env.AssertBranchDoesNotExist("release/1.0.0")

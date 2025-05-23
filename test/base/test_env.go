@@ -164,33 +164,31 @@ func (env *GitTestEnv) AssertBranchDoesNotExist(branch string) {
 	assert.Error(env.t, err, "Branch %s exists but should not", branch)
 }
 
-// GetTag gets all tags pointing to a specific commit
-// index specifies which commit to retrieve:
-// 0 = HEAD or specified commit (latest), 1 = HEAD~1 (previous commit), etc.
-func (env *GitTestEnv) GetTag(commit string, index ...int) string {
+// GetCurrentBranch gets the name of the current branch
+func (env *GitTestEnv) GetCurrentBranch() string {
 	env.t.Helper()
+	output := env.ExecuteGit("rev-parse", "--abbrev-ref", "HEAD")
+	return strings.TrimSpace(output)
+}
 
-	commitRef := "HEAD"
-	if commit != "" {
-		commitRef = commit
-	}
+// AssertFileInBranchEquals checks if a file in a branch has the expected content
+func (env *GitTestEnv) AssertFileInBranchEquals(branch, path, expectedContent string) {
+	env.t.Helper()
+	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", branch, path))
+	assert.Equal(env.t, expectedContent, fileContent, "File %s in branch %s has unexpected fileContent", path, branch)
+}
 
-	if len(index) > 0 && index[0] > 0 {
-		// If index is provided and > 0, get older commits
-		if commit != "" {
-			commitRef = fmt.Sprintf("%s~%d", commit, index[0])
-		} else {
-			commitRef = fmt.Sprintf("HEAD~%d", index[0])
-		}
-	}
-
-	return strings.TrimSpace(env.ExecuteGit("tag", "--points-at", commitRef))
+// AssertCommitMessageEquals checks if the commit message at the given branch and index matches the expected message
+func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, branch string, index int) {
+	env.t.Helper()
+	actualMessage := env.getCommitMessage(branch, index)
+	assert.Equal(env.t, expectedMessage, actualMessage, "Commit message of %s~%d should be '%s' but was '%s'", branch, index, expectedMessage, actualMessage)
 }
 
 // GetCommitMessage gets the message of a specific commit
 // index specifies which commit to retrieve:
 // 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
-func (env *GitTestEnv) GetCommitMessage(commit string, index ...int) string {
+func (env *GitTestEnv) getCommitMessage(commit string, index ...int) string {
 	env.t.Helper()
 
 	commitOffset := "HEAD"
@@ -218,16 +216,25 @@ func (env *GitTestEnv) GetCommitMessage(commit string, index ...int) string {
 	return strings.TrimSpace(output)
 }
 
-// GetCurrentBranch gets the name of the current branch
-func (env *GitTestEnv) GetCurrentBranch() string {
+// GetTag gets all tags pointing to a specific commit
+// index specifies which commit to retrieve:
+// 0 = HEAD or specified commit (latest), 1 = HEAD~1 (previous commit), etc.
+func (env *GitTestEnv) GetTag(commit string, index ...int) string {
 	env.t.Helper()
-	output := env.ExecuteGit("rev-parse", "--abbrev-ref", "HEAD")
-	return strings.TrimSpace(output)
-}
 
-// AssertFileInBranchEquals checks if a file in a branch has the expected content
-func (env *GitTestEnv) AssertFileInBranchEquals(branch, path, expectedContent string) {
-	env.t.Helper()
-	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", branch, path))
-	assert.Equal(env.t, expectedContent, fileContent, "File %s in branch %s has unexpected fileContent", path, branch)
+	commitRef := "HEAD"
+	if commit != "" {
+		commitRef = commit
+	}
+
+	if len(index) > 0 && index[0] > 0 {
+		// If index is provided and > 0, get older commits
+		if commit != "" {
+			commitRef = fmt.Sprintf("%s~%d", commit, index[0])
+		} else {
+			commitRef = fmt.Sprintf("HEAD~%d", index[0])
+		}
+	}
+
+	return strings.TrimSpace(env.ExecuteGit("tag", "--points-at", commitRef))
 }
