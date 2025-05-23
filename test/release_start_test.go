@@ -16,16 +16,9 @@ func TestReleaseStart(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := base.SetupTestEnv(t)
 
-	// Create initial commit on production branch
-	env.CreateFile("README.md", "# Temporary Test Repository")
-	env.ExecuteGit("add", "README.md")
-	env.ExecuteGit("commit", "-m", "Initial commit")
-	env.ExecuteGit("branch", "-m", "main")
-	env.ExecuteGit("push", "-u", "origin", "main")
-
 	// Create development branch
-	env.ExecuteGit("checkout", "-b", "develop")
-	env.CreateFile("version.txt", "1.0.0-dev")
+	env.ExecuteGit("checkout", "develop")
+	env.WriteFile("version.txt", "1.0.0-dev")
 	env.ExecuteGit("add", "version.txt")
 	env.ExecuteGit("commit", "-m", "Add version file")
 	env.ExecuteGit("push", "-u", "origin", "develop")

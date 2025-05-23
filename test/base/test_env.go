@@ -56,7 +56,7 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 	cmd.Dir = localPath
 	require.NoError(t, cmd.Run())
 
-	cmd = exec.Command("git", "config", "user.email", "test@mercedes-benz.com")
+	cmd = exec.Command("git", "config", "user.email", "noreply@mercedes-benz.com")
 	cmd.Dir = localPath
 	require.NoError(t, cmd.Run())
 
@@ -71,6 +71,15 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 		RemotePath: remotePath,
 		t:          t,
 	}
+
+	env.WriteFile("README.md", "# Test Repository")
+	env.ExecuteGit("add", "README.md")
+	env.ExecuteGit("commit", "-m", "Initial commit")
+	env.ExecuteGit("branch", "-m", "main")
+	env.ExecuteGit("push", "-u", "origin", "main")
+	env.ExecuteGit("checkout", "-b", "develop")
+	env.ExecuteGit("push", "-u", "origin", "develop")
+	env.ExecuteGit("checkout", "main")
 
 	return env
 }
@@ -126,16 +135,10 @@ func (env *GitTestEnv) ExecuteGitAllowError(args ...string) (string, error) {
 	return string(output), err
 }
 
-// CreateFile creates a file in the local repository with the given content
-func (env *GitTestEnv) CreateFile(path, content string) {
+// WriteFile creates a file in the local repository with the given content
+func (env *GitTestEnv) WriteFile(path, content string) {
 	env.t.Helper()
 	fullPath := filepath.Join(env.LocalPath, path)
-	dir := filepath.Dir(fullPath)
-
-	if dir != env.LocalPath {
-		require.NoError(env.t, os.MkdirAll(dir, 0755))
-	}
-
 	err := os.WriteFile(fullPath, []byte(content), 0644)
 	require.NoError(env.t, err, "Failed to create file: %s", path)
 }
