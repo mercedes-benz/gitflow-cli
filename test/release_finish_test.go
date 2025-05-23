@@ -24,7 +24,7 @@ func TestReleaseFinish(t *testing.T) {
 	// THEN
 	// Check main branch state
 	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0'", "main")
-	env.AssertTagEquals("1.0.0", "main", 0)
+	env.AssertTagEquals("1.0.0", "main")
 	env.AssertFileEquals("version.txt", "1.0.0", "main")
 
 	// Check develop branch state

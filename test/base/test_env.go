@@ -202,10 +202,18 @@ func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, branch string,
 }
 
 // AssertTagEquals checks if the tag at the given branch and index matches the expected tag
-func (env *GitTestEnv) AssertTagEquals(expectedTag, branch string, index int) {
+// index specifies which commit to retrieve:
+// 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
+func (env *GitTestEnv) AssertTagEquals(expectedTag, branch string, index ...int) {
 	env.t.Helper()
-	actualTag := env.getTag(branch, index)
-	assert.Equal(env.t, expectedTag, actualTag, "Tag of %s~%d should be '%s' but was '%s'", branch, index, expectedTag, actualTag)
+
+	indexValue := 0
+	if len(index) > 0 && index[0] > 0 {
+		indexValue = index[0]
+	}
+
+	actualTag := env.getTag(branch, indexValue)
+	assert.Equal(env.t, expectedTag, actualTag, "Tag of %s~%d should be '%s' but was '%s'", branch, indexValue, expectedTag, actualTag)
 }
 
 // GetCommitMessage gets the message of a specific commit
