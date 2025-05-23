@@ -72,6 +72,7 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 		t:          t,
 	}
 
+	// create branches main and develop with an initial dummy commit
 	env.WriteFile("README.md", "# Test Repository")
 	env.ExecuteGit("add", "README.md")
 	env.ExecuteGit("commit", "-m", "Initial commit")
@@ -173,10 +174,27 @@ func (env *GitTestEnv) AssertBranchDoesNotExist(branch string) {
 	assert.Error(env.t, err, "Branch %s exists but should not", branch)
 }
 
-// GetTag gets all tags pointing to the current HEAD
-func (env *GitTestEnv) GetTag() string {
+// GetTag gets all tags pointing to a specific commit
+// index specifies which commit to retrieve:
+// 0 = HEAD or specified commit (latest), 1 = HEAD~1 (previous commit), etc.
+func (env *GitTestEnv) GetTag(commit string, index ...int) string {
 	env.t.Helper()
-	return strings.TrimSpace(env.ExecuteGit("tag", "--points-at", "HEAD"))
+
+	commitRef := "HEAD"
+	if commit != "" {
+		commitRef = commit
+	}
+
+	if len(index) > 0 && index[0] > 0 {
+		// If index is provided and > 0, get older commits
+		if commit != "" {
+			commitRef = fmt.Sprintf("%s~%d", commit, index[0])
+		} else {
+			commitRef = fmt.Sprintf("HEAD~%d", index[0])
+		}
+	}
+
+	return strings.TrimSpace(env.ExecuteGit("tag", "--points-at", commitRef))
 }
 
 // GetCommitMessage gets the message of a specific commit
