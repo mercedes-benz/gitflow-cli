@@ -28,7 +28,6 @@ func TestReleaseStart(t *testing.T) {
 	env.AssertBranchExists(releaseBranch)
 	env.AssertBranchExists("origin/" + releaseBranch)
 
-	// The version.txt in the release branch should be correctly updated
 	env.AssertFileEquals("version.txt", "1.0.0", releaseBranch)
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", releaseBranch)
 
