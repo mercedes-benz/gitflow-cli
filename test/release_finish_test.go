@@ -12,11 +12,13 @@ import (
 
 // TestReleaseStart checks if the command "release start" performs the correct Git graph manipulation
 func TestReleaseFinish(t *testing.T) {
-	// GIVEN
+	// GIVEN: a Git repository with production and development branch
 	env := base.SetupTestEnv(t)
 
-	env.CommitFile("develop", "version.txt", "1.0.0-dev", "Add version file")
-	env.CommitFile("release/1.0.0", "version.txt", "1.0.0", "Remove qualifier from project version.")
+	env.CommitFile("version.txt", "1.0.0-dev", "Add version file", "develop")
+
+	env.CreateBranch("release/1.0.0", "develop")
+	env.CommitFile("version.txt", "1.0.0", "Remove qualifier from project version.", "release/1.0.0")
 
 	// WHEN
 	env.ExecuteGitflow("release", "finish")

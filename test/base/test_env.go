@@ -46,8 +46,8 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 	cmd.Dir = remotePath
 	require.NoError(t, cmd.Run(), "Failed to initialize bare remote repository")
 
-	// Initialize local repository
-	cmd = exec.Command("git", "init")
+	// Initialize local repository with main branch
+	cmd = exec.Command("git", "init", "--initial-branch=main")
 	cmd.Dir = localPath
 	require.NoError(t, cmd.Run(), "Failed to initialize local repository")
 
@@ -65,37 +65,62 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 	cmd.Dir = localPath
 	require.NoError(t, cmd.Run(), "Failed to add remote to local repository")
 
-	// Create main branches (production and development)
+	// Create git testing environment
 	env := &GitTestEnv{
 		LocalPath:  localPath,
 		RemotePath: remotePath,
 		t:          t,
 	}
 
-	// create initial commit
-	env.CommitFile("main", "README.md", "# Gitflow Test Repository", "initial commit")
+	// Create an empty commit to initialize the main branch
+	cmd = exec.Command("git", "commit", "--allow-empty", "-m", "Initial empty commit")
+	cmd.Dir = localPath
+	require.NoError(t, cmd.Run(), "Failed to create initial empty commit")
+
+	// Push the empty main branch to remote
+	cmd = exec.Command("git", "push", "-u", "origin", "main")
+	cmd.Dir = localPath
+	require.NoError(t, cmd.Run(), "Failed to push main branch")
+
+	// Create develop branch
+	env.CreateBranch("develop", "main")
 
 	return env
 }
 
 // CommitFile creates a file with given content, adds it, commits it, and pushes it to the remote
-func (env *GitTestEnv) CommitFile(branch, file, content, message string) {
+func (env *GitTestEnv) CommitFile(file, content, message, commitRef string) {
 	env.t.Helper()
+
+	env.ExecuteGit("checkout", commitRef)
 
 	path := filepath.Join(env.LocalPath, file)
 	err := os.WriteFile(path, []byte(content), 0644)
 	require.NoError(env.t, err, "Failed to create file: %s", path)
 
-	// First check if the branch exists locally
-	_, err = env.ExecuteGitAllowError("rev-parse", "--verify", branch)
-	if err != nil {
-		env.ExecuteGit("checkout", "-b", branch)
-	} else {
-		env.ExecuteGit("checkout", branch)
-	}
-
 	env.ExecuteGit("add", path)
 	env.ExecuteGit("commit", "-m", message)
+	env.ExecuteGit("push", "-u", "origin", commitRef)
+}
+
+// CreateBranch creates a new branch from the specified base branch
+func (env *GitTestEnv) CreateBranch(branch string, commitRef ...string) {
+	env.t.Helper()
+
+	// Create from current HEAD by default
+	baseRef := "HEAD"
+	if len(commitRef) > 0 && commitRef[0] != "" {
+		// If specified, create from the base branch
+		baseRef = commitRef[0]
+	}
+
+	// Checkout the base branch or commit
+	env.ExecuteGit("checkout", baseRef)
+
+	// Create and checkout the new branch
+	env.ExecuteGit("checkout", "-b", branch)
+
+	// Push to remote and set up tracking
 	env.ExecuteGit("push", "-u", "origin", branch)
 }
 

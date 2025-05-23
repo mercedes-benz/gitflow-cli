@@ -16,7 +16,7 @@ func TestReleaseStart(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := base.SetupTestEnv(t)
 
-	env.CommitFile("develop", "version.txt", "1.0.0-dev", "Add version file")
+	env.CommitFile("version.txt", "1.0.0-dev", "Add version file", "develop")
 
 	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("release", "start")

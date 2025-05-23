@@ -16,8 +16,8 @@ func TestHotfixStart(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := base.SetupTestEnv(t)
 
-	env.CommitFile("main", "version.txt", "1.0.0", "Merge branch 'release/1.0.0")
-	env.CommitFile("develop", "version.txt", "1.1.0-dev", "Set next minor project version.")
+	env.CommitFile("version.txt", "1.0.0", "Merge branch 'release/1.0.0", "main")
+	env.CommitFile("version.txt", "1.1.0-dev", "Set next minor project version.", "develop")
 
 	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("hotfix", "start")
