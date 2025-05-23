@@ -8,7 +8,9 @@ package core
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -35,6 +37,7 @@ type (
 		PushDeletion(branchName string) error
 		UndoAllChanges(cause error) error
 		CompareFiles(sourceBranch, targetBranch, sourceFile, targetFile string) (bool, error)
+		WriteFile(fileName string, fileContent string) error
 	}
 )
 
@@ -90,7 +93,6 @@ func NewRepository(projectPath, remote string) Repository {
 }
 
 // Local Return the local path of the repository.
-// todo: rename method
 func (r *repository) Local() string {
 	return r.projectPath
 }
@@ -318,6 +320,14 @@ func (r *repository) DeleteBranch(branchName string) error {
 		return fmt.Errorf("git delete '%v' failed with %v: %s", branchName, err, output)
 	}
 
+	return nil
+}
+
+func (r *repository) WriteFile(fileName string, fileContent string) error {
+	filePath := filepath.Join(r.projectPath, fileName)
+	if err := os.WriteFile(filePath, []byte(fileContent), 0644); err != nil {
+		return fmt.Errorf("failed to write in fileName %v: %v", fileName, err)
+	}
 	return nil
 }
 
