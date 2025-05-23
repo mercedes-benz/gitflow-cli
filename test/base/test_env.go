@@ -180,9 +180,33 @@ func (env *GitTestEnv) GetTag() string {
 }
 
 // GetCommitMessage gets the message of a specific commit
-func (env *GitTestEnv) GetCommitMessage(commit string) string {
+// index specifies which commit to retrieve:
+// 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
+func (env *GitTestEnv) GetCommitMessage(commit string, index ...int) string {
 	env.t.Helper()
-	output := env.ExecuteGit("log", "-1", "--pretty=%B", commit)
+
+	commitOffset := "HEAD"
+	if len(index) > 0 && index[0] > 0 {
+		// If index is provided and > 0, get older commits
+		commitOffset = fmt.Sprintf("HEAD~%d", index[0])
+	}
+
+	args := []string{"log", "-1", "--pretty=%B"}
+	if commit != "" {
+		// If commit is specified, use it as the base reference
+		if len(index) > 0 && index[0] > 0 {
+			// For a specific commit with offset
+			args = append(args, fmt.Sprintf("%s~%d", commit, index[0]))
+		} else {
+			// For the commit itself
+			args = append(args, commit)
+		}
+	} else {
+		// If no commit is specified, use the HEAD with potential offset
+		args = append(args, commitOffset)
+	}
+
+	output := env.ExecuteGit(args...)
 	return strings.TrimSpace(output)
 }
 
@@ -207,15 +231,12 @@ func (env *GitTestEnv) GetCurrentBranch() string {
 func (env *GitTestEnv) AssertFileInBranchEquals(branch, path, expectedContent string) {
 	env.t.Helper()
 	content := env.GetFileContentFromCommit(branch, path)
-	assert.Equal(env.t, expectedContent, content,
-		"File %s in branch %s has unexpected content", path, branch)
+	assert.Equal(env.t, expectedContent, content, "File %s in branch %s has unexpected content", path, branch)
 }
 
 // AssertCommitsAhead checks if a branch is exactly N commits ahead of another branch
 func (env *GitTestEnv) AssertCommitsAhead(branch, baseBranch string, expectedCount int) {
 	env.t.Helper()
 	count := env.CountCommitsBetween(baseBranch, branch)
-	assert.Equal(env.t, expectedCount, count,
-		"Branch %s should be %d commits ahead of %s, but is %d commits ahead",
-		branch, expectedCount, baseBranch, count)
+	assert.Equal(env.t, expectedCount, count, "Branch %s should be %d commits ahead of %s, but is %d commits ahead", branch, expectedCount, baseBranch, count)
 }
