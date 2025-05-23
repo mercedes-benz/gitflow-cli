@@ -33,21 +33,15 @@ func TestReleaseFinish(t *testing.T) {
 	env.ExecuteGitflow("release", "finish")
 
 	// THEN
-	// Check that the release branch is merged into main
-	assert.Equal(t, "Merge branch 'release/1.0.0'", env.GetCommitMessage("main"), "")
+	assert.Equal(t, "Merge branch 'release/1.0.0'", env.GetCommitMessage("main"), "Commit message in main branch should indicate merge from release branch")
 
-	// Check that the commit in main is tagged with 1.0.0
-	assert.Equal(t, "1.0.0", env.GetTag("main"))
+	assert.Equal(t, "1.0.0", env.GetTag("main"), "Latest commit in main should be tagged with 1.0.0")
 
-	// last commit in develop
-	assert.Equal(t, "Set next minor project version.", env.GetCommitMessage("develop"))
-	// second to last commit in develop
-	assert.Equal(t, "Merge branch 'release/1.0.0' into develop", env.GetCommitMessage("develop", 1), "")
+	assert.Equal(t, "Set next minor project version.", env.GetCommitMessage("develop"), "Latest commit in develop should update version for next development cycle")
+	assert.Equal(t, "Merge branch 'release/1.0.0' into develop", env.GetCommitMessage("develop", 1), "Second-to-last commit in develop should be the merge from release branch")
 
-	// Check that a commit was created in develop to update the version to 1.0.0-dev
 	env.AssertFileInBranchEquals("develop", "version.txt", "1.1.0-dev")
 
-	// Verify the release branch was deleted
 	branches := env.ExecuteGit("branch", "-a")
 	assert.NotContains(t, branches, "release/1.0.0", "Release branch should be deleted")
 }
