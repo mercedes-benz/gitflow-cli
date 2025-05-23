@@ -7,7 +7,6 @@ package test
 
 import (
 	"github.com/mercedes-benz/gitflow-cli/test/base"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -26,7 +25,7 @@ func TestReleaseFinish(t *testing.T) {
 
 	// Check main branch state
 	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0'", "main", 0)
-	assert.Equal(t, "1.0.0", env.GetTag("main"), "Latest commit in main should be tagged with release version")
+	env.AssertTagEquals("1.0.0", "main", 0)
 	env.AssertFileInBranchEquals("main", "version.txt", "1.0.0")
 
 	// Check develop branch state
