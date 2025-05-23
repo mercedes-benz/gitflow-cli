@@ -173,6 +173,12 @@ func (env *GitTestEnv) AssertBranchDoesNotExist(branch string) {
 	assert.Error(env.t, err, "Branch %s exists but should not", branch)
 }
 
+// GetTag gets all tags pointing to the current HEAD
+func (env *GitTestEnv) GetTag() string {
+	env.t.Helper()
+	return strings.TrimSpace(env.ExecuteGit("tag", "--points-at", "HEAD"))
+}
+
 // GetCommitMessage gets the message of a specific commit
 func (env *GitTestEnv) GetCommitMessage(commit string) string {
 	env.t.Helper()

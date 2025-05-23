@@ -39,16 +39,15 @@ func TestReleaseFinish(t *testing.T) {
 	env.ExecuteGit("pull", "origin", "main")
 
 	// Check that the release branch is merged into main
-	assert.Contains(t, env.GetCommitMessage("main"), "Merge branch 'release/1.0.0'", "Release branch should be merged into main")
+	assert.Equal(t, env.GetCommitMessage("main"), "Merge branch 'release/1.0.0'", "Release branch should be merged into main")
 
 	// Check that the commit in main is tagged with 1.0.0
-	tags := env.ExecuteGit("tag", "--points-at", "HEAD")
-	assert.Contains(t, tags, "1.0.0", "The commit in main should be tagged with 1.0.0")
+	assert.Equal(t, env.GetTag(), "1.0.0", "The commit in main should be tagged with 1.0.0")
 
 	// Check that the release branch is merged into develop
 	env.ExecuteGit("checkout", "develop")
 	env.ExecuteGit("pull", "origin", "develop")
-	assert.Contains(t, env.GetCommitMessage("develop"), "Set next minor project version.")
+	assert.Equal(t, env.GetCommitMessage("develop"), "Set next minor project version.")
 
 	// Check that a commit was created in develop to update the version to 1.0.0-dev
 	env.AssertFileInBranchEquals("develop", "version.txt", "1.1.0-dev")
