@@ -22,16 +22,15 @@ func TestReleaseFinish(t *testing.T) {
 	env.ExecuteGitflow("release", "finish")
 
 	// THEN
-
 	// Check main branch state
 	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0'", "main", 0)
 	env.AssertTagEquals("1.0.0", "main", 0)
-	env.AssertFileInBranchEquals("main", "version.txt", "1.0.0")
+	env.AssertFileEquals("version.txt", "1.0.0", "main")
 
 	// Check develop branch state
 	env.AssertCommitMessageEquals("Set next minor project version.", "develop", 0)
 	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0' into develop", "develop", 1)
-	env.AssertFileInBranchEquals("develop", "version.txt", "1.1.0-dev")
+	env.AssertFileEquals("version.txt", "1.1.0-dev", "develop")
 
 	env.AssertBranchDoesNotExist("release/1.0.0")
 }

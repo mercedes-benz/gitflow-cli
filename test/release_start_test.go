@@ -21,15 +21,16 @@ func TestReleaseStart(t *testing.T) {
 	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("release", "start")
 
-	// THEN: The release branch should have been created
+	// THEN:
+	// check release branch state
 	releaseBranch := "release/1.0.0"
 
 	env.AssertBranchExists(releaseBranch)
 	env.AssertBranchExists("origin/" + releaseBranch)
 
-	assert.Equal(t, releaseBranch, env.GetCurrentBranch(), "Current branch should be the release branch")
-
+	// The version.txt in the release branch should be correctly updated
+	env.AssertFileEquals("version.txt", "1.0.0", releaseBranch)
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", releaseBranch, 0)
 
-	env.AssertFileInBranchEquals(releaseBranch, "version.txt", "1.0.0")
+	assert.Equal(t, releaseBranch, env.GetCurrentBranch(), "Current branch should be the release branch")
 }

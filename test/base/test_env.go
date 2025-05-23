@@ -171,11 +171,19 @@ func (env *GitTestEnv) GetCurrentBranch() string {
 	return strings.TrimSpace(output)
 }
 
-// AssertFileInBranchEquals checks if a file in a branch has the expected content
-func (env *GitTestEnv) AssertFileInBranchEquals(branch, path, expectedContent string) {
+// AssertFileEquals checks if a file in a branch has the expected content
+// index specifies which commit to retrieve:
+// 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
+func (env *GitTestEnv) AssertFileEquals(path, expectedContent, branch string, index ...int) {
 	env.t.Helper()
-	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", branch, path))
-	assert.Equal(env.t, expectedContent, fileContent, "File %s in branch %s has unexpected fileContent", path, branch)
+
+	commitRef := branch
+	if len(index) > 0 && index[0] > 0 {
+		commitRef = fmt.Sprintf("%s~%d", branch, index[0])
+	}
+
+	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, path))
+	assert.Equal(env.t, expectedContent, fileContent, "File %s in %s has unexpected content", path, commitRef)
 }
 
 // AssertCommitMessageEquals checks if the commit message at the given branch and index matches the expected message
