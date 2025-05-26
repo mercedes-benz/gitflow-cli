@@ -11,7 +11,7 @@ import (
 )
 
 // TestHotfixFinish without version file and fallback to standard plugin
-func TestHotfixFinish(t *testing.T) {
+func TestHotfixFinishFallback(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 

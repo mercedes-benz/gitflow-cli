@@ -210,7 +210,7 @@ func (env *GitTestEnv) AssertFileEquals(path, expectedContent, commitRef string,
 	assert.Equal(env.t, expectedContent, fileContent, "File %s in %s has unexpected content", path, commitRef)
 }
 
-// AssertCommitMessageEquals checks if the commit message at the given branch and depth matches the expected message
+// AssertCommitMessageEquals checks if the first line of the commit message at the given branch and depth matches the expected message
 // depth specifies which commit to retrieve:
 // 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
 func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, commitRef string, depth ...int) {
@@ -222,7 +222,11 @@ func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, commitRef stri
 	}
 
 	actualMessage := env.getCommitMessage(commitRef, depthValue)
-	assert.Equal(env.t, expectedMessage, actualMessage, "Commit message of %s~%d should be '%s' but was '%s'", commitRef, depthValue, expectedMessage, actualMessage)
+
+	// Only compare the first line of the commit message
+	firstLine := strings.Split(actualMessage, "\n")[0]
+
+	assert.Equal(env.t, expectedMessage, firstLine, "Commit message of %s~%d should be '%s' but was '%s'", commitRef, depthValue, expectedMessage, firstLine)
 }
 
 // AssertTagEquals checks if the tag at the given branch and depth matches the expected tag

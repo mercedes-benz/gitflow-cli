@@ -14,6 +14,14 @@ import (
 	"strings"
 )
 
+// CheckoutStrategy definiert die Strategie für die CheckoutFile-Operation
+type CheckoutStrategy int
+
+const (
+	Theirs CheckoutStrategy = iota
+	Ours
+)
+
 type (
 	// Repository represents a version control system repository.
 	Repository interface {
@@ -21,7 +29,7 @@ type (
 		IsClean() error
 		HasBranch(branch Branch) (bool, []string, error)
 		CheckoutBranch(branchName string) error
-		CheckoutFile(fileName string) error
+		CheckoutFile(fileName string, strategy CheckoutStrategy) error
 		HasConflicts() bool
 		ContinueMerge() error
 		CreateBranch(branchName string) error
@@ -109,7 +117,7 @@ func (r *repository) HasConflicts() bool {
 	return len(output) > 0
 }
 
-func (r *repository) CheckoutFile(fileName string) error {
+func (r *repository) CheckoutFile(fileName string, strategy CheckoutStrategy) error {
 	var err error
 	var checkout *exec.Cmd
 	var output []byte
@@ -117,7 +125,18 @@ func (r *repository) CheckoutFile(fileName string) error {
 	// log human-readable description of the git command
 	defer func() { Log(checkout, output, err) }()
 
-	checkout = exec.Command(Git, "checkout", "--ours", fileName)
+	args := []string{"checkout"}
+
+	switch strategy {
+	case Ours:
+		args = append(args, "--ours")
+	case Theirs:
+		args = append(args, "--theirs")
+	}
+
+	args = append(args, fileName)
+
+	checkout = exec.Command(Git, args...)
 	checkout.Dir = r.projectPath
 
 	if output, err = checkout.CombinedOutput(); err != nil {

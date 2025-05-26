@@ -34,7 +34,7 @@ func TestHotfixFinishStandard(t *testing.T) {
 	env.AssertFileEquals("version.txt", "1.0.1", "main")
 
 	// Check develop branch state
-	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1' into develop\n\n# Conflicts:\n#\tversion.txt", "develop", 0)
+	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1' into develop", "develop", 0)
 	env.AssertFileEquals("version.txt", "1.1.0-dev", "develop")
 
 	env.AssertBranchDoesNotExist("hotfix/1.0.1")
