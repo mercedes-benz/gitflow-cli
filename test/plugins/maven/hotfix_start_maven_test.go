@@ -33,7 +33,7 @@ func TestHotfixStartStandard(t *testing.T) {
 	env.AssertBranchExists("hotfix/1.0.1")
 	env.AssertBranchExists("origin/hotfix/1.0.1")
 
-	env.AssertFileEquals("version.txt", "1.0.1", "hotfix/1.0.1")
+	env.AssertVersionEquals(versionTemplate, "1.0.1", "hotfix/1.0.1")
 	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")

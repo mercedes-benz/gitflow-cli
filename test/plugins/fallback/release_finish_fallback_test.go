@@ -34,12 +34,12 @@ func TestReleaseFinishFallback(t *testing.T) {
 	// Check main branch state
 	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0'", "main")
 	env.AssertTagEquals("1.0.0", "main")
-	env.AssertFileEquals("version.txt", "1.0.0", "main")
+	env.AssertVersionEquals(versionTemplate, "1.0.0", "main")
 
 	// Check develop branch state
 	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0' into develop", "develop", 1)
 	env.AssertCommitMessageEquals("Set next minor project version.", "develop", 0)
-	env.AssertFileEquals("version.txt", "1.1.0-dev", "develop")
+	env.AssertVersionEquals(versionTemplate, "1.1.0-dev", "develop")
 
 	env.AssertBranchDoesNotExist("release/1.0.0")
 	env.AssertCurrentBranchEquals("develop")

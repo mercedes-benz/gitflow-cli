@@ -229,6 +229,7 @@ func (env *GitTestEnv) AssertCurrentBranchEquals(expectedBranch string) {
 }
 
 // AssertFileEquals checks if a file in a branch has the expected content
+// If comparing a template file ending with .tpl, it will check the {{.Version}} placeholder against expectedContent
 // depth specifies which commit to retrieve:
 // 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
 func (env *GitTestEnv) AssertFileEquals(path, expectedContent, commitRef string, depth ...int) {
@@ -239,7 +240,37 @@ func (env *GitTestEnv) AssertFileEquals(path, expectedContent, commitRef string,
 	}
 
 	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, path))
-	assert.Equal(env.t, expectedContent, fileContent, "File %s in %s has unexpected content", path, commitRef)
+
+	// Check if this is a template file (.tpl extension)
+	if strings.HasSuffix(path, ".tpl") {
+		// If it's a template file, parse it to extract the version placeholder
+		tmpl, err := template.New("test").Parse(fileContent)
+		require.NoError(env.t, err, "Failed to parse template file: %s", path)
+
+		// Create a buffer to render the template with the expected content
+		var buf bytes.Buffer
+		err = tmpl.Execute(&buf, struct {
+			Version string
+		}{
+			Version: expectedContent,
+		})
+		require.NoError(env.t, err, "Failed to render template with version: %s", expectedContent)
+
+		// Get the actual file name (without .tpl extension)
+		actualFileName := strings.TrimSuffix(filepath.Base(path), ".tpl")
+
+		// Get the actual file content from the repository
+		actualFileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, actualFileName))
+
+		// Compare the rendered template with the actual file content
+		assert.Equal(env.t, buf.String(), actualFileContent,
+			"File %s in %s with version %s has unexpected content",
+			actualFileName, commitRef, expectedContent)
+	} else {
+		// For non-template files, do a direct comparison as before
+		assert.Equal(env.t, expectedContent, fileContent,
+			"File %s in %s has unexpected content", path, commitRef)
+	}
 }
 
 // AssertCommitMessageEquals checks if the first line of the commit message at the given branch and depth matches the expected message
@@ -328,4 +359,48 @@ func (env *GitTestEnv) getTag(commit string, depth ...int) string {
 	}
 
 	return strings.TrimSpace(env.ExecuteGit("tag", "--points-at", commitRef))
+}
+
+// AssertVersionEquals checks if the version in a file in a branch matches the expected version
+// instead of comparing the entire file content, it only checks the version value
+// templatePath is the path to the template file (e.g., "version.txt.tpl")
+// The actual file name is derived from the template name (e.g., "version.txt")
+func (env *GitTestEnv) AssertVersionEquals(templatePath, expectedVersion, commitRef string, depth ...int) {
+	env.t.Helper()
+
+	// Derive the actual filename from the template name by removing the .tpl extension
+	templateBase := filepath.Base(templatePath)
+	actualFileName := strings.TrimSuffix(templateBase, ".tpl")
+
+	// Get the commit reference with optional depth
+	if len(depth) > 0 && depth[0] > 0 {
+		commitRef = fmt.Sprintf("%s~%d", commitRef, depth[0])
+	}
+
+	// Get the file content from the specified branch/commit
+	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, actualFileName))
+
+	// For version.txt files, the entire content is the version
+	if strings.HasSuffix(actualFileName, ".txt") {
+		assert.Equal(env.t, expectedVersion, strings.TrimSpace(fileContent),
+			"Version in %s in %s should be '%s' but was '%s'", actualFileName, commitRef, expectedVersion, strings.TrimSpace(fileContent))
+		return
+	}
+
+	// For XML files like pom.xml, extract the version tag content
+	if strings.HasSuffix(actualFileName, ".xml") {
+		// Simple parsing to extract version from XML
+		versionStart := strings.Index(fileContent, "<version>")
+		versionEnd := strings.Index(fileContent, "</version>")
+
+		if versionStart >= 0 && versionEnd > versionStart {
+			actualVersion := fileContent[versionStart+9 : versionEnd] // +9 to skip "<version>"
+			assert.Equal(env.t, expectedVersion, actualVersion,
+				"Version in %s in %s should be '%s' but was '%s'", actualFileName, commitRef, expectedVersion, actualVersion)
+			return
+		}
+	}
+
+	// If we reach here, we couldn't determine the version
+	assert.Fail(env.t, "Could not extract version from file %s in %s", actualFileName, commitRef)
 }

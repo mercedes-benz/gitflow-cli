@@ -33,7 +33,7 @@ func TestReleaseStartStandard(t *testing.T) {
 	env.AssertBranchExists("release/1.1.0")
 	env.AssertBranchExists("origin/release/1.1.0")
 
-	env.AssertFileEquals("version.txt", "1.1.0", "release/1.1.0")
+	env.AssertVersionEquals(versionTemplate, "1.1.0", "release/1.1.0")
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.1.0")
 
 	env.AssertCurrentBranchEquals("release/1.1.0")
