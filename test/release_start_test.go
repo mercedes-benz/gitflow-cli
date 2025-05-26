@@ -30,3 +30,25 @@ func TestReleaseStart(t *testing.T) {
 
 	env.AssertCurrentBranchEquals("release/1.0.0")
 }
+
+func TestReleaseStartWithoutVersionFile(t *testing.T) {
+	// GIVEN: a Git repository with production and development branch
+	env := base.SetupTestEnv(t)
+
+	// WHEN: The command "gitflow-cli release start" is executed
+	env.ExecuteGitflow("release", "start")
+
+	// THEN:
+	// check develop branch
+	env.AssertFileEquals("version.txt", "1.0.0-dev", "develop")
+	env.AssertCommitMessageEquals("Create versions file", "develop")
+
+	// check release branch state
+	env.AssertBranchExists("release/1.0.0")
+	env.AssertBranchExists("origin/release/1.0.0")
+
+	env.AssertFileEquals("version.txt", "1.0.0", "release/1.0.0")
+	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.0.0")
+
+	env.AssertCurrentBranchEquals("release/1.0.0")
+}

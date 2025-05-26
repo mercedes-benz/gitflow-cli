@@ -38,7 +38,7 @@ func init() {
 
 const pluginName = "Maven"
 
-const versionFile = "pom.xml"
+const versionFileName = "pom.xml"
 
 const versionQualifier = "SNAPSHOT"
 
@@ -55,8 +55,8 @@ func (p *mavenPlugin) String() string {
 	return pluginName
 }
 
-func (p *mavenPlugin) VersionFile() string {
-	return versionFile
+func (p *mavenPlugin) VersionFileName() string {
+	return versionFileName
 }
 
 func (p *mavenPlugin) VersionQualifier() string {

@@ -26,7 +26,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if CheckVersionFile(projectPath, plugin.VersionFile()) {
+		if CheckVersionFile(projectPath, plugin.VersionFileName()) {
 			return executePluginStart(plugin, branch, projectPath, args...)
 		}
 	}
@@ -110,7 +110,7 @@ func Finish(branch Branch, projectPath string) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if CheckVersionFile(projectPath, plugin.VersionFile()) {
+		if CheckVersionFile(projectPath, plugin.VersionFileName()) {
 			return executePluginFinish(plugin, branch, projectPath)
 		}
 	}
@@ -444,11 +444,11 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 	// merge hotfix branch into current develop branch
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
 		if repository.HasConflicts() {
-			if err := repository.CheckoutFile(plugin.VersionFile()); err != nil {
+			if err := repository.CheckoutFile(plugin.VersionFileName()); err != nil {
 				return repository.UndoAllChanges(err)
 			}
 
-			if err := repository.AddFile(plugin.VersionFile()); err != nil {
+			if err := repository.AddFile(plugin.VersionFileName()); err != nil {
 				return repository.UndoAllChanges(err)
 			}
 
