@@ -31,3 +31,24 @@ func TestHotfixStart(t *testing.T) {
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
+
+func TestHotfixStartWithoutVersionFile(t *testing.T) {
+	// GIVEN: a Git repository with production and development branch
+	env := base.SetupTestEnv(t)
+
+	// WHEN: The command "gitflow-cli release start" is executed
+	env.ExecuteGitflow("hotfix", "start")
+
+	// THEN:
+	// check hotfix branch state
+	env.AssertFileEquals("version.txt", "1.0.0", "main")
+	env.AssertCommitMessageEquals("Create versions file", "main")
+
+	// check hotfix branch state
+	env.AssertBranchExists("hotfix/1.0.1")
+	env.AssertBranchExists("origin/hotfix/1.0.1")
+
+	env.AssertFileEquals("version.txt", "1.0.1", "hotfix/1.0.1")
+	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
+	env.AssertCurrentBranchEquals("hotfix/1.0.1")
+}
