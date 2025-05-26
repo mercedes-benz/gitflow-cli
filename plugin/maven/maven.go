@@ -38,7 +38,7 @@ func init() {
 
 const pluginName = "Maven"
 
-const versionFile = "pom.xml"
+const versionFileName = "pom.xml"
 
 const versionQualifier = "SNAPSHOT"
 
@@ -55,8 +55,8 @@ func (p *mavenPlugin) String() string {
 	return pluginName
 }
 
-func (p *mavenPlugin) VersionFile() string {
-	return versionFile
+func (p *mavenPlugin) VersionFileName() string {
+	return versionFileName
 }
 
 func (p *mavenPlugin) VersionQualifier() string {
@@ -239,7 +239,7 @@ func (p *mavenPlugin) Version(projectPath string, major, minor, incremental bool
 	return currentVersion, nextVersion, nil
 }
 
-func (p *mavenPlugin) UpdateProjectVersion(next core.Version) error {
+func (p *mavenPlugin) UpdateProjectVersion(repository core.Repository, next core.Version) error {
 	var err error
 	var versionCommand *exec.Cmd
 	var output []byte
@@ -275,6 +275,13 @@ func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) erro
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
 	if output, err = releasesCommand.CombinedOutput(); err != nil {
 		return fmt.Errorf("mvn releases update failed with %v: %s", err, output)
+	}
+
+	// if not clean: perform a git commit with a commit message because the previous step changed the POM file
+	if err := repository.IsClean(); err != nil {
+		if err := repository.CommitChanges("Update project dependencies with corresponding releases."); err != nil {
+			return repository.UndoAllChanges(err)
+		}
 	}
 	return nil
 }

@@ -26,7 +26,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if CheckVersionFile(projectPath, plugin.VersionFile()) {
+		if CheckVersionFile(projectPath, plugin.VersionFileName()) {
 			return executePluginStart(plugin, branch, projectPath, args...)
 		}
 	}
@@ -110,7 +110,7 @@ func Finish(branch Branch, projectPath string) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if CheckVersionFile(projectPath, plugin.VersionFile()) {
+		if CheckVersionFile(projectPath, plugin.VersionFileName()) {
 			return executePluginFinish(plugin, branch, projectPath)
 		}
 	}
@@ -209,7 +209,7 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 	//   set the version of project to (${major}+1).0.0-${qualifier}
 	//   perform a git commit with a commit message
 	if next.VersionIncrement == Major {
-		if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.VersionQualifier())); err != nil {
+		if err := plugin.UpdateProjectVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 
@@ -227,7 +227,7 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 	}
 
 	// remove qualifier from the project version (change POM file)
-	if err := plugin.UpdateProjectVersion(current.RemoveQualifier()); err != nil {
+	if err := plugin.UpdateProjectVersion(repository, current.RemoveQualifier()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -238,18 +238,6 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 
 	// AfterHook updating the project version
 	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.AfterUpdateProjectVersionHook, repository); err != nil {
-		return repository.UndoAllChanges(err)
-	}
-
-	// if not clean: perform a git commit with a commit message because the previous step changed the POM file
-	if err := repository.IsClean(); err != nil {
-		if err := repository.CommitChanges("Update project dependencies with corresponding releases."); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-	}
-
-	// checkout production branch (just for consistency that commands always end on production branch)
-	if err := repository.CheckoutBranch(Production.String()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -294,17 +282,12 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	}
 
 	// update project version to ${major}.${minor}.${increment + 1}
-	if err := plugin.UpdateProjectVersion(next); err != nil {
+	if err := plugin.UpdateProjectVersion(repository, next); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
 	// perform a git commit with a commit message
 	if err := repository.CommitChanges("Set next hotfix version."); err != nil {
-		return repository.UndoAllChanges(err)
-	}
-
-	// checkout production branch (just for consistency that commands always end on production branch)
-	if err := repository.CheckoutBranch(Production.String()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -354,7 +337,21 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 
 	// merge release branch into current production branch (with merge commit --no-ff git flag)
 	if err := repository.MergeBranch(releaseVersion.BranchName(Release), NoFastForward); err != nil {
-		return repository.UndoAllChanges(err)
+		if repository.HasConflicts() {
+			if err := repository.CheckoutFile(plugin.VersionFileName(), Theirs); err != nil {
+				return repository.UndoAllChanges(err)
+			}
+
+			if err := repository.AddFile(plugin.VersionFileName()); err != nil {
+				return repository.UndoAllChanges(err)
+			}
+
+			if err := repository.ContinueMerge(); err != nil {
+				return repository.UndoAllChanges(err)
+			}
+		} else {
+			return repository.UndoAllChanges(err)
+		}
 	}
 
 	// tag last commit with the release version number
@@ -375,7 +372,7 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 	// set project version to the next develop version ${major}.(${minor}+1).0-${qualifier} (change POM file)
 	if _, next, err := plugin.Version(repository.Local(), false, true, false); err != nil {
 		return repository.UndoAllChanges(err)
-	} else if err := plugin.UpdateProjectVersion(next.AddQualifier(plugin.VersionQualifier())); err != nil {
+	} else if err := plugin.UpdateProjectVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -386,11 +383,6 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 
 	// delete the release branch locally
 	if err := repository.DeleteBranch(releaseVersion.BranchName(Release)); err != nil {
-		return repository.UndoAllChanges(err)
-	}
-
-	// checkout production branch (just for consistency that commands always end on production branch)
-	if err := repository.CheckoutBranch(Production.String()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -466,11 +458,11 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 	// merge hotfix branch into current develop branch
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
 		if repository.HasConflicts() {
-			if err := repository.CheckoutFile(plugin.VersionFile()); err != nil {
+			if err := repository.CheckoutFile(plugin.VersionFileName(), Ours); err != nil {
 				return repository.UndoAllChanges(err)
 			}
 
-			if err := repository.AddFile(plugin.VersionFile()); err != nil {
+			if err := repository.AddFile(plugin.VersionFileName()); err != nil {
 				return repository.UndoAllChanges(err)
 			}
 
@@ -488,11 +480,6 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 
 	// delete the release branch locally
 	if err := repository.DeleteBranch(hotfixVersion.BranchName(Hotfix)); err != nil {
-		return repository.UndoAllChanges(err)
-	}
-
-	// checkout production branch (just for consistency that commands always end on production branch)
-	if err := repository.CheckoutBranch(Production.String()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 

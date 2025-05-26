@@ -53,11 +53,11 @@ type (
 
 	// Plugin is the interface for all workflow automation plugins.
 	Plugin interface {
-		VersionFile() string
+		VersionFileName() string
 		VersionQualifier() string
 		RequiredTools() []string
 		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
-		UpdateProjectVersion(next Version) error
+		UpdateProjectVersion(repository Repository, next Version) error
 		fmt.Stringer
 	}
 )

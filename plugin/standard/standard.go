@@ -30,7 +30,7 @@ func init() {
 
 const pluginName = "Standard"
 
-const versionFile = "version.txt"
+const versionFileName = "version.txt"
 
 const versionQualifier = "dev"
 
@@ -42,8 +42,8 @@ func (p *standardPlugin) String() string {
 	return pluginName
 }
 
-func (p *standardPlugin) VersionFile() string {
-	return versionFile
+func (p *standardPlugin) VersionFileName() string {
+	return versionFileName
 }
 
 func (p *standardPlugin) VersionQualifier() string {
@@ -62,8 +62,8 @@ func (p *standardPlugin) Version(projectPath string, major, minor, incremental b
 	var errMajor, errMinor, errIncremental error
 
 	// read the version from the version file
-	if bytes, err := os.ReadFile(filepath.Join(projectPath, versionFile)); err != nil {
-		return core.NoVersion, core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, versionFile)
+	if bytes, err := os.ReadFile(filepath.Join(projectPath, versionFileName)); err != nil {
+		return core.NoVersion, core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, versionFileName)
 	} else {
 		if current, err := core.ParseVersion(strings.Trim(string(bytes), "\n\r")); err != nil {
 			return core.NoVersion, core.NoVersion, err
@@ -98,11 +98,10 @@ func (p *standardPlugin) Version(projectPath string, major, minor, incremental b
 }
 
 // UpdateProjectVersion updates the project's version
-func (p *standardPlugin) UpdateProjectVersion(next core.Version) error {
-	if err := os.WriteFile(versionFile, []byte(next.String()), 0644); err != nil {
-		return fmt.Errorf("failed to write in file %v next project version %v", versionFile, next.String())
+func (p *standardPlugin) UpdateProjectVersion(repository core.Repository, next core.Version) error {
+	if err := repository.WriteFile(versionFileName, next.String()); err != nil {
+		return err
 	}
-
 	return nil
 }
 
@@ -112,17 +111,17 @@ func (p *standardPlugin) beforeReleaseStart(repository core.Repository) error {
 	}
 
 	// Check if a version file already exists
-	versionFilePath := filepath.Join(repository.Local(), versionFile)
+	versionFilePath := filepath.Join(repository.Local(), versionFileName)
 	if _, err := os.Stat(versionFilePath); err == nil {
 		return nil
 	}
 
 	initVersion := core.NewVersion("1", "0", "0", versionQualifier)
-	if err := os.WriteFile(versionFile, []byte(initVersion.String()), 0644); err != nil {
+	if err := os.WriteFile(versionFilePath, []byte(initVersion.String()), 0644); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
-	if err := repository.AddFile(versionFile); err != nil {
+	if err := repository.AddFile(versionFilePath); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -139,17 +138,17 @@ func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 	}
 
 	// Check if a version file already exists
-	versionFilePath := filepath.Join(repository.Local(), versionFile)
+	versionFilePath := filepath.Join(repository.Local(), versionFileName)
 	if _, err := os.Stat(versionFilePath); err == nil {
 		return nil
 	}
 
 	initVersion := core.NewVersion("1", "0", "0")
-	if err := os.WriteFile(versionFile, []byte(initVersion.String()), 0644); err != nil {
+	if err := os.WriteFile(versionFilePath, []byte(initVersion.String()), 0644); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
-	if err := repository.AddFile(versionFile); err != nil {
+	if err := repository.AddFile(versionFilePath); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -162,17 +161,17 @@ func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 
 func (p *standardPlugin) afterMergeIntoDevelopment(repository core.Repository) error {
 
-	filesEqual, err := repository.CompareFiles(core.Production.String(), core.Development.String(), versionFile, versionFile)
+	filesEqual, err := repository.CompareFiles(core.Production.String(), core.Development.String(), versionFileName, versionFileName)
 
 	if err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
-	// if versions are identical, update the version in the development branch (possible only if hotfix start created initil version)
+	// if versions are identical, update the version in the development branch (possible only if hotfix start created initial version)
 	if filesEqual {
 		if _, next, err := p.Version(repository.Local(), false, true, false); err != nil {
 			return repository.UndoAllChanges(err)
-		} else if err := p.UpdateProjectVersion(next.AddQualifier(p.VersionQualifier())); err != nil {
+		} else if err := p.UpdateProjectVersion(repository, next.AddQualifier(p.VersionQualifier())); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 
