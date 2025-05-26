@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 package helper
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/mercedes-benz/gitflow-cli/cmd"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"text/template"
 
 	// Import the plugin package so that init functions for all plugins are executed automatically
 	_ "github.com/mercedes-benz/gitflow-cli/plugin"
@@ -88,15 +90,45 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 	return env
 }
 
-// CommitFile creates a file with given content, adds it, commits it, and pushes it to the remote
-func (env *GitTestEnv) CommitFile(file, content, message, commitRef string) {
+// CommitFileFromTemplate creates a file using a template with variables, adds it, commits it, and pushes it to the remote
+// The filename will be derived from the template name (e.g., template "version.txt.tpl" creates file "version.txt")
+// The commit message is automatically generated based on the branch name
+func (env *GitTestEnv) CommitFileFromTemplate(templatePath, version, commitRef string) {
 	env.t.Helper()
 
 	env.ExecuteGit("checkout", commitRef)
 
+	// Read the template file
+	templateContent, err := os.ReadFile(templatePath)
+	require.NoError(env.t, err, "Failed to read template file: %s", templatePath)
+
+	// Create a new template and parse the content
+	tmpl, err := template.New(filepath.Base(templatePath)).Parse(string(templateContent))
+	require.NoError(env.t, err, "Failed to parse template: %s", templatePath)
+
+	// Prepare the data for template rendering
+	data := struct {
+		Version string
+	}{
+		Version: version,
+	}
+
+	// Render the template
+	var renderedContent bytes.Buffer
+	err = tmpl.Execute(&renderedContent, data)
+	require.NoError(env.t, err, "Failed to render template: %s", templatePath)
+
+	// Derive the filename from the template name by removing the .tpl extension
+	templateBase := filepath.Base(templatePath)
+	file := strings.TrimSuffix(templateBase, ".tpl")
+
+	// Write the file
 	path := filepath.Join(env.LocalPath, file)
-	err := os.WriteFile(path, []byte(content), 0644)
+	err = os.WriteFile(path, renderedContent.Bytes(), 0644)
 	require.NoError(env.t, err, "Failed to create file: %s", path)
+
+	// Generate commit message based on branch name
+	message := fmt.Sprintf("Set up test precondition for %s branch", commitRef)
 
 	env.ExecuteGit("add", path)
 	env.ExecuteGit("commit", "-m", message)

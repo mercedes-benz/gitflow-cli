@@ -7,6 +7,7 @@ package fallback
 
 import (
 	"github.com/mercedes-benz/gitflow-cli/test/helper"
+	"path/filepath"
 	"testing"
 )
 
@@ -15,13 +16,16 @@ func TestReleaseFinishFallback(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
+	// Path to the version file template
+	versionTemplate := filepath.Join("..", "..", "templates", "version.txt.tpl")
+
 	// main -> no version file
 	// develop -> version.txt (1.0.0-dev)
 	// release/1.0.0 -> version.txt (1.0.0)
 
-	env.CommitFile("version.txt", "1.0.0-dev", "Set up test precondition for develop branch", "develop")
+	env.CommitFileFromTemplate(versionTemplate, "1.0.0-dev", "develop")
 	env.CreateBranch("release/1.0.0", "develop")
-	env.CommitFile("version.txt", "1.0.0", "Set up test precondition for release branch.", "release/1.0.0")
+	env.CommitFileFromTemplate(versionTemplate, "1.0.0", "release/1.0.0")
 
 	// WHEN
 	env.ExecuteGitflow("release", "finish")

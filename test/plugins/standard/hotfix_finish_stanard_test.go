@@ -7,6 +7,7 @@ package fallback
 
 import (
 	"github.com/mercedes-benz/gitflow-cli/test/helper"
+	"path/filepath"
 	"testing"
 )
 
@@ -15,14 +16,17 @@ func TestHotfixFinishStandard(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
+	// Path to the version file template
+	versionTemplate := filepath.Join("..", "..", "templates", "version.txt.tpl")
+
 	// main -> version.txt (1.0.0)
 	// develop -> version.txt (1.1.0-dev)
 	// hotfix/1.0.1 -> version.txt (1.0.1)
 
-	env.CommitFile("version.txt", "1.0.0", "Set up test precondition for main branch", "main")
-	env.CommitFile("version.txt", "1.1.0-dev", "Set up test precondition for develop branch", "develop")
+	env.CommitFileFromTemplate(versionTemplate, "1.0.0", "main")
+	env.CommitFileFromTemplate(versionTemplate, "1.1.0-dev", "develop")
 	env.CreateBranch("hotfix/1.0.1", "main")
-	env.CommitFile("version.txt", "1.0.1", "Set up test precondition for hotfix branch", "hotfix/1.0.1")
+	env.CommitFileFromTemplate(versionTemplate, "1.0.1", "hotfix/1.0.1")
 
 	// WHEN
 	env.ExecuteGitflow("hotfix", "finish")
