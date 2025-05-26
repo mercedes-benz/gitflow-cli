@@ -189,17 +189,10 @@ func (env *GitTestEnv) AssertBranchDoesNotExist(commitRef string) {
 	assert.Error(env.t, err, "Branch %s exists but should not", commitRef)
 }
 
-// GetCurrentBranch gets the name of the current branch
-func (env *GitTestEnv) GetCurrentBranch() string {
-	env.t.Helper()
-	output := env.ExecuteGit("rev-parse", "--abbrev-ref", "HEAD")
-	return strings.TrimSpace(output)
-}
-
 // AssertCurrentBranchEquals checks if the currently checked out branch matches the expected branch name
 func (env *GitTestEnv) AssertCurrentBranchEquals(expectedBranch string) {
 	env.t.Helper()
-	currentBranch := env.GetCurrentBranch()
+	currentBranch := strings.TrimSpace(env.ExecuteGit("rev-parse", "--abbrev-ref", "HEAD"))
 	assert.Equal(env.t, expectedBranch, currentBranch, "Current branch should be '%s', but got '%s'", expectedBranch, currentBranch)
 }
 
