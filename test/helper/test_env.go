@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
 SPDX-License-Identifier: MIT
 */
 
-package base
+package helper
 
 import (
 	"fmt"
