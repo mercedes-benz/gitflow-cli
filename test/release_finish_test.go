@@ -35,4 +35,5 @@ func TestReleaseFinish(t *testing.T) {
 	env.AssertFileEquals("version.txt", "1.1.0-dev", "develop")
 
 	env.AssertBranchDoesNotExist("release/1.0.0")
+	env.AssertCurrentBranchEquals("develop")
 }

@@ -7,7 +7,6 @@ package test
 
 import (
 	"github.com/mercedes-benz/gitflow-cli/test/base"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -32,5 +31,5 @@ func TestHotfixStart(t *testing.T) {
 	env.AssertFileEquals("version.txt", "1.0.1", hotfixBranch)
 	env.AssertCommitMessageEquals("Set next hotfix version.", hotfixBranch)
 
-	assert.Equal(t, hotfixBranch, env.GetCurrentBranch(), "Current branch should be the hotfix branch")
+	env.AssertCurrentBranchEquals(hotfixBranch)
 }
