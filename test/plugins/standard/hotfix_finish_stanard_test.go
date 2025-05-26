@@ -3,21 +3,24 @@ SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
 SPDX-License-Identifier: MIT
 */
 
-package test
+package fallback
 
 import (
-	"github.com/mercedes-benz/gitflow-cli/test/base"
+	"github.com/mercedes-benz/gitflow-cli/test/helper"
 	"testing"
 )
 
-// TestHotfixFinish checks if the command "hotfix finish" performs the correct Git graph manipulation
-func TestHotfixFinish(t *testing.T) {
+// TestHotfixFinishStandard with standard plugin and standard preconditions
+func TestHotfixFinishStandard(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
-	env := base.SetupTestEnv(t)
+	env := helper.SetupTestEnv(t)
+
+	// main -> version.txt (1.0.0)
+	// develop -> version.txt (1.1.0-dev)
+	// hotfix/1.0.1 -> version.txt (1.0.1)
 
 	env.CommitFile("version.txt", "1.0.0", "Set up test precondition for main branch", "main")
 	env.CommitFile("version.txt", "1.1.0-dev", "Set up test precondition for develop branch", "develop")
-
 	env.CreateBranch("hotfix/1.0.1", "main")
 	env.CommitFile("version.txt", "1.0.1", "Set up test precondition for hotfix branch", "hotfix/1.0.1")
 
