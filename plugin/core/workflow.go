@@ -469,11 +469,6 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// checkout production branch (just for consistency that commands always end on production branch)
-	if err := repository.CheckoutBranch(Production.String()); err != nil {
-		return repository.UndoAllChanges(err)
-	}
-
 	// push all branches to remotes
 	if err := repository.PushAllChanges(); err != nil {
 		return err

@@ -10,15 +10,15 @@ import (
 	"testing"
 )
 
-// TestReleaseStart checks if the command "release start" performs the correct Git graph manipulation
+// TestReleaseStart checks if the command "release finish" performs the correct Git graph manipulation
 func TestReleaseFinish(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := base.SetupTestEnv(t)
 
-	env.CommitFile("version.txt", "1.0.0-dev", "Add version file", "develop")
+	env.CommitFile("version.txt", "1.0.0-dev", "Set up test precondition for develop branch", "develop")
 
 	env.CreateBranch("release/1.0.0", "develop")
-	env.CommitFile("version.txt", "1.0.0", "Remove qualifier from project version.", "release/1.0.0")
+	env.CommitFile("version.txt", "1.0.0", "Set up test precondition for release branch.", "release/1.0.0")
 
 	// WHEN
 	env.ExecuteGitflow("release", "finish")

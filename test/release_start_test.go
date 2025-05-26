@@ -22,13 +22,11 @@ func TestReleaseStart(t *testing.T) {
 
 	// THEN:
 	// check release branch state
-	releaseBranch := "release/1.0.0"
+	env.AssertBranchExists("release/1.0.0")
+	env.AssertBranchExists("origin/release/1.0.0")
 
-	env.AssertBranchExists(releaseBranch)
-	env.AssertBranchExists("origin/" + releaseBranch)
+	env.AssertFileEquals("version.txt", "1.0.0", "release/1.0.0")
+	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.0.0")
 
-	env.AssertFileEquals("version.txt", "1.0.0", releaseBranch)
-	env.AssertCommitMessageEquals("Remove qualifier from project version.", releaseBranch)
-
-	env.AssertCurrentBranchEquals(releaseBranch)
+	env.AssertCurrentBranchEquals("release/1.0.0")
 }

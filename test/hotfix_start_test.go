@@ -23,13 +23,11 @@ func TestHotfixStart(t *testing.T) {
 
 	// THEN:
 	// check hotfix branch state
-	hotfixBranch := "hotfix/1.0.1"
+	env.AssertBranchExists("hotfix/1.0.1")
+	env.AssertBranchExists("origin/hotfix/1.0.1")
 
-	env.AssertBranchExists(hotfixBranch)
-	env.AssertBranchExists("origin/" + hotfixBranch)
+	env.AssertFileEquals("version.txt", "1.0.1", "hotfix/1.0.1")
+	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
 
-	env.AssertFileEquals("version.txt", "1.0.1", hotfixBranch)
-	env.AssertCommitMessageEquals("Set next hotfix version.", hotfixBranch)
-
-	env.AssertCurrentBranchEquals(hotfixBranch)
+	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
