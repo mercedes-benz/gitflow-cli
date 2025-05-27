@@ -15,22 +15,22 @@ import (
 func TestReleaseFinish(t *testing.T) {
 	// Test with version.txt template
 	t.Run("Test Standard Plugin", func(t *testing.T) {
-		testReleaseFinishWithTemplate(t, "version.txt.tpl", "dev")
+		testReleaseFinish(t, "version.txt.tpl", "dev")
 	})
 
 	// Test with pom.xml template
 	t.Run("Test Maven Plugin", func(t *testing.T) {
-		testReleaseFinishWithTemplate(t, "pom.xml.tpl", "SNAPSHOT")
+		testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
 	})
 }
 
-// testReleaseFinishWithTemplate runs the test with the specified template
-func testReleaseFinishWithTemplate(t *testing.T, templateName string, versionQualifier string) {
+// testReleaseFinish runs the test with the specified template
+func testReleaseFinish(t *testing.T, templateName string, versionQualifier string) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	templatePath := filepath.Join("..", "..", "templates", templateName)
+	templatePath := filepath.Join("../..", "helper", "templates", templateName)
 
 	// main -> template file (1.0.0)
 	// develop -> template file (1.1.0-dev/1.1.0-SNAPSHOT)

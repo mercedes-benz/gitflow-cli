@@ -30,7 +30,7 @@ func testReleaseStart(t *testing.T, templateName string, versionQualifier string
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	templatePath := filepath.Join("..", "..", "templates", templateName)
+	templatePath := filepath.Join("../..", "helper", "templates", templateName)
 
 	// main -> template file (1.0.0)
 	// develop -> template file (1.1.0-{qualifier})
