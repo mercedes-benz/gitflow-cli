@@ -19,9 +19,9 @@ func TestHotfixFinish(t *testing.T) {
 	})
 
 	// Test with pom.xml template
-	//t.Run("TestMavenPlugin", func(t *testing.T) {
-	//	testHotfixFinish(t, "pom.xml.tpl", "SNAPSHOT")
-	//})
+	t.Run("TestMavenPlugin", func(t *testing.T) {
+		testHotfixFinish(t, "pom.xml.tpl", "SNAPSHOT")
+	})
 }
 
 // testHotfixFinish runs the test with the specified template
