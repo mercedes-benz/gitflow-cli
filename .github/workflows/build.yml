@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,7 +20,22 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23
+          go-version: '1.23'
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: '3.9.6'
+
+      - name: Verify Maven installation
+        run: mvn --version
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -34,9 +50,17 @@ jobs:
       - name: Build Application
         run: go build -v ./...
 
-      # Install gotestsum for better test reporting
       - name: Install gotestsum
         run: go install gotest.tools/gotestsum@latest
 
       - name: Run Tests
-        run: gotestsum --format dots-v2 -- -failfast -timeout 60m ./...
+        run: |
+          gotestsum --format standard-verbose --junitfile test-results.xml -- -failfast -timeout 60m ./...
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.xml
+          retention-days: 7
