@@ -17,9 +17,9 @@ import (
 //}
 
 // TestHotfixStartMaven tests Hotfix Start with the Maven plugin
-//func TestHotfixStartMaven(t *testing.T) {
-//	testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
-//}
+func TestHotfixStartMaven(t *testing.T) {
+	testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
+}
 
 // testHotfixStart runs the test with the specified template
 func testHotfixStart(t *testing.T, templateName string, versionQualifier string) {

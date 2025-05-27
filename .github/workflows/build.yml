@@ -40,15 +40,15 @@ jobs:
           mvn versions:help
           mvn build-helper:help
 
-      #- name: Cache Go modules
-      #  uses: actions/cache@v4
-      #  with:
-      #    path: |
-      #      ~/.cache/go-build
-      #      ${{ github.workspace }}/go/pkg/mod
-      #    key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-      #    restore-keys: |
-      #      ${{ runner.os }}-go-
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ${{ github.workspace }}/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Build Application
         run: go build -v ./...
