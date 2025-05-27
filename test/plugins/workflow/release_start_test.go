@@ -30,12 +30,12 @@ func testReleaseStart(t *testing.T, templateName string, versionQualifier string
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	templatePath := filepath.Join("../..", "helper", "templates", templateName)
+	versionFileTemplate := filepath.Join("../..", "helper", "templates", templateName)
 
 	// main -> template file (1.0.0)
 	// develop -> template file (1.1.0-{qualifier})
-	env.CommitFileFromTemplate(templatePath, "1.0.0", "main")
-	env.CommitFileFromTemplate(templatePath, "1.1.0-"+versionQualifier, "develop")
+	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "main")
+	env.CommitFileFromTemplate(versionFileTemplate, "1.1.0-"+versionQualifier, "develop")
 
 	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("release", "start")
@@ -45,7 +45,7 @@ func testReleaseStart(t *testing.T, templateName string, versionQualifier string
 	env.AssertBranchExists("release/1.1.0")
 	env.AssertBranchExists("origin/release/1.1.0")
 
-	env.AssertVersionEquals(templatePath, "1.1.0", "release/1.1.0")
+	env.AssertVersionEquals(versionFileTemplate, "1.1.0", "release/1.1.0")
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.1.0")
 
 	env.AssertCurrentBranchEquals("release/1.1.0")

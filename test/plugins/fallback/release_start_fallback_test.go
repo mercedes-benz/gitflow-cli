@@ -17,8 +17,8 @@ func TestReleaseStartFallback(t *testing.T) {
 	env := helper.SetupTestEnv(t)
 
 	// Path to the templates
-	versionTemplate := filepath.Join("..", "..", "templates", "version.txt.tpl")
-
+	versionFileTemplate := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
+	
 	// main -> no version file
 	// develop -> no version file
 
@@ -28,14 +28,14 @@ func TestReleaseStartFallback(t *testing.T) {
 	// THEN:
 	// check develop branch
 	// standard plugin creates version file in develop
-	env.AssertVersionEquals(versionTemplate, "1.0.0-dev", "develop")
+	env.AssertVersionEquals(versionFileTemplate, "1.0.0-dev", "develop")
 	env.AssertCommitMessageEquals("Create versions file", "develop")
 
 	// check release branch state
 	env.AssertBranchExists("release/1.0.0")
 	env.AssertBranchExists("origin/release/1.0.0")
 
-	env.AssertVersionEquals(versionTemplate, "1.0.0", "release/1.0.0")
+	env.AssertVersionEquals(versionFileTemplate, "1.0.0", "release/1.0.0")
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.0.0")
 
 	env.AssertCurrentBranchEquals("release/1.0.0")

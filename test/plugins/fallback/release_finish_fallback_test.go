@@ -17,15 +17,15 @@ func TestReleaseFinishFallback(t *testing.T) {
 	env := helper.SetupTestEnv(t)
 
 	// Path to the version file template
-	versionTemplate := filepath.Join("..", "..", "templates", "version.txt.tpl")
+	versionFileTemplate := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
 
 	// main -> no version file
 	// develop -> version.txt (1.0.0-dev)
 	// release/1.0.0 -> version.txt (1.0.0)
 
-	env.CommitFileFromTemplate(versionTemplate, "1.0.0-dev", "develop")
+	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0-dev", "develop")
 	env.CreateBranch("release/1.0.0", "develop")
-	env.CommitFileFromTemplate(versionTemplate, "1.0.0", "release/1.0.0")
+	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "release/1.0.0")
 
 	// WHEN
 	env.ExecuteGitflow("release", "finish")
@@ -34,12 +34,12 @@ func TestReleaseFinishFallback(t *testing.T) {
 	// Check main branch state
 	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0'", "main")
 	env.AssertTagEquals("1.0.0", "main")
-	env.AssertVersionEquals(versionTemplate, "1.0.0", "main")
+	env.AssertVersionEquals(versionFileTemplate, "1.0.0", "main")
 
 	// Check develop branch state
 	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0' into develop", "develop", 1)
 	env.AssertCommitMessageEquals("Set next minor project version.", "develop", 0)
-	env.AssertVersionEquals(versionTemplate, "1.1.0-dev", "develop")
+	env.AssertVersionEquals(versionFileTemplate, "1.1.0-dev", "develop")
 
 	env.AssertBranchDoesNotExist("release/1.0.0")
 	env.AssertCurrentBranchEquals("develop")

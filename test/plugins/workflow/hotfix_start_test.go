@@ -30,13 +30,13 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	templatePath := filepath.Join("../..", "helper", "templates", templateName)
+	versionFileTemplate := filepath.Join("../..", "helper", "templates", templateName)
 
 	// main -> template file (1.0.0)
 	// develop -> template file (1.1.0-dev/1.1.0-SNAPSHOT)
 
-	env.CommitFileFromTemplate(templatePath, "1.0.0", "main")
-	env.CommitFileFromTemplate(templatePath, "1.1.0-"+versionQualifier, "develop")
+	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "main")
+	env.CommitFileFromTemplate(versionFileTemplate, "1.1.0-"+versionQualifier, "develop")
 
 	// WHEN: The command "gitflow-cli hotfix start" is executed
 	env.ExecuteGitflow("hotfix", "start")
@@ -46,7 +46,7 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	env.AssertBranchExists("hotfix/1.0.1")
 	env.AssertBranchExists("origin/hotfix/1.0.1")
 
-	env.AssertVersionEquals(templatePath, "1.0.1", "hotfix/1.0.1")
+	env.AssertVersionEquals(versionFileTemplate, "1.0.1", "hotfix/1.0.1")
 	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")

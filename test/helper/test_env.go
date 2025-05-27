@@ -93,7 +93,7 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 // CommitFileFromTemplate creates a file using a template with variables, adds it, commits it, and pushes it to the remote
 // The filename will be derived from the template name (e.g., template "version.txt.tpl" creates file "version.txt")
 // The commit message is automatically generated based on the branch name
-func (env *GitTestEnv) CommitFileFromTemplate(templatePath, version, commitRef string) {
+func (env *GitTestEnv) CommitFileFromTemplate(templatePath, bindingValue, commitRef string) {
 	env.t.Helper()
 
 	env.ExecuteGit("checkout", commitRef)
@@ -110,7 +110,7 @@ func (env *GitTestEnv) CommitFileFromTemplate(templatePath, version, commitRef s
 	data := struct {
 		Version string
 	}{
-		Version: version,
+		Version: bindingValue,
 	}
 
 	// Render the template
