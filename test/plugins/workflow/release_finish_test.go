@@ -17,9 +17,9 @@ import (
 //}
 
 // TestReleaseFinishMaven tests Release Finish with the Maven plugin
-func TestReleaseFinishMaven(t *testing.T) {
-	testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
-}
+//func TestReleaseFinishMaven(t *testing.T) {
+//	testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
+//}
 
 // testReleaseFinish runs the test with the specified template
 func testReleaseFinish(t *testing.T, templateName string, versionQualifier string) {

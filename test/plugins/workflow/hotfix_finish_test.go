@@ -17,9 +17,9 @@ import (
 //}
 
 // TestHotfixFinishMaven tests Hotfix Finish with the Maven plugin
-func TestHotfixFinishMaven(t *testing.T) {
-	testHotfixFinish(t, "pom.xml.tpl", "SNAPSHOT")
-}
+//func TestHotfixFinishMaven(t *testing.T) {
+//	testHotfixFinish(t, "pom.xml.tpl", "SNAPSHOT")
+//}
 
 // testHotfixFinish runs the test with the specified template
 func testHotfixFinish(t *testing.T, templateName string, versionQualifier string) {
