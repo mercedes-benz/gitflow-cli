@@ -11,17 +11,14 @@ import (
 	"testing"
 )
 
-// TestHotfixStart tests Hotfix Start with different templates
-func TestHotfixStart(t *testing.T) {
-	// Test with version.txt template
-	t.Run("TestStandardPlugin", func(t *testing.T) {
-		testHotfixStart(t, "version.txt.tpl", "dev")
-	})
+// TestHotfixStartStandard tests Hotfix Start with the standard plugin
+func TestHotfixStartStandard(t *testing.T) {
+	testHotfixStart(t, "version.txt.tpl", "dev")
+}
 
-	// Test with pom.xml template
-	t.Run("TestMavenPlugin", func(t *testing.T) {
-		testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
-	})
+// TestHotfixStartMaven tests Hotfix Start with the Maven plugin
+func TestHotfixStartMaven(t *testing.T) {
+	testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
 }
 
 // testHotfixStart runs the test with the specified template
@@ -33,7 +30,7 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	template := filepath.Join("../..", "helper", "templates", templateName)
 
 	// main -> version file (1.0.0)
-	// develop -> version file (1.1.0-{qualifier})
+	// develop -> version file (1.1.0-"+versionQualifier)
 
 	env.CommitFileFromTemplate(template, "1.0.0", "main")
 	env.CommitFileFromTemplate(template, "1.1.0-"+versionQualifier, "develop")

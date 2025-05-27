@@ -11,17 +11,14 @@ import (
 	"testing"
 )
 
-// TestReleaseStart tests Release Start with different templates
-func TestReleaseStart(t *testing.T) {
-	// Test with version.txt template
-	t.Run("TestStandardPlugin", func(t *testing.T) {
-		testReleaseStart(t, "version.txt.tpl", "dev")
-	})
+// TestReleaseStartStandard tests Release Start with the standard plugin
+func TestReleaseStartStandard(t *testing.T) {
+	testReleaseStart(t, "version.txt.tpl", "dev")
+}
 
-	// Test with pom.xml template
-	t.Run("TestMavenPlugin", func(t *testing.T) {
-		testReleaseStart(t, "pom.xml.tpl", "SNAPSHOT")
-	})
+// TestReleaseStartMaven tests Release Start with the Maven plugin
+func TestReleaseStartMaven(t *testing.T) {
+	testReleaseStart(t, "pom.xml.tpl", "SNAPSHOT")
 }
 
 // testReleaseStart runs the test with the specified template

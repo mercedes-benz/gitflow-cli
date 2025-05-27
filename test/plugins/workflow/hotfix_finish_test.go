@@ -11,17 +11,14 @@ import (
 	"testing"
 )
 
-// TestHotfixFinish tests Hotfix Finish with different templates
-func TestHotfixFinish(t *testing.T) {
-	// Test with version.txt template
-	t.Run("TestStandardPlugin", func(t *testing.T) {
-		testHotfixFinish(t, "version.txt.tpl", "dev")
-	})
+// TestHotfixFinishStandard tests Hotfix Finish with the standard plugin
+func TestHotfixFinishStandard(t *testing.T) {
+	testHotfixFinish(t, "version.txt.tpl", "dev")
+}
 
-	// Test with pom.xml template
-	t.Run("TestMavenPlugin", func(t *testing.T) {
-		testHotfixFinish(t, "pom.xml.tpl", "SNAPSHOT")
-	})
+// TestHotfixFinishMaven tests Hotfix Finish with the Maven plugin
+func TestHotfixFinishMaven(t *testing.T) {
+	testHotfixFinish(t, "pom.xml.tpl", "SNAPSHOT")
 }
 
 // testHotfixFinish runs the test with the specified template
@@ -58,7 +55,7 @@ func testHotfixFinish(t *testing.T, templateName string, versionQualifier string
 	env.AssertCurrentBranchEquals("develop")
 }
 
-// TestHotfixFinishWithoutVersionFileInDevelop (test fallback to standard plugin with additional functionality)
+// TestHotfixFinishWithoutVersionFileInDevelop is a standard plugin specific test
 func TestHotfixFinishWithoutVersionFileInDevelop(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
