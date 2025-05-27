@@ -11,14 +11,22 @@ import (
 	"testing"
 )
 
-// TestReleaseFinishStandard tests Release Finish with the standard plugin
-func TestReleaseFinishStandard(t *testing.T) {
-	testReleaseFinish(t, "version.txt.tpl", "dev")
-}
+// Test release finish job
+func TestReleaseFinish(t *testing.T) {
+	// Test with version.txt template
+	t.Run("StandardPlugin", func(t *testing.T) {
+		testReleaseFinish(t, "version.txt.tpl", "dev")
+	})
 
-// TestReleaseFinishMaven tests Release Finish with the Maven plugin
-func TestReleaseFinishMaven(t *testing.T) {
-	testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
+	// Test with pom.xml template
+	t.Run("MavenPlugin", func(t *testing.T) {
+		testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
+	})
+
+	// Test fallback without versioning file
+	t.Run("StandardPluginWithoutVersionFile", func(t *testing.T) {
+		testReleaseFinishWithoutVersionFile(t)
+	})
 }
 
 // testReleaseFinish runs the test with the specified template
@@ -56,8 +64,8 @@ func testReleaseFinish(t *testing.T, templateName string, versionQualifier strin
 	env.AssertCurrentBranchEquals("develop")
 }
 
-// TestReleaseFinishWithoutVersionFileInMain (test fallback to standard plugin with additional functionality)
-func TestReleaseFinishWithoutVersionFileInMain(t *testing.T) {
+// TestReleaseFinishWithoutVersionFile (test standard plugin with additional functionality)
+func testReleaseFinishWithoutVersionFile(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 

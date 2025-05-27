@@ -11,14 +11,22 @@ import (
 	"testing"
 )
 
-// TestHotfixStartStandard tests Hotfix Start with the standard plugin
-func TestHotfixStartStandard(t *testing.T) {
-	testHotfixStart(t, "version.txt.tpl", "dev")
-}
+// test Hotfix Start Job
+func TestHotfixStart(t *testing.T) {
+	// Test with version.txt template
+	t.Run("StandardPlugin", func(t *testing.T) {
+		testHotfixStart(t, "version.txt.tpl", "dev")
+	})
 
-// TestHotfixStartMaven tests Hotfix Start with the Maven plugin
-func TestHotfixStartMaven(t *testing.T) {
-	testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
+	// Test with pom.xml template
+	t.Run("MavenPlugin", func(t *testing.T) {
+		testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
+	})
+
+	// Test fallback without versioning file
+	t.Run("StandardPluginWithoutVersionFile", func(t *testing.T) {
+		testHotfixStartWithoutVersionFile(t)
+	})
 }
 
 // testHotfixStart runs the test with the specified template
@@ -49,8 +57,8 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
 
-// TestHotfixStartWithoutVersionFile (test fallback to standard plugin with additional functionality)
-func TestHotfixStartWithoutVersionFile(t *testing.T) {
+// TestHotfixStartWithoutVersionFile (test standard plugin with additional functionality)
+func testHotfixStartWithoutVersionFile(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 

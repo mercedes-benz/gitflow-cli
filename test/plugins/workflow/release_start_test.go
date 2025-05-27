@@ -11,14 +11,22 @@ import (
 	"testing"
 )
 
-// TestReleaseStartStandard tests Release Start with the standard plugin
-func TestReleaseStartStandard(t *testing.T) {
-	testReleaseStart(t, "version.txt.tpl", "dev")
-}
+// Test release start job
+func TestReleaseStart(t *testing.T) {
+	// Test with version.txt template
+	t.Run("StandardPlugin", func(t *testing.T) {
+		testReleaseStart(t, "version.txt.tpl", "dev")
+	})
 
-// TestReleaseStartMaven tests Release Start with the Maven plugin
-func TestReleaseStartMaven(t *testing.T) {
-	testReleaseStart(t, "pom.xml.tpl", "SNAPSHOT")
+	// Test with pom.xml template
+	t.Run("MavenPlugin", func(t *testing.T) {
+		testReleaseStart(t, "pom.xml.tpl", "SNAPSHOT")
+	})
+
+	// Test fallback without versioning file
+	t.Run("StandardPluginWithoutVersionFile", func(t *testing.T) {
+		testReleaseStartWithoutVersionFile(t)
+	})
 }
 
 // testReleaseStart runs the test with the specified template
@@ -48,8 +56,8 @@ func testReleaseStart(t *testing.T, templateName string, versionQualifier string
 	env.AssertCurrentBranchEquals("release/1.1.0")
 }
 
-// TestReleaseStartWithoutVersionFile (test fallback to standard plugin with additional functionality)
-func TestReleaseStartWithoutVersionFile(t *testing.T) {
+// TestReleaseStartWithoutVersionFile (test standard plugin with additional functionality)
+func testReleaseStartWithoutVersionFile(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
