@@ -25,11 +25,8 @@ jobs:
       - name: Install Maven Plugins
         run: |
           mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=versions-maven-plugin -Dversion=2.16.2
-          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin -Dversion=3.5.0
-
-      - name: Verify Maven Plugins
-        run: |
           mvn versions:help
+          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin -Dversion=3.5.0
           mvn build-helper:help
 
       - name: Cache Go modules
