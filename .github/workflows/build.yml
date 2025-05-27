@@ -22,11 +22,6 @@ jobs:
         with:
           go-version: '1.23'
 
-      - name: Set up Maven
-        uses: stCarolas/setup-maven@v5
-        with:
-          maven-version: '3.9.6'
-
       - name: Verify Maven installation
         run: mvn --version
 
@@ -34,21 +29,26 @@ jobs:
         run: |
           # Install versions-maven-plugin
           mkdir -p ~/.m2/repository/org/codehaus/mojo/versions-maven-plugin
-          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=versions-maven-plugin -Dversion=2.16.2
+          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=versions-maven-plugin
           
           # Install build-helper-maven-plugin
           mkdir -p ~/.m2/repository/org/codehaus/mojo/build-helper-maven-plugin
-          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin -Dversion=3.5.0
+          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin
 
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ${{ github.workspace }}/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - name: Verify Maven Plugins
+        run: |
+          mvn versions:help
+          mvn build-helper:help
+
+      #- name: Cache Go modules
+      #  uses: actions/cache@v4
+      #  with:
+      #    path: |
+      #      ~/.cache/go-build
+      #      ${{ github.workspace }}/go/pkg/mod
+      #    key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      #    restore-keys: |
+      #      ${{ runner.os }}-go-
 
       - name: Build Application
         run: go build -v ./...
