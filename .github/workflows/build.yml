@@ -29,11 +29,11 @@ jobs:
         run: |
           # Install versions-maven-plugin
           mkdir -p ~/.m2/repository/org/codehaus/mojo/versions-maven-plugin
-          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=versions-maven-plugin
+          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=versions-maven-plugin -Dversion=2.16.2
           
           # Install build-helper-maven-plugin
           mkdir -p ~/.m2/repository/org/codehaus/mojo/build-helper-maven-plugin
-          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin
+          mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin -Dversion=3.5.0
 
       - name: Verify Maven Plugins
         run: |
