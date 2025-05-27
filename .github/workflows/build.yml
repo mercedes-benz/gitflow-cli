@@ -55,12 +55,4 @@ jobs:
 
       - name: Run Tests
         run: |
-          gotestsum --format standard-verbose --junitfile test-results.xml -- -failfast -timeout 60m ./...
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: test-results.xml
-          retention-days: 7
+          gotestsum --format standard-verbose -- -failfast -timeout 60m ./...
