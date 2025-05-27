@@ -362,7 +362,7 @@ func (env *GitTestEnv) getTag(commit string, depth ...int) string {
 }
 
 // AssertVersionEquals checks if the version in a file in a branch matches the expected version
-// instead of comparing the entire file content, it only checks the version value
+// It uses the template file to determine how to extract the version from the actual file
 // templatePath is the path to the template file (e.g., "version.txt.tpl")
 // The actual file name is derived from the template name (e.g., "version.txt")
 func (env *GitTestEnv) AssertVersionEquals(templatePath, expectedVersion, commitRef string, depth ...int) {
@@ -370,37 +370,79 @@ func (env *GitTestEnv) AssertVersionEquals(templatePath, expectedVersion, commit
 
 	// Derive the actual filename from the template name by removing the .tpl extension
 	templateBase := filepath.Base(templatePath)
-	actualFileName := strings.TrimSuffix(templateBase, ".tpl")
+	versionFileName := strings.TrimSuffix(templateBase, ".tpl")
 
 	// Get the commit reference with optional depth
 	if len(depth) > 0 && depth[0] > 0 {
 		commitRef = fmt.Sprintf("%s~%d", commitRef, depth[0])
 	}
 
-	// Get the file content from the specified branch/commit
-	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, actualFileName))
-
-	// For version.txt files, the entire content is the version
-	if strings.HasSuffix(actualFileName, ".txt") {
-		assert.Equal(env.t, expectedVersion, strings.TrimSpace(fileContent),
-			"Version in %s in %s should be '%s' but was '%s'", actualFileName, commitRef, expectedVersion, strings.TrimSpace(fileContent))
+	// Read the template file to understand how to extract the version
+	templateContent, err := os.ReadFile(templatePath)
+	if err != nil {
+		assert.Fail(env.t, "Failed to read template file: %s: %v", templatePath, err)
 		return
 	}
 
-	// For XML files like pom.xml, extract the version tag content
-	if strings.HasSuffix(actualFileName, ".xml") {
-		// Simple parsing to extract version from XML
-		versionStart := strings.Index(fileContent, "<version>")
-		versionEnd := strings.Index(fileContent, "</version>")
+	// Get the actual file content from the specified branch/commit
+	versionFileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, versionFileName))
 
-		if versionStart >= 0 && versionEnd > versionStart {
-			actualVersion := fileContent[versionStart+9 : versionEnd] // +9 to skip "<version>"
-			assert.Equal(env.t, expectedVersion, actualVersion,
-				"Version in %s in %s should be '%s' but was '%s'", actualFileName, commitRef, expectedVersion, actualVersion)
-			return
-		}
+	// Parse the template to understand its structure
+	tmpl, err := template.New(templateBase).Parse(string(templateContent))
+	if err != nil {
+		assert.Fail(env.t, "Failed to parse template file: %s: %v", templatePath, err)
+		return
 	}
 
-	// If we reach here, we couldn't determine the version
-	assert.Fail(env.t, "Could not extract version from file %s in %s", actualFileName, commitRef)
+	// Create a mock execution of the template with a unique marker for Version
+	// This will help us understand where to look for the version in the actual file
+	uniqueMarker := "##VERSION_PLACEHOLDER_UNIQUE##"
+	var mockOutput bytes.Buffer
+	err = tmpl.Execute(&mockOutput, struct {
+		Version string
+	}{
+		Version: uniqueMarker,
+	})
+	if err != nil {
+		assert.Fail(env.t, "Failed to execute template: %v", err)
+		return
+	}
+
+	mockResult := mockOutput.String()
+
+	// Locate the unique marker in the mock output
+	markerIndex := strings.Index(mockResult, uniqueMarker)
+	if markerIndex < 0 {
+		assert.Fail(env.t, "Could not locate Version placeholder in template: %s", templatePath)
+		return
+	}
+
+	// Try to determine the actual version from the file content
+	// by comparing the structure before and after the marker
+	beforeMarker := mockResult[:markerIndex]
+	afterMarker := mockResult[markerIndex+len(uniqueMarker):]
+
+	// Find where the version should be in the actual file
+	startIndex := strings.Index(versionFileContent, beforeMarker)
+	if startIndex < 0 {
+		assert.Fail(env.t, "Could not locate start of version in file %s in %s", versionFileName, commitRef)
+		return
+	}
+	startIndex += len(beforeMarker)
+
+	endIndex := -1
+	if afterMarker != "" {
+		endIndex = strings.Index(versionFileContent[startIndex:], afterMarker)
+		if endIndex < 0 {
+			assert.Fail(env.t, "Could not locate end of version in file %s in %s", versionFileName, commitRef)
+			return
+		}
+		endIndex += startIndex
+	} else {
+		endIndex = len(versionFileContent)
+	}
+
+	actualVersion := versionFileContent[startIndex:endIndex]
+	assert.Equal(env.t, expectedVersion, actualVersion,
+		"Version in %s in %s should be '%s' but was '%s'", versionFileName, commitRef, expectedVersion, actualVersion)
 }
