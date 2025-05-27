@@ -14,14 +14,14 @@ import (
 // TestReleaseFinish tests Release Finish with different templates
 func TestReleaseFinish(t *testing.T) {
 	// Test with version.txt template
-	//t.Run("TestStandardPlugin", func(t *testing.T) {
-	//	testReleaseFinish(t, "version.txt.tpl", "dev")
-	//})
+	t.Run("TestStandardPlugin", func(t *testing.T) {
+		testReleaseFinish(t, "version.txt.tpl", "dev")
+	})
 
 	// Test with pom.xml template
-	t.Run("TestMavenPlugin", func(t *testing.T) {
-		testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
-	})
+	//t.Run("TestMavenPlugin", func(t *testing.T) {
+	//	testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
+	//})
 }
 
 // testReleaseFinish runs the test with the specified template

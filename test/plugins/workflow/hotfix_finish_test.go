@@ -14,9 +14,9 @@ import (
 // TestHotfixFinish tests Hotfix Finish with different templates
 func TestHotfixFinish(t *testing.T) {
 	// Test with version.txt template
-	//t.Run("TestStandardPlugin", func(t *testing.T) {
-	//	testHotfixFinish(t, "version.txt.tpl", "dev")
-	//})
+	t.Run("TestStandardPlugin", func(t *testing.T) {
+		testHotfixFinish(t, "version.txt.tpl", "dev")
+	})
 
 	// Test with pom.xml template
 	//t.Run("TestMavenPlugin", func(t *testing.T) {

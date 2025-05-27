@@ -14,14 +14,14 @@ import (
 // TestHotfixStart tests Hotfix Start with different templates
 func TestHotfixStart(t *testing.T) {
 	// Test with version.txt template
-	//t.Run("TestStandardPlugin", func(t *testing.T) {
-	//	testHotfixStart(t, "version.txt.tpl", "dev")
-	//})
+	t.Run("TestStandardPlugin", func(t *testing.T) {
+		testHotfixStart(t, "version.txt.tpl", "dev")
+	})
 
 	// Test with pom.xml template
-	t.Run("TestMavenPlugin", func(t *testing.T) {
-		testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
-	})
+	//t.Run("TestMavenPlugin", func(t *testing.T) {
+	//	testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
+	//})
 }
 
 // testHotfixStart runs the test with the specified template
