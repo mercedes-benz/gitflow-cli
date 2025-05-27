@@ -30,16 +30,16 @@ func testHotfixFinish(t *testing.T, templateName string, versionQualifier string
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	versionFileTemplate := filepath.Join("../..", "helper", "templates", templateName)
+	template := filepath.Join("../..", "helper", "templates", templateName)
 
 	// main -> version file (1.0.0)
 	// develop -> version file (1.1.0-{qualifier})
 	// hotfix/1.0.1 -> version file (1.0.1)
 
-	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "main")
-	env.CommitFileFromTemplate(versionFileTemplate, "1.1.0-"+versionQualifier, "develop")
+	env.CommitFileFromTemplate(template, "1.0.0", "main")
+	env.CommitFileFromTemplate(template, "1.1.0-"+versionQualifier, "develop")
 	env.CreateBranch("hotfix/1.0.1", "main")
-	env.CommitFileFromTemplate(versionFileTemplate, "1.0.1", "hotfix/1.0.1")
+	env.CommitFileFromTemplate(template, "1.0.1", "hotfix/1.0.1")
 
 	// WHEN: The command "gitflow-cli hotfix finish" is executed
 	env.ExecuteGitflow("hotfix", "finish")
@@ -48,32 +48,31 @@ func testHotfixFinish(t *testing.T, templateName string, versionQualifier string
 	// Check main branch state
 	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1'", "main")
 	env.AssertTagEquals("1.0.1", "main")
-	env.AssertVersionEquals(versionFileTemplate, "1.0.1", "main")
+	env.AssertVersionEquals(template, "1.0.1", "main")
 
 	// Check develop branch state
 	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1' into develop", "develop", 0)
-	env.AssertVersionEquals(versionFileTemplate, "1.1.0-"+versionQualifier, "develop")
+	env.AssertVersionEquals(template, "1.1.0-"+versionQualifier, "develop")
 
 	env.AssertBranchDoesNotExist("hotfix/1.0.1")
 	env.AssertCurrentBranchEquals("develop")
 }
 
-// TestHotfixFinish with only version.txt on all branches
-func TestHotfixFinishFallback(t *testing.T) {
+// TestHotfixFinishWithoutVersionFileInDevelop (test fallback to standard plugin with additional functionality)
+func TestHotfixFinishWithoutVersionFileInDevelop(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
 	// Path to the templates
-	versionFileTemplate := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
+	template := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
 
 	// main -> version.txt (1.0.0)
-	// develop -> version.txt (1.1.0-dev)
+	// develop -> no version file
 	// hotfix/1.0.1 -> version.txt (1.0.1)
 
-	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "main")
-	env.CommitFileFromTemplate(versionFileTemplate, "1.1.0-dev", "develop")
+	env.CommitFileFromTemplate(template, "1.0.0", "main")
 	env.CreateBranch("hotfix/1.0.1", "main")
-	env.CommitFileFromTemplate(versionFileTemplate, "1.0.1", "hotfix/1.0.1")
+	env.CommitFileFromTemplate(template, "1.0.1", "hotfix/1.0.1")
 
 	// WHEN: The command "gitflow-cli hotfix finish" is executed
 	env.ExecuteGitflow("hotfix", "finish")
@@ -82,11 +81,12 @@ func TestHotfixFinishFallback(t *testing.T) {
 	// Check main branch state
 	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1'", "main")
 	env.AssertTagEquals("1.0.1", "main")
-	env.AssertVersionEquals(versionFileTemplate, "1.0.1", "main")
+	env.AssertVersionEquals(template, "1.0.1", "main")
 
 	// Check develop branch state
-	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1' into develop", "develop", 0)
-	env.AssertVersionEquals(versionFileTemplate, "1.1.0-dev", "develop")
+	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1' into develop", "develop", 1)
+	env.AssertCommitMessageEquals("Set next minor project version.", "develop", 0)
+	env.AssertVersionEquals(template, "1.1.0-dev", "develop")
 
 	env.AssertBranchDoesNotExist("hotfix/1.0.1")
 	env.AssertCurrentBranchEquals("develop")

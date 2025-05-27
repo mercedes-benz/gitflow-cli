@@ -30,12 +30,12 @@ func testReleaseStart(t *testing.T, templateName string, versionQualifier string
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	versionFileTemplate := filepath.Join("../..", "helper", "templates", templateName)
+	template := filepath.Join("../..", "helper", "templates", templateName)
 
 	// main -> version file (1.0.0)
 	// develop -> version file (1.1.0-{qualifier})
-	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "main")
-	env.CommitFileFromTemplate(versionFileTemplate, "1.1.0-"+versionQualifier, "develop")
+	env.CommitFileFromTemplate(template, "1.0.0", "main")
+	env.CommitFileFromTemplate(template, "1.1.0-"+versionQualifier, "develop")
 
 	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("release", "start")
@@ -45,19 +45,19 @@ func testReleaseStart(t *testing.T, templateName string, versionQualifier string
 	env.AssertBranchExists("release/1.1.0")
 	env.AssertBranchExists("origin/release/1.1.0")
 
-	env.AssertVersionEquals(versionFileTemplate, "1.1.0", "release/1.1.0")
+	env.AssertVersionEquals(template, "1.1.0", "release/1.1.0")
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.1.0")
 
 	env.AssertCurrentBranchEquals("release/1.1.0")
 }
 
-// TestReleaseStartFallback without version file and fallback to standard plugin
-func TestReleaseStartFallback(t *testing.T) {
+// TestReleaseStartWithoutVersionFile (test fallback to standard plugin with additional functionality)
+func TestReleaseStartWithoutVersionFile(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
 	// Path to the templates
-	versionFileTemplate := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
+	template := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
 
 	// main -> no version file
 	// develop -> no version file
@@ -66,16 +66,15 @@ func TestReleaseStartFallback(t *testing.T) {
 	env.ExecuteGitflow("release", "start")
 
 	// THEN:
-	// check develop branch
 	// standard plugin creates version file in develop
-	env.AssertVersionEquals(versionFileTemplate, "1.0.0-dev", "develop")
+	env.AssertVersionEquals(template, "1.0.0-dev", "develop")
 	env.AssertCommitMessageEquals("Create versions file", "develop")
 
 	// check release branch state
 	env.AssertBranchExists("release/1.0.0")
 	env.AssertBranchExists("origin/release/1.0.0")
 
-	env.AssertVersionEquals(versionFileTemplate, "1.0.0", "release/1.0.0")
+	env.AssertVersionEquals(template, "1.0.0", "release/1.0.0")
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.0.0")
 
 	env.AssertCurrentBranchEquals("release/1.0.0")

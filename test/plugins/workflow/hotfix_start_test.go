@@ -30,13 +30,13 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	versionFileTemplate := filepath.Join("../..", "helper", "templates", templateName)
+	template := filepath.Join("../..", "helper", "templates", templateName)
 
 	// main -> version file (1.0.0)
 	// develop -> version file (1.1.0-{qualifier})
 
-	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "main")
-	env.CommitFileFromTemplate(versionFileTemplate, "1.1.0-"+versionQualifier, "develop")
+	env.CommitFileFromTemplate(template, "1.0.0", "main")
+	env.CommitFileFromTemplate(template, "1.1.0-"+versionQualifier, "develop")
 
 	// WHEN: The command "gitflow-cli hotfix start" is executed
 	env.ExecuteGitflow("hotfix", "start")
@@ -46,19 +46,19 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	env.AssertBranchExists("hotfix/1.0.1")
 	env.AssertBranchExists("origin/hotfix/1.0.1")
 
-	env.AssertVersionEquals(versionFileTemplate, "1.0.1", "hotfix/1.0.1")
+	env.AssertVersionEquals(template, "1.0.1", "hotfix/1.0.1")
 	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
 
-// TestHotfixStart without version file and fallback to standard plugin
-func TestHotfixStartFallback(t *testing.T) {
+// TestHotfixStartWithoutVersionFile (test fallback to standard plugin with additional functionality)
+func TestHotfixStartWithoutVersionFile(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
 	// Path to the templates
-	versionFileTemplate := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
+	template := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
 
 	// main -> no version file
 	// develop -> no version file
@@ -67,16 +67,15 @@ func TestHotfixStartFallback(t *testing.T) {
 	env.ExecuteGitflow("hotfix", "start")
 
 	// THEN:
-	// check hotfix branch state
 	// standard plugin creates version file in main
-	env.AssertVersionEquals(versionFileTemplate, "1.0.0", "main")
+	env.AssertVersionEquals(template, "1.0.0", "main")
 	env.AssertCommitMessageEquals("Create versions file", "main")
 
 	// check hotfix branch state
 	env.AssertBranchExists("hotfix/1.0.1")
 	env.AssertBranchExists("origin/hotfix/1.0.1")
 
-	env.AssertVersionEquals(versionFileTemplate, "1.0.1", "hotfix/1.0.1")
+	env.AssertVersionEquals(template, "1.0.1", "hotfix/1.0.1")
 	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
