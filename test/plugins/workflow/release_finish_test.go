@@ -14,12 +14,12 @@ import (
 // TestReleaseFinish tests Release Finish with different templates
 func TestReleaseFinish(t *testing.T) {
 	// Test with version.txt template
-	t.Run("Test Standard Plugin", func(t *testing.T) {
+	t.Run("TestStandardPlugin", func(t *testing.T) {
 		testReleaseFinish(t, "version.txt.tpl", "dev")
 	})
 
 	// Test with pom.xml template
-	t.Run("Test Maven Plugin", func(t *testing.T) {
+	t.Run("TestMavenPlugin", func(t *testing.T) {
 		testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
 	})
 }
@@ -32,9 +32,9 @@ func testReleaseFinish(t *testing.T, templateName string, versionQualifier strin
 	// Create template path from template name
 	versionFileTemplate := filepath.Join("../..", "helper", "templates", templateName)
 
-	// main -> template file (1.0.0)
-	// develop -> template file (1.1.0-dev/1.1.0-SNAPSHOT)
-	// release/1.1.0 -> template file (1.1.0)
+	// main -> version file (1.0.0)
+	// develop -> version file (1.1.0-{qualifier})
+	// release/1.1.0 -> version file (1.1.0)
 
 	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "main")
 	env.CommitFileFromTemplate(versionFileTemplate, "1.1.0-"+versionQualifier, "develop")
@@ -56,5 +56,39 @@ func testReleaseFinish(t *testing.T, templateName string, versionQualifier strin
 	env.AssertVersionEquals(versionFileTemplate, "1.2.0-"+versionQualifier, "develop")
 
 	env.AssertBranchDoesNotExist("release/1.1.0")
+	env.AssertCurrentBranchEquals("develop")
+}
+
+// TestReleaseFinishFallback without version file and fallback to standard plugin
+func TestReleaseFinishFallback(t *testing.T) {
+	// GIVEN: a Git repository with production and development branch
+	env := helper.SetupTestEnv(t)
+
+	// Path to the version file template
+	versionFileTemplate := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
+
+	// main -> no version file
+	// develop -> version.txt (1.0.0-dev)
+	// release/1.0.0 -> version.txt (1.0.0)
+
+	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0-dev", "develop")
+	env.CreateBranch("release/1.0.0", "develop")
+	env.CommitFileFromTemplate(versionFileTemplate, "1.0.0", "release/1.0.0")
+
+	// WHEN
+	env.ExecuteGitflow("release", "finish")
+
+	// THEN
+	// Check main branch state
+	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0'", "main")
+	env.AssertTagEquals("1.0.0", "main")
+	env.AssertVersionEquals(versionFileTemplate, "1.0.0", "main")
+
+	// Check develop branch state
+	env.AssertCommitMessageEquals("Merge branch 'release/1.0.0' into develop", "develop", 1)
+	env.AssertCommitMessageEquals("Set next minor project version.", "develop", 0)
+	env.AssertVersionEquals(versionFileTemplate, "1.1.0-dev", "develop")
+
+	env.AssertBranchDoesNotExist("release/1.0.0")
 	env.AssertCurrentBranchEquals("develop")
 }
