@@ -20,19 +20,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
-
-      - name: Verify Maven installation
-        run: mvn --version
+          go-version: 1.23
 
       - name: Install Maven Plugins
         run: |
-          # Install versions-maven-plugin
-          mkdir -p ~/.m2/repository/org/codehaus/mojo/versions-maven-plugin
           mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=versions-maven-plugin -Dversion=2.16.2
-      
-          # Install build-helper-maven-plugin
-          mkdir -p ~/.m2/repository/org/codehaus/mojo/build-helper-maven-plugin
           mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin -Dversion=3.5.0
 
       - name: Verify Maven Plugins
@@ -58,5 +50,5 @@ jobs:
 
       - name: Run Tests
         run: |
-          gotestsum --format standard-verbose -- -failfast -timeout 60m ./...
+          gotestsum --format standard-verbose -- -failfast -timeout 15m ./...
 
