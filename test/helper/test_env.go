@@ -361,23 +361,22 @@ func (env *GitTestEnv) getTag(commit string, depth ...int) string {
 	return strings.TrimSpace(env.ExecuteGit("tag", "--points-at", commitRef))
 }
 
-// AssertVersionEquals checks if the version in a file in a branch matches the expected version
-// It uses the template file to determine how to extract the version from the actual file
-// templatePath is the path to the template file (e.g., "version.txt.tpl")
-// The actual file name is derived from the template name (e.g., "version.txt")
+// AssertVersionEquals checks if the version in a file matches the expected version
+// It renders the template both with the expected version and with a special marker,
+// then compares the difference to extract the version from the actual file
 func (env *GitTestEnv) AssertVersionEquals(templatePath, expectedVersion, commitRef string, depth ...int) {
 	env.t.Helper()
 
 	// Derive the actual filename from the template name by removing the .tpl extension
-	templateBase := filepath.Base(templatePath)
-	versionFileName := strings.TrimSuffix(templateBase, ".tpl")
+	templateFileName := filepath.Base(templatePath)
+	versionFileName := strings.TrimSuffix(templateFileName, ".tpl")
 
 	// Get the commit reference with optional depth
 	if len(depth) > 0 && depth[0] > 0 {
 		commitRef = fmt.Sprintf("%s~%d", commitRef, depth[0])
 	}
 
-	// Read the template file to understand how to extract the version
+	// Read the template file
 	templateContent, err := os.ReadFile(templatePath)
 	if err != nil {
 		assert.Fail(env.t, "Failed to read template file: %s: %v", templatePath, err)
@@ -387,62 +386,74 @@ func (env *GitTestEnv) AssertVersionEquals(templatePath, expectedVersion, commit
 	// Get the actual file content from the specified branch/commit
 	versionFileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, versionFileName))
 
-	// Parse the template to understand its structure
-	tmpl, err := template.New(templateBase).Parse(string(templateContent))
+	// For simple templates that contain only {{.Version}} (like version.txt.tpl)
+	if strings.TrimSpace(string(templateContent)) == "{{.Version}}" {
+		assert.Equal(env.t, expectedVersion, strings.TrimSpace(versionFileContent),
+			"Version in %s in %s should be '%s' but was '%s'", versionFileName, commitRef, expectedVersion, strings.TrimSpace(versionFileContent))
+		return
+	}
+
+	// For more complex templates, we'll use the template engine to find where the version is
+
+	// Parse the template
+	parsedTemplate, err := template.New(templateFileName).Parse(string(templateContent))
 	if err != nil {
 		assert.Fail(env.t, "Failed to parse template file: %s: %v", templatePath, err)
 		return
 	}
 
-	// Create a mock execution of the template with a unique marker for Version
-	// This will help us understand where to look for the version in the actual file
-	uniqueMarker := "##VERSION_PLACEHOLDER_UNIQUE##"
-	var mockOutput bytes.Buffer
-	err = tmpl.Execute(&mockOutput, struct {
+	// Create rendered content with a unique marker
+	versionMarker := "###VERSION_MARKER###"
+	var markerContent bytes.Buffer
+	err = parsedTemplate.Execute(&markerContent, struct {
 		Version string
 	}{
-		Version: uniqueMarker,
+		Version: versionMarker,
 	})
 	if err != nil {
-		assert.Fail(env.t, "Failed to execute template: %v", err)
+		assert.Fail(env.t, "Failed to render template with marker: %v", err)
 		return
 	}
 
-	mockResult := mockOutput.String()
-
-	// Locate the unique marker in the mock output
-	markerIndex := strings.Index(mockResult, uniqueMarker)
-	if markerIndex < 0 {
-		assert.Fail(env.t, "Could not locate Version placeholder in template: %s", templatePath)
+	// Locate the marker in the rendered content
+	versionMarkerOutput := markerContent.String()
+	markerPos := strings.Index(versionMarkerOutput, versionMarker)
+	if markerPos < 0 {
+		assert.Fail(env.t, "Could not find version marker in rendered template output")
 		return
 	}
 
-	// Try to determine the actual version from the file content
-	// by comparing the structure before and after the marker
-	beforeMarker := mockResult[:markerIndex]
-	afterMarker := mockResult[markerIndex+len(uniqueMarker):]
+	// Extract the position of the version in the actual file
+	// Find content before and after the marker to locate where it would be in the actual file
+	prefix := versionMarkerOutput[:markerPos]
+	suffix := versionMarkerOutput[markerPos+len(versionMarker):]
 
-	// Find where the version should be in the actual file
-	startIndex := strings.Index(versionFileContent, beforeMarker)
-	if startIndex < 0 {
-		assert.Fail(env.t, "Could not locate start of version in file %s in %s", versionFileName, commitRef)
+	// Find the same prefix in the actual file
+	prefixPos := strings.Index(versionFileContent, prefix)
+	if prefixPos < 0 {
+		assert.Fail(env.t, "Could not find content before version in actual file")
 		return
 	}
-	startIndex += len(beforeMarker)
 
-	endIndex := -1
-	if afterMarker != "" {
-		endIndex = strings.Index(versionFileContent[startIndex:], afterMarker)
-		if endIndex < 0 {
-			assert.Fail(env.t, "Could not locate end of version in file %s in %s", versionFileName, commitRef)
+	startPos := prefixPos + len(prefix)
+
+	// Find where the version ends in the actual file
+	var endPos int
+	if suffix != "" {
+		suffixPos := strings.Index(versionFileContent[startPos:], suffix)
+		if suffixPos < 0 {
+			assert.Fail(env.t, "Could not find content after version in actual file")
 			return
 		}
-		endIndex += startIndex
+		endPos = startPos + suffixPos
 	} else {
-		endIndex = len(versionFileContent)
+		endPos = len(versionFileContent)
 	}
 
-	actualVersion := versionFileContent[startIndex:endIndex]
-	assert.Equal(env.t, expectedVersion, actualVersion,
-		"Version in %s in %s should be '%s' but was '%s'", versionFileName, commitRef, expectedVersion, actualVersion)
+	// Extract the actual version
+	actualVersion := versionFileContent[startPos:endPos]
+
+	// Compare with expected version
+	assert.Equal(env.t, expectedVersion, strings.TrimSpace(actualVersion),
+		"Version in %s in %s should be '%s' but was '%s'", versionFileName, commitRef, expectedVersion, strings.TrimSpace(actualVersion))
 }
