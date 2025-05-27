@@ -249,6 +249,7 @@ func (p *mavenPlugin) UpdateProjectVersion(repository core.Repository, next core
 
 	// update version information
 	versionCommand = exec.Command(Maven, append(p.setVersion, fmt.Sprintf(newVersion, next))...)
+	versionCommand.Dir = repository.Local()
 
 	// run mvn to update version information of the mvn project
 	if output, err = versionCommand.CombinedOutput(); err != nil {
