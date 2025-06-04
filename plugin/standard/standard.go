@@ -64,13 +64,9 @@ func (p *standardPlugin) ReadVersion(repository core.Repository) (core.Version, 
 		return core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, versionFileName)
 	}
 
-	// parse the version string
-	currentVersion, err := core.ParseVersion(strings.Trim(string(bytes), "\n\r"))
-	if err != nil {
-		return core.NoVersion, err
-	}
-
-	return currentVersion, nil
+	// parse the version string using core.ParseVersion
+	versionStr := strings.TrimSpace(string(bytes))
+	return core.ParseVersion(versionStr)
 }
 
 // WriteVersion writes a new version to the project
