@@ -198,9 +198,25 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 		return repository.UndoAllChanges(err)
 	}
 
-	// read out the current and next project version ${major}.${minor}.${increment}-${qualifier}
-	current, next, err := plugin.Version(repository.Local(), major, minor, false)
+	// read out the current project version
+	current, err := plugin.ReadVersion(repository)
+	if err != nil {
+		return err
+	}
 
+	// calculate the next version based on the flags
+	var next Version
+	var versionIncrement VersionIncrement
+
+	if major && !minor {
+		versionIncrement = Major
+	} else if minor && !major {
+		versionIncrement = Minor
+	} else {
+		return fmt.Errorf("unsupported version increment type")
+	}
+
+	next, err = current.Next(versionIncrement)
 	if err != nil {
 		return err
 	}
@@ -208,8 +224,8 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 	// if --major Flag only
 	//   set the version of project to (${major}+1).0.0-${qualifier}
 	//   perform a git commit with a commit message
-	if next.VersionIncrement == Major {
-		if err := plugin.UpdateProjectVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
+	if versionIncrement == Major {
+		if err := plugin.WriteVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 
@@ -227,7 +243,7 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 	}
 
 	// remove qualifier from the project version (change POM file)
-	if err := plugin.UpdateProjectVersion(repository, current.RemoveQualifier()); err != nil {
+	if err := plugin.WriteVersion(repository, current.RemoveQualifier()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -236,8 +252,8 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 		return repository.UndoAllChanges(err)
 	}
 
-	// AfterHook updating the project version
-	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.AfterUpdateProjectVersionHook, repository); err != nil {
+	// AfterHook after writing the version
+	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.AfterWriteVersionHook, repository); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -268,9 +284,14 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// read out the current and next project version ${major}.${minor}.${increment}-${qualifier}
-	_, next, err := plugin.Version(repository.Local(), false, false, true)
+	// read out the current project version
+	current, err := plugin.ReadVersion(repository)
+	if err != nil {
+		return err
+	}
 
+	// calculate the next incremental version
+	next, err := current.Next(Incremental)
 	if err != nil {
 		return err
 	}
@@ -282,7 +303,7 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	}
 
 	// update project version to ${major}.${minor}.${increment + 1}
-	if err := plugin.UpdateProjectVersion(repository, next); err != nil {
+	if err := plugin.WriteVersion(repository, next); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -369,10 +390,20 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// set project version to the next develop version ${major}.(${minor}+1).0-${qualifier} (change POM file)
-	if _, next, err := plugin.Version(repository.Local(), false, true, false); err != nil {
+	// read the current version from the project
+	current, err := plugin.ReadVersion(repository)
+	if err != nil {
 		return repository.UndoAllChanges(err)
-	} else if err := plugin.UpdateProjectVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
+	}
+
+	// calculate the next minor version
+	next, err := current.Next(Minor)
+	if err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	// set project version to the next develop version ${major}.(${minor}+1).0-${qualifier}
+	if err := plugin.WriteVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 

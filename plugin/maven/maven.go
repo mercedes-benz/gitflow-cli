@@ -9,24 +9,19 @@ import (
 	"fmt"
 	"github.com/mercedes-benz/gitflow-cli/plugin/core"
 	"os/exec"
+	"strings"
 )
 
 // NewPlugin create plugin for the mvn build tool.
 func NewPlugin() core.Plugin {
 	plugin := &mavenPlugin{
-		majorVersion:           []string{helper, evaluate, fmt.Sprintf(expression, major), quiet, stdout},
-		minorVersion:           []string{helper, evaluate, fmt.Sprintf(expression, minor), quiet, stdout},
-		incrementalVersion:     []string{helper, evaluate, fmt.Sprintf(expression, incremental), quiet, stdout},
-		qualifier:              []string{helper, evaluate, fmt.Sprintf(expression, qualifier), quiet, stdout},
-		nextMajorVersion:       []string{helper, evaluate, fmt.Sprintf(expression, nextMajor), quiet, stdout},
-		nextMinorVersion:       []string{helper, evaluate, fmt.Sprintf(expression, nextMinor), quiet, stdout},
-		nextIncrementalVersion: []string{helper, evaluate, fmt.Sprintf(expression, nextIncremental), quiet, stdout},
-		setVersion:             []string{versions, noBackups},
-		useReleases:            []string{releases, noBackups, failNotReplaced},
+		versionCommand: []string{evaluate, versionProperty, quiet, stdout},
+		setVersion:     []string{versions, noBackups},
+		useReleases:    []string{releases, noBackups, failNotReplaced},
 	}
 
 	// RegisterPlugin hooks dynamically for this plugin
-	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
+	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.AfterWriteVersionHook, plugin.afterWriteVersion)
 
 	return plugin
 }
@@ -65,19 +60,11 @@ func (p *mavenPlugin) VersionQualifier() string {
 
 // Maven build tool commands.
 const (
-	helper          = "build-helper:parse-version"
 	evaluate        = "help:evaluate"
 	versions        = "versions:set"
 	releases        = "versions:use-releases"
 	newVersion      = "-DnewVersion=%v"
-	expression      = "-Dexpression=parsedVersion.%v"
-	major           = "majorVersion"
-	minor           = "minorVersion"
-	incremental     = "incrementalVersion"
-	qualifier       = "qualifier"
-	nextMajor       = "nextMajorVersion"
-	nextMinor       = "nextMinorVersion"
-	nextIncremental = "nextIncrementalVersion"
+	versionProperty = "-Dexpression=project.version"
 	quiet           = "-q"
 	stdout          = "-DforceStdout"
 	noBackups       = "-DgenerateBackupPoms=false"
@@ -86,170 +73,70 @@ const (
 
 // MavenPlugIn is the plugin for the mvn build tool.
 type mavenPlugin struct {
-	majorVersion           []string
-	minorVersion           []string
-	incrementalVersion     []string
-	qualifier              []string
-	nextMajorVersion       []string
-	nextMinorVersion       []string
-	nextIncrementalVersion []string
-	setVersion             []string
-	useReleases            []string
+	versionCommand []string
+	setVersion     []string
+	useReleases    []string
 }
 
-// Version the current and next version of the mvn project.
-func (p *mavenPlugin) Version(projectPath string, major, minor, incremental bool) (core.Version, core.Version, error) {
-	var currentMajor, currentMinor, currentIncremental, qualifier, nextMajor, nextMinor, nextIncremental string
+// ReadVersion reads the current version from the project
+func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
+	var currentVersion string
 	var logs []any = make([]any, 0)
+	projectPath := repository.Local()
 
 	// log human-readable description of the git command
 	defer func() { core.Log(logs...) }()
 
-	// evaluate the major version of the mvn project
-	majorCommand := exec.Command(Maven, p.majorVersion...)
-	majorCommand.Dir = projectPath
+	// evaluate the version of the mvn project
+	versionCommand := exec.Command(Maven, p.versionCommand...)
+	versionCommand.Dir = projectPath
 
-	// evaluate the minor version of the mvn project
-	minorCommand := exec.Command(Maven, p.minorVersion...)
-	minorCommand.Dir = projectPath
-
-	// evaluate the incremental version of the mvn project
-	incrementalCommand := exec.Command(Maven, p.incrementalVersion...)
-	incrementalCommand.Dir = projectPath
-
-	// evaluate the qualifier of the mvn project
-	qualifierCommand := exec.Command(Maven, p.qualifier...)
-	qualifierCommand.Dir = projectPath
-
-	// evaluate the next major version of the mvn project
-	nextMajorCommand := exec.Command(Maven, p.nextMajorVersion...)
-	nextMajorCommand.Dir = projectPath
-
-	// evaluate the next minor version of the mvn project
-	nextMinorCommand := exec.Command(Maven, p.nextMinorVersion...)
-	nextMinorCommand.Dir = projectPath
-
-	// evaluate the next incremental version of the mvn project
-	nextIncrementalCommand := exec.Command(Maven, p.nextIncrementalVersion...)
-	nextIncrementalCommand.Dir = projectPath
-
-	// run mvn to evaluate the major version of the mvn project
-	if output, err := majorCommand.CombinedOutput(); err != nil {
-		logs = append(logs, majorCommand, output, err)
-
-		return core.NoVersion, core.NoVersion,
-			fmt.Errorf("mvn major version evaluation failed with %v: %s", err, output)
+	// run mvn to evaluate the version of the mvn project
+	if output, err := versionCommand.CombinedOutput(); err != nil {
+		logs = append(logs, versionCommand, output, err)
+		return core.NoVersion, fmt.Errorf("mvn version evaluation failed with %v: %s", err, output)
 	} else {
-		logs = append(logs, majorCommand, output)
-		currentMajor = string(output)
+		logs = append(logs, versionCommand, output)
+		currentVersion = string(output)
 	}
 
-	// run mvn to evaluate the minor version of the mvn project
-	if output, err := minorCommand.CombinedOutput(); err != nil {
-		logs = append(logs, minorCommand, output, err)
+	versionParts := strings.Split(strings.TrimSpace(currentVersion), "-")
+	version := strings.Split(versionParts[0], ".")
 
-		return core.NoVersion, core.NoVersion,
-			fmt.Errorf("mvn minor version evaluation failed with %v: %s", err, output)
-	} else {
-		logs = append(logs, minorCommand, output)
-		currentMinor = string(output)
+	major := "0"
+	minor := "0"
+	incremental := "0"
+	qualifier := ""
+
+	if len(version) > 0 {
+		major = version[0]
+	}
+	if len(version) > 1 {
+		minor = version[1]
+	}
+	if len(version) > 2 {
+		incremental = version[2]
+	}
+	if len(versionParts) > 1 {
+		qualifier = versionParts[1]
 	}
 
-	// run mvn to evaluate the incremental version of the mvn project
-	if output, err := incrementalCommand.CombinedOutput(); err != nil {
-		logs = append(logs, incrementalCommand, output, err)
-
-		return core.NoVersion, core.NoVersion,
-			fmt.Errorf("mvn incremental version evaluation failed with %v: %s", err, output)
-	} else {
-		logs = append(logs, incrementalCommand, output)
-		currentIncremental = string(output)
-	}
-
-	// run mvn to evaluate the next major version of the mvn project
-	if output, err := nextMajorCommand.CombinedOutput(); err != nil {
-		logs = append(logs, nextMajorCommand, output, err)
-
-		return core.NoVersion, core.NoVersion,
-			fmt.Errorf("mvn next major version evaluation failed with %v: %s", err, output)
-	} else {
-		logs = append(logs, nextMajorCommand, output)
-		nextMajor = string(output)
-	}
-
-	// run mvn to evaluate the next minor version of the mvn project
-	if output, err := nextMinorCommand.CombinedOutput(); err != nil {
-		logs = append(logs, nextMinorCommand, output, err)
-
-		return core.NoVersion, core.NoVersion,
-			fmt.Errorf("mvn next minor version evaluation failed with %v: %s", err, output)
-	} else {
-		logs = append(logs, nextMinorCommand, output)
-		nextMinor = string(output)
-	}
-
-	// run mvn to evaluate the next incremental version of the mvn project
-	if output, err := nextIncrementalCommand.CombinedOutput(); err != nil {
-		logs = append(logs, nextIncrementalCommand, output, err)
-
-		return core.NoVersion, core.NoVersion,
-			fmt.Errorf("mvn next incremental version evaluation failed with %v: %s", err, output)
-	} else {
-		logs = append(logs, nextIncrementalCommand, output)
-		nextIncremental = string(output)
-	}
-
-	// run mvn to evaluate the qualifier of the mvn project
-	if output, err := qualifierCommand.CombinedOutput(); err != nil {
-		logs = append(logs, qualifierCommand, output, err)
-
-		return core.NoVersion, core.NoVersion,
-			fmt.Errorf("mvn qualifier evaluation failed with %v: %s", err, output)
-	} else {
-		logs = append(logs, qualifierCommand, output)
-		qualifier = string(output)
-	}
-
-	// current and next version of the mvn project
-	var nextVersion core.Version
-	currentVersion := core.NewVersion(currentMajor, currentMinor, currentIncremental, qualifier)
-
-	// create the next version of the mvn project based on the version increment type
-	switch {
-	case major && !minor && !incremental:
-		// create the next major version of the mvn project
-		nextVersion, _ = currentVersion.Increment(core.Major, nextMajor, nextMinor, nextIncremental)
-
-	case minor && !major && !incremental:
-		// create the next minor version of the mvn project
-		nextVersion, _ = currentVersion.Increment(core.Minor, nextMajor, nextMinor, nextIncremental)
-
-	case incremental && !major && !minor:
-		// create the next incremental version of the mvn project
-		nextVersion, _ = currentVersion.Increment(core.Incremental, nextMajor, nextMinor, nextIncremental)
-
-	case !major && !minor && !incremental:
-		// version increment type not specified, return the current version as next version
-		nextVersion = currentVersion
-
-	default:
-		return core.NoVersion, core.NoVersion, fmt.Errorf("unsupported version increment type")
-	}
-
-	return currentVersion, nextVersion, nil
+	return core.NewVersion(major, minor, incremental, qualifier), nil
 }
 
-func (p *mavenPlugin) UpdateProjectVersion(repository core.Repository, next core.Version) error {
+// WriteVersion writes a new version to the project
+func (p *mavenPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	var err error
 	var versionCommand *exec.Cmd
 	var output []byte
+	projectPath := repository.Local()
 
 	// log human-readable description of the mvn command
 	defer func() { core.Log(versionCommand, output, err) }()
 
 	// update version information
-	versionCommand = exec.Command(Maven, append(p.setVersion, fmt.Sprintf(newVersion, next))...)
-	versionCommand.Dir = repository.Local()
+	versionCommand = exec.Command(Maven, append(p.setVersion, fmt.Sprintf(newVersion, version))...)
+	versionCommand.Dir = projectPath
 
 	// run mvn to update version information of the mvn project
 	if output, err = versionCommand.CombinedOutput(); err != nil {
@@ -259,8 +146,8 @@ func (p *mavenPlugin) UpdateProjectVersion(repository core.Repository, next core
 	return nil
 }
 
-// afterUpdateProjectVersion is executed after updating the project version
-func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) error {
+// afterWriteVersion is executed after updating the project version
+func (p *mavenPlugin) afterWriteVersion(repository core.Repository) error {
 	fmt.Println("After Update Project Version Hook")
 
 	var err error

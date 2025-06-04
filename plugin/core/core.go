@@ -56,8 +56,8 @@ type (
 		VersionFileName() string
 		VersionQualifier() string
 		RequiredTools() []string
-		Version(projectPath string, major, minor, incremental bool) (Version, Version, error)
-		UpdateProjectVersion(repository Repository, next Version) error
+		ReadVersion(repository Repository) (Version, error)
+		WriteVersion(repository Repository, version Version) error
 		fmt.Stringer
 	}
 )

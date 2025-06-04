@@ -107,23 +107,6 @@ func (v Version) BranchName(branch Branch) string {
 	return fmt.Sprintf("%v/%v", branch, v)
 }
 
-// Increment Determine next version based on version increment type and next major, minor, and incremental version strings.
-func (v Version) Increment(increment VersionIncrement, nextMajor, nextMinor, nextIncremental string) (Version, error) {
-	switch increment {
-	case Major:
-		return NewVersion(nextMajor, "0", "0", v.Qualifier, increment), nil
-
-	case Minor:
-		return NewVersion(v.Major, nextMinor, "0", v.Qualifier, increment), nil
-
-	case Incremental:
-		return NewVersion(v.Major, v.Minor, nextIncremental, v.Qualifier, increment), nil
-
-	default:
-		return NoVersion, fmt.Errorf("unsupported version increment type: %v", increment)
-	}
-}
-
 // Next Determine the next version based on the current version and the version increment type.
 func (v Version) Next(increment VersionIncrement) (Version, error) {
 	nextMajor, errMajor := strconv.Atoi(v.Major)
@@ -137,7 +120,7 @@ func (v Version) Next(increment VersionIncrement) (Version, error) {
 	nextMajor++
 	nextMinor++
 	nextIncremental++
-	return v.Increment(increment, strconv.Itoa(nextMajor), strconv.Itoa(nextMinor), strconv.Itoa(nextIncremental))
+	return v.increment(increment, strconv.Itoa(nextMajor), strconv.Itoa(nextMinor), strconv.Itoa(nextIncremental))
 }
 
 // AddQualifier Add a qualifier to the version.
@@ -148,4 +131,21 @@ func (v Version) AddQualifier(qualifier string) Version {
 // RemoveQualifier Remove the qualifier from the version.
 func (v Version) RemoveQualifier() Version {
 	return NewVersion(v.Major, v.Minor, v.Incremental, noQualifier, v.VersionIncrement)
+}
+
+// increment (private) Determine next version based on version increment type and next major, minor, and incremental version strings.
+func (v Version) increment(increment VersionIncrement, nextMajor, nextMinor, nextIncremental string) (Version, error) {
+	switch increment {
+	case Major:
+		return NewVersion(nextMajor, "0", "0", v.Qualifier, increment), nil
+
+	case Minor:
+		return NewVersion(v.Major, nextMinor, "0", v.Qualifier, increment), nil
+
+	case Incremental:
+		return NewVersion(v.Major, v.Minor, nextIncremental, v.Qualifier, increment), nil
+
+	default:
+		return NoVersion, fmt.Errorf("unsupported version increment type: %v", increment)
+	}
 }
