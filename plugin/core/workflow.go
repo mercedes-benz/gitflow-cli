@@ -252,8 +252,8 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 		return repository.UndoAllChanges(err)
 	}
 
-	// AfterHook after writing the version
-	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.AfterWriteVersionHook, repository); err != nil {
+	// After update project version hook
+	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.AfterUpdateProjectVersionHook, repository); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 

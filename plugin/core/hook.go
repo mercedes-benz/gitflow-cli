@@ -10,11 +10,11 @@ type HookType string
 
 // ReleaseStartHooks groups all hooks for the ReleaseStart workflow
 var ReleaseStartHooks = struct {
-	BeforeReleaseStartHook HookType
-	AfterWriteVersionHook  HookType
+	BeforeReleaseStartHook        HookType
+	AfterUpdateProjectVersionHook HookType
 }{
-	BeforeReleaseStartHook: "ReleaseStart_BeforeReleaseStartHook",
-	AfterWriteVersionHook:  "ReleaseStart_AfterWriteVersionHook",
+	BeforeReleaseStartHook:        "ReleaseStart_BeforeReleaseStartHook",
+	AfterUpdateProjectVersionHook: "ReleaseStart_AfterUpdateProjectVersionHook",
 }
 
 // HotfixStartHooks groups all hooks for the HotfixStart workflow

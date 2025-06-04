@@ -24,8 +24,8 @@ func TestHotfixFinish(t *testing.T) {
 	})
 
 	// Test fallback without versioning file
-	t.Run("StandardPluginWithoutVersionFile", func(t *testing.T) {
-		testHotfixFinishWithoutVersionFile(t)
+	t.Run("StandardPluginFallback", func(t *testing.T) {
+		testHotfixFinishFallback(t)
 	})
 }
 
@@ -63,8 +63,8 @@ func testHotfixFinish(t *testing.T, templateName string, versionQualifier string
 	env.AssertCurrentBranchEquals("develop")
 }
 
-// TestHotfixFinishWithoutVersionFile (test standard plugin with additional functionality)
-func testHotfixFinishWithoutVersionFile(t *testing.T) {
+// TestHotfixFinishFallback (test standard plugin with additional functionality)
+func testHotfixFinishFallback(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 

@@ -24,8 +24,8 @@ func TestReleaseStart(t *testing.T) {
 	})
 
 	// Test fallback without versioning file
-	t.Run("StandardPluginWithoutVersionFile", func(t *testing.T) {
-		testReleaseStartWithoutVersionFile(t)
+	t.Run("StandardPluginFallback", func(t *testing.T) {
+		testReleaseStartFallback(t)
 	})
 }
 
@@ -56,8 +56,8 @@ func testReleaseStart(t *testing.T, templateName string, versionQualifier string
 	env.AssertCurrentBranchEquals("release/1.1.0")
 }
 
-// TestReleaseStartWithoutVersionFile (test standard plugin with additional functionality)
-func testReleaseStartWithoutVersionFile(t *testing.T) {
+// TestReleaseStartFallback (test standard plugin with additional functionality)
+func testReleaseStartFallback(t *testing.T) {
 	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 

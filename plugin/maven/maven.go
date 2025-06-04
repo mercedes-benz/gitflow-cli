@@ -15,13 +15,13 @@ import (
 // NewPlugin create plugin for the mvn build tool.
 func NewPlugin() core.Plugin {
 	plugin := &mavenPlugin{
-		versionCommand: []string{evaluate, versionProperty, quiet, stdout},
-		setVersion:     []string{versions, noBackups},
-		useReleases:    []string{releases, noBackups, failNotReplaced},
+		getVersion:  []string{evaluate, versionProperty, quiet, stdout},
+		setVersion:  []string{versions, noBackups},
+		useReleases: []string{releases, noBackups, failNotReplaced},
 	}
 
 	// RegisterPlugin hooks dynamically for this plugin
-	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.AfterWriteVersionHook, plugin.afterWriteVersion)
+	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
 
 	return plugin
 }
@@ -73,14 +73,13 @@ const (
 
 // MavenPlugIn is the plugin for the mvn build tool.
 type mavenPlugin struct {
-	versionCommand []string
-	setVersion     []string
-	useReleases    []string
+	getVersion  []string
+	setVersion  []string
+	useReleases []string
 }
 
 // ReadVersion reads the current version from the project
 func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
-	var currentVersion string
 	var logs []any = make([]any, 0)
 	projectPath := repository.Local()
 
@@ -88,40 +87,21 @@ func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, err
 	defer func() { core.Log(logs...) }()
 
 	// evaluate the version of the mvn project
-	versionCommand := exec.Command(Maven, p.versionCommand...)
+	versionCommand := exec.Command(Maven, p.getVersion...)
 	versionCommand.Dir = projectPath
 
 	// run mvn to evaluate the version of the mvn project
-	if output, err := versionCommand.CombinedOutput(); err != nil {
+	output, err := versionCommand.CombinedOutput()
+	if err != nil {
 		logs = append(logs, versionCommand, output, err)
 		return core.NoVersion, fmt.Errorf("mvn version evaluation failed with %v: %s", err, output)
-	} else {
-		logs = append(logs, versionCommand, output)
-		currentVersion = string(output)
 	}
 
-	versionParts := strings.Split(strings.TrimSpace(currentVersion), "-")
-	version := strings.Split(versionParts[0], ".")
+	logs = append(logs, versionCommand, output)
+	versionStr := strings.TrimSpace(string(output))
 
-	major := "0"
-	minor := "0"
-	incremental := "0"
-	qualifier := ""
-
-	if len(version) > 0 {
-		major = version[0]
-	}
-	if len(version) > 1 {
-		minor = version[1]
-	}
-	if len(version) > 2 {
-		incremental = version[2]
-	}
-	if len(versionParts) > 1 {
-		qualifier = versionParts[1]
-	}
-
-	return core.NewVersion(major, minor, incremental, qualifier), nil
+	// parse the version string using core.ParseVersion
+	return core.ParseVersion(versionStr)
 }
 
 // WriteVersion writes a new version to the project
@@ -146,8 +126,8 @@ func (p *mavenPlugin) WriteVersion(repository core.Repository, version core.Vers
 	return nil
 }
 
-// afterWriteVersion is executed after updating the project version
-func (p *mavenPlugin) afterWriteVersion(repository core.Repository) error {
+// afterUpdateProjectVersion is executed after updating the project version
+func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) error {
 	fmt.Println("After Update Project Version Hook")
 
 	var err error
