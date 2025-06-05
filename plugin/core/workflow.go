@@ -8,7 +8,6 @@ package core
 import (
 	"fmt"
 	"os"
-	"reflect"
 )
 
 // Start executes the first plugin that meets the precondition.
@@ -27,14 +26,14 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
 		if CheckVersionFile(projectPath, plugin.VersionFileName()) {
-			return executePluginStart(plugin, branch, projectPath, args...)
+			return executePluginStart(plugin, branch, projectPath)
 		}
 	}
 	// execute fallback plugin
-	return executePluginStart(fallbackPlugin, branch, projectPath, args...)
+	return executePluginStart(fallbackPlugin, branch, projectPath)
 }
 
-func executePluginStart(plugin Plugin, branch Branch, projectPath string, args ...any) error {
+func executePluginStart(plugin Plugin, branch Branch, projectPath string) error {
 	// get access to the local version control system
 	repository := NewRepository(projectPath, Remote)
 
@@ -58,18 +57,8 @@ func executePluginStart(plugin Plugin, branch Branch, projectPath string, args .
 	case Release:
 		fmt.Println(called)
 
-		// start command requires two arguments 'major' and 'minor'
-		if err := ValidateArgumentsLength(2, args...); err != nil {
-			return err
-		}
-
-		// start command requires all arguments to be of type bool
-		if err := ValidateArgumentsType(reflect.TypeOf(true), args...); err != nil {
-			return err
-		}
-
 		// run the release start command
-		if err := releaseStart(plugin, repository, args[0].(bool), args[1].(bool)); err != nil {
+		if err := releaseStart(plugin, repository); err != nil {
 			fmt.Println(failed)
 			return err
 		}
@@ -169,7 +158,7 @@ func executePluginFinish(plugin Plugin, branch Branch, projectPath string) error
 	}
 }
 
-func releaseStart(plugin Plugin, repository Repository, major, minor bool) error {
+func releaseStart(plugin Plugin, repository Repository) error {
 
 	// check if the repository already has a release branch
 	if found, _, err := repository.HasBranch(Release); err != nil {
@@ -202,38 +191,6 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 	current, err := plugin.ReadVersion(repository)
 	if err != nil {
 		return err
-	}
-
-	// calculate the next version based on the flags
-	var next Version
-	var versionIncrement VersionIncrement
-
-	if major && !minor {
-		versionIncrement = Major
-	} else if minor && !major {
-		versionIncrement = Minor
-	} else {
-		return fmt.Errorf("unsupported version increment type")
-	}
-
-	next, err = current.Next(versionIncrement)
-	if err != nil {
-		return err
-	}
-
-	// if --major Flag only
-	//   set the version of project to (${major}+1).0.0-${qualifier}
-	//   perform a git commit with a commit message
-	if versionIncrement == Major {
-		if err := plugin.WriteVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		if err := repository.CommitChanges("Set next major project version."); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		current = next
 	}
 
 	// create branch release/x.y.z based on the current develop branch without qualifier

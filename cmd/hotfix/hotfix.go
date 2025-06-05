@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 package hotfix
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/mercedes-benz/gitflow-cli/plugin/core"
@@ -87,5 +88,8 @@ func init() {
 		StringVarP(&projectPath, "path", "p", defaultPath, "project path for workflow automation commands")
 
 	// enforce rules for the flags
-	HotfixCmd.MarkPersistentFlagDirname("path")
+	if err := HotfixCmd.MarkPersistentFlagDirname("path"); err != nil {
+		// In init function, we can only log the error
+		fmt.Printf("Error marking flag 'path' as directory: %v\n", err)
+	}
 }

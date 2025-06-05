@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 package release
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/mercedes-benz/gitflow-cli/plugin/core"
@@ -41,9 +42,6 @@ production-ready state of the software.`,
 // Required for all plugin operations that execute workflow automation commands in a project directory.
 var projectPath string
 
-// Version increase flags for the start subcommand.
-var major, minor bool
-
 // StartCmd represents the start subcommand of ReleaseCmd.
 var startCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
@@ -58,16 +56,7 @@ branch is created. This branch is used to prepare for a new production
 release.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// ensure that only one version increase flag is set
-		if major {
-			minor = false
-		}
-
-		if minor {
-			major = false
-		}
-
-		return core.Start(core.Release, projectPath, major, minor)
+		return core.Start(core.Release, projectPath)
 	},
 }
 
@@ -100,11 +89,9 @@ func init() {
 	ReleaseCmd.PersistentFlags().
 		StringVarP(&projectPath, "path", "p", defaultPath, "project path for workflow automation commands")
 
-	// flags which will only run when this command is called directly
-	startCmd.Flags().BoolVarP(&major, "major", "j", false, "increase major version number for a new release")
-	startCmd.Flags().BoolVarP(&minor, "minor", "n", true, "increase minor version number for a new release")
-
 	// enforce rules for the flags
-	startCmd.MarkPersistentFlagDirname("path")
-	startCmd.MarkFlagsMutuallyExclusive("major", "minor")
+	if err := startCmd.MarkPersistentFlagDirname("path"); err != nil {
+		// In init function, we can only log the error
+		fmt.Printf("Error marking flag 'path' as directory: %v\n", err)
+	}
 }

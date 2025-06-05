@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 
@@ -140,26 +139,6 @@ func RegisterFallbackPlugin(plugin Plugin) {
 func CheckVersionFile(projectPath string, versionFile string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, versionFile))
 	return !os.IsNotExist(err)
-}
-
-// ValidateArgumentsLength Check if the number of arguments matches the expected number.
-func ValidateArgumentsLength(expected int, args ...any) error {
-	if len(args) != expected {
-		return fmt.Errorf("expected %v arguments, but got %v", expected, len(args))
-	}
-
-	return nil
-}
-
-// ValidateArgumentsType Check if all arguments are of a specific type.
-func ValidateArgumentsType(t reflect.Type, args ...any) error {
-	for _, arg := range args {
-		if reflect.TypeOf(arg) != t {
-			return fmt.Errorf("expected arguments of type %T, but got %T", t, reflect.TypeOf(arg))
-		}
-	}
-
-	return nil
 }
 
 // ValidateToolsAvailability Check if some tools are available in the system.
