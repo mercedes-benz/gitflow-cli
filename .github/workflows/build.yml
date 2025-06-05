@@ -1,4 +1,4 @@
-name: Build Application
+name: Build and Test Application
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    name: Build Application
+    name: Build and Test Application
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

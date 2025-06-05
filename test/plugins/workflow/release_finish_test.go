@@ -23,6 +23,11 @@ func TestReleaseFinish(t *testing.T) {
 		testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
 	})
 
+	// Test with package.json template
+	t.Run("NpmPlugin", func(t *testing.T) {
+		testReleaseFinish(t, "package.json.tpl", "dev")
+	})
+
 	// Test fallback without versioning file
 	t.Run("StandardPluginFallback", func(t *testing.T) {
 		testReleaseFinishFallback(t)
