@@ -14,7 +14,6 @@ import (
 	"strings"
 )
 
-// CheckoutStrategy definiert die Strategie für die CheckoutFile-Operation
 type CheckoutStrategy int
 
 const (

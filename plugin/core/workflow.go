@@ -8,7 +8,6 @@ package core
 import (
 	"fmt"
 	"os"
-	"reflect"
 )
 
 // Start executes the first plugin that meets the precondition.
@@ -27,14 +26,14 @@ func Start(branch Branch, projectPath string, args ...any) error {
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
 		if CheckVersionFile(projectPath, plugin.VersionFileName()) {
-			return executePluginStart(plugin, branch, projectPath, args...)
+			return executePluginStart(plugin, branch, projectPath)
 		}
 	}
 	// execute fallback plugin
-	return executePluginStart(fallbackPlugin, branch, projectPath, args...)
+	return executePluginStart(fallbackPlugin, branch, projectPath)
 }
 
-func executePluginStart(plugin Plugin, branch Branch, projectPath string, args ...any) error {
+func executePluginStart(plugin Plugin, branch Branch, projectPath string) error {
 	// get access to the local version control system
 	repository := NewRepository(projectPath, Remote)
 
@@ -58,18 +57,8 @@ func executePluginStart(plugin Plugin, branch Branch, projectPath string, args .
 	case Release:
 		fmt.Println(called)
 
-		// start command requires two arguments 'major' and 'minor'
-		if err := ValidateArgumentsLength(2, args...); err != nil {
-			return err
-		}
-
-		// start command requires all arguments to be of type bool
-		if err := ValidateArgumentsType(reflect.TypeOf(true), args...); err != nil {
-			return err
-		}
-
 		// run the release start command
-		if err := releaseStart(plugin, repository, args[0].(bool), args[1].(bool)); err != nil {
+		if err := releaseStart(plugin, repository); err != nil {
 			fmt.Println(failed)
 			return err
 		}
@@ -169,7 +158,7 @@ func executePluginFinish(plugin Plugin, branch Branch, projectPath string) error
 	}
 }
 
-func releaseStart(plugin Plugin, repository Repository, major, minor bool) error {
+func releaseStart(plugin Plugin, repository Repository) error {
 
 	// check if the repository already has a release branch
 	if found, _, err := repository.HasBranch(Release); err != nil {
@@ -198,26 +187,10 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 		return repository.UndoAllChanges(err)
 	}
 
-	// read out the current and next project version ${major}.${minor}.${increment}-${qualifier}
-	current, next, err := plugin.Version(repository.Local(), major, minor, false)
-
+	// read out the current project version
+	current, err := plugin.ReadVersion(repository)
 	if err != nil {
 		return err
-	}
-
-	// if --major Flag only
-	//   set the version of project to (${major}+1).0.0-${qualifier}
-	//   perform a git commit with a commit message
-	if next.VersionIncrement == Major {
-		if err := plugin.UpdateProjectVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		if err := repository.CommitChanges("Set next major project version."); err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		current = next
 	}
 
 	// create branch release/x.y.z based on the current develop branch without qualifier
@@ -227,7 +200,7 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 	}
 
 	// remove qualifier from the project version (change POM file)
-	if err := plugin.UpdateProjectVersion(repository, current.RemoveQualifier()); err != nil {
+	if err := plugin.WriteVersion(repository, current.RemoveQualifier()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -236,7 +209,7 @@ func releaseStart(plugin Plugin, repository Repository, major, minor bool) error
 		return repository.UndoAllChanges(err)
 	}
 
-	// AfterHook updating the project version
+	// After update project version hook
 	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.AfterUpdateProjectVersionHook, repository); err != nil {
 		return repository.UndoAllChanges(err)
 	}
@@ -268,9 +241,14 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// read out the current and next project version ${major}.${minor}.${increment}-${qualifier}
-	_, next, err := plugin.Version(repository.Local(), false, false, true)
+	// read out the current project version
+	current, err := plugin.ReadVersion(repository)
+	if err != nil {
+		return err
+	}
 
+	// calculate the next incremental version
+	next, err := current.Next(Incremental)
 	if err != nil {
 		return err
 	}
@@ -282,7 +260,7 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	}
 
 	// update project version to ${major}.${minor}.${increment + 1}
-	if err := plugin.UpdateProjectVersion(repository, next); err != nil {
+	if err := plugin.WriteVersion(repository, next); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
@@ -369,10 +347,20 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
-	// set project version to the next develop version ${major}.(${minor}+1).0-${qualifier} (change POM file)
-	if _, next, err := plugin.Version(repository.Local(), false, true, false); err != nil {
+	// read the current version from the project
+	current, err := plugin.ReadVersion(repository)
+	if err != nil {
 		return repository.UndoAllChanges(err)
-	} else if err := plugin.UpdateProjectVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
+	}
+
+	// calculate the next minor version
+	next, err := current.Next(Minor)
+	if err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	// set project version to the next develop version ${major}.(${minor}+1).0-${qualifier}
+	if err := plugin.WriteVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 

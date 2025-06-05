@@ -6,7 +6,6 @@ SPDX-License-Identifier: MIT
 package standard
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -55,53 +54,30 @@ func (p *standardPlugin) RequiredTools() []string {
 	return []string{}
 }
 
-// Version evaluates the current and next version of the standard project.
-func (p *standardPlugin) Version(projectPath string, major, minor, incremental bool) (core.Version, core.Version, error) {
-	// current and next version of the standard project
-	var currentVersion, nextVersion core.Version
-	var errMajor, errMinor, errIncremental error
+// ReadVersion reads the current version from the project
+func (p *standardPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
+	projectPath := repository.Local()
 
 	// read the version from the version file
-	if bytes, err := os.ReadFile(filepath.Join(projectPath, versionFileName)); err != nil {
-		return core.NoVersion, core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, versionFileName)
-	} else {
-		if current, err := core.ParseVersion(strings.Trim(string(bytes), "\n\r")); err != nil {
-			return core.NoVersion, core.NoVersion, err
-		} else {
-			currentVersion = current
-		}
+	bytes, err := os.ReadFile(filepath.Join(projectPath, versionFileName))
+	if err != nil {
+		return core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, versionFileName)
 	}
 
-	// create the next version of the standard project based on the version increment type
-	switch {
-	case major && !minor && !incremental:
-		// create the next major version of the standard project
-		nextVersion, errMajor = currentVersion.Next(core.Major)
-
-	case minor && !major && !incremental:
-		// create the next minor version of the standard project
-		nextVersion, errMinor = currentVersion.Next(core.Minor)
-
-	case incremental && !major && !minor:
-		// create the next incremental version of the standard project
-		nextVersion, errIncremental = currentVersion.Next(core.Incremental)
-
-	case !major && !minor && !incremental:
-		// version increment type not specified, return the current version as next version
-		nextVersion = currentVersion
-
-	default:
-		return core.NoVersion, core.NoVersion, fmt.Errorf("unsupported version increment type")
-	}
-
-	return currentVersion, nextVersion, errors.Join(errMajor, errMinor, errIncremental)
+	// parse the version string using core.ParseVersion
+	versionStr := strings.TrimSpace(string(bytes))
+	return core.ParseVersion(versionStr)
 }
 
-// UpdateProjectVersion updates the project's version
-func (p *standardPlugin) UpdateProjectVersion(repository core.Repository, next core.Version) error {
-	if err := repository.WriteFile(versionFileName, next.String()); err != nil {
-		return err
+// WriteVersion writes a new version to the project
+func (p *standardPlugin) WriteVersion(repository core.Repository, version core.Version) error {
+	projectPath := repository.Local()
+
+	// write the version to the version file
+	if err := os.WriteFile(filepath.Join(projectPath, versionFileName), []byte(version.String()), 0644); err != nil {
+		return fmt.Errorf("standard version update failed with %v: %v", err, versionFileName)
 	}
+
 	return nil
 }
 
@@ -169,9 +145,11 @@ func (p *standardPlugin) afterMergeIntoDevelopment(repository core.Repository) e
 
 	// if versions are identical, update the version in the development branch (possible only if hotfix start created initial version)
 	if filesEqual {
-		if _, next, err := p.Version(repository.Local(), false, true, false); err != nil {
+		if current, err := p.ReadVersion(repository); err != nil {
 			return repository.UndoAllChanges(err)
-		} else if err := p.UpdateProjectVersion(repository, next.AddQualifier(p.VersionQualifier())); err != nil {
+		} else if next, err := current.Next(core.Minor); err != nil {
+			return repository.UndoAllChanges(err)
+		} else if err := p.WriteVersion(repository, next.AddQualifier(p.VersionQualifier())); err != nil {
 			return repository.UndoAllChanges(err)
 		}
 
