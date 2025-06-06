@@ -7,9 +7,9 @@ package release
 
 import (
 	"fmt"
+	core2 "github.com/mercedes-benz/gitflow-cli/core"
 	"os"
 
-	"github.com/mercedes-benz/gitflow-cli/plugin/core"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +56,7 @@ branch is created. This branch is used to prepare for a new production
 release.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return core.Start(core.Release, projectPath)
+		return core2.Start(core2.Release, projectPath)
 	},
 }
 
@@ -73,7 +73,7 @@ Once the team is satisfied with the state of the release branch, it is merged
 into master and tagged with a version number.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return core.Finish(core.Release, projectPath)
+		return core2.Finish(core2.Release, projectPath)
 	},
 }
 

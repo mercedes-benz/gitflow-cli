@@ -50,13 +50,26 @@ type (
 	// MergeType represents merge types for repository merging operations.
 	MergeType int
 
-	// Plugin is the interface for all workflow automation plugins.
+	// Plugin is the fundamental interface that must be implemented by all workflow automation plugins.
 	Plugin interface {
+		// VersionFileName returns the name of the file that contains the version information in the project.
+		// For example: "pom.xml" for Maven, etc.
 		VersionFileName() string
+
+		// VersionQualifier returns the suffix that is appended to SNAPSHOT versions.
+		// For example: "SNAPSHOT" for Maven, etc.
 		VersionQualifier() string
+
+		// RequiredTools returns a list of command-line tools needed to run the plugin.
 		RequiredTools() []string
+
+		// ReadVersion reads the current version from the project file.
 		ReadVersion(repository Repository) (Version, error)
+
+		// WriteVersion writes the provided version to the project file.
 		WriteVersion(repository Repository, version Version) error
+
+		// Stringer returns the human-readable name of the plugin.
 		fmt.Stringer
 	}
 )

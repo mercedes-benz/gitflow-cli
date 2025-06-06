@@ -3,79 +3,75 @@ SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
 SPDX-License-Identifier: MIT
 */
 
-package maven
+package mvn
 
 import (
 	"fmt"
-	"github.com/mercedes-benz/gitflow-cli/plugin/core"
+	"github.com/mercedes-benz/gitflow-cli/core"
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"os/exec"
 	"strings"
 )
 
-// NewPlugin create plugin for the mvn build tool.
-func NewPlugin() core.Plugin {
-	plugin := &mavenPlugin{
+// mvn-specific command constants
+const (
+	mvn             = "mvn"
+	evaluate        = "help:evaluate"
+	versionProperty = "-Dexpression=project.version"
+	quiet           = "-q"
+	stdout          = "-DforceStdout"
+	versions        = "versions:set"
+	noBackups       = "-DgenerateBackupPoms=false"
+	releases        = "versions:use-releases"
+	failNotReplaced = "-DfailIfNotReplaced=true"
+	newVersion      = "-DnewVersion=%s"
+)
+
+// Default configuration for the mvn plugin
+var defaultConfig = plugin.Config{
+	Name:             "mvn",
+	VersionFileName:  "pom.xml",
+	VersionQualifier: "SNAPSHOT",
+	RequiredTools:    []string{mvn},
+}
+
+// mavenPlugin is the plugin for the mvn build tool.
+type mavenPlugin struct {
+	plugin.BasePlugin
+	getVersion  []string
+	setVersion  []string
+	useReleases []string
+}
+
+// NewPlugin creates a plugin for the mvn build tool.
+func NewPlugin(factory *plugin.Factory) core.Plugin {
+	// Load configurable values from configuration
+	config := plugin.LoadPluginConfig(defaultConfig.Name, defaultConfig)
+
+	mavenPlugin := &mavenPlugin{
+		BasePlugin: plugin.BasePlugin{
+			Config: config,
+			Hooks:  factory.Hooks,
+		},
 		getVersion:  []string{evaluate, versionProperty, quiet, stdout},
 		setVersion:  []string{versions, noBackups},
 		useReleases: []string{releases, noBackups, failNotReplaced},
 	}
 
-	// RegisterPlugin hooks dynamically for this plugin
-	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
+	// Register hooks dynamically for this plugin with the integrated hook registry
+	mavenPlugin.RegisterHook(core.ReleaseStartHooks.AfterUpdateProjectVersionHook, mavenPlugin.afterUpdateProjectVersion)
 
-	return plugin
+	return mavenPlugin
 }
 
-// RegisterPlugin plugin for the mvn build tool.
+// RegisterPlugin registers the plugin for the mvn build tool.
+// This function uses the factory for dependency injection.
 func init() {
-	core.RegisterPlugin(NewPlugin())
-}
-
-const pluginName = "Maven"
-
-const versionFileName = "pom.xml"
-
-const versionQualifier = "SNAPSHOT"
-
-const (
-	Maven = "mvn"
-)
-
-// RequiredTools list of required command line tools
-func (p *mavenPlugin) RequiredTools() []string {
-	return []string{Maven}
-}
-
-func (p *mavenPlugin) String() string {
-	return pluginName
-}
-
-func (p *mavenPlugin) VersionFileName() string {
-	return versionFileName
-}
-
-func (p *mavenPlugin) VersionQualifier() string {
-	return versionQualifier
-}
-
-// Maven build tool commands.
-const (
-	evaluate        = "help:evaluate"
-	versions        = "versions:set"
-	releases        = "versions:use-releases"
-	newVersion      = "-DnewVersion=%v"
-	versionProperty = "-Dexpression=project.version"
-	quiet           = "-q"
-	stdout          = "-DforceStdout"
-	noBackups       = "-DgenerateBackupPoms=false"
-	failNotReplaced = "-DfailIfNotReplaced=true"
-)
-
-// MavenPlugIn is the plugin for the mvn build tool.
-type mavenPlugin struct {
-	getVersion  []string
-	setVersion  []string
-	useReleases []string
+	factory := plugin.NewPluginFactory()
+	pluginInstance := factory.CreatePlugin(func(f *plugin.Factory) core.Plugin {
+		return NewPlugin(f)
+	})
+	factory.RegisterPlugin(pluginInstance)
 }
 
 // ReadVersion reads the current version from the project
@@ -87,7 +83,7 @@ func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, err
 	defer func() { core.Log(logs...) }()
 
 	// evaluate the version of the mvn project
-	versionCommand := exec.Command(Maven, p.getVersion...)
+	versionCommand := exec.Command(mvn, p.getVersion...)
 	versionCommand.Dir = projectPath
 
 	// run mvn to evaluate the version of the mvn project
@@ -115,7 +111,7 @@ func (p *mavenPlugin) WriteVersion(repository core.Repository, version core.Vers
 	defer func() { core.Log(versionCommand, output, err) }()
 
 	// update version information
-	versionCommand = exec.Command(Maven, append(p.setVersion, fmt.Sprintf(newVersion, version))...)
+	versionCommand = exec.Command(mvn, append(p.setVersion, fmt.Sprintf(newVersion, version))...)
 	versionCommand.Dir = projectPath
 
 	// run mvn to update version information of the mvn project
@@ -137,7 +133,7 @@ func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) erro
 	// log human-readable description of the mvn command
 	defer func() { core.Log(releasesCommand, output, err) }()
 	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
-	releasesCommand = exec.Command(Maven, p.useReleases...)
+	releasesCommand = exec.Command(mvn, p.useReleases...)
 	releasesCommand.Dir = repository.Local()
 
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project

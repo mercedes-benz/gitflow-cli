@@ -7,9 +7,9 @@ package hotfix
 
 import (
 	"fmt"
+	core2 "github.com/mercedes-benz/gitflow-cli/core"
 	"os"
 
-	"github.com/mercedes-benz/gitflow-cli/plugin/core"
 	"github.com/spf13/cobra"
 )
 
@@ -54,7 +54,7 @@ Hotfix branches are created when there's a need to quickly fix an issue in the
 production version of the software.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return core.Start(core.Hotfix, projectPath)
+		return core2.Start(core2.Hotfix, projectPath)
 	},
 }
 
@@ -71,7 +71,7 @@ Once the fix is complete, the hotfix branch is merged back into both master and
 develop (or the current release branch)`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return core.Finish(core.Hotfix, projectPath)
+		return core2.Finish(core2.Hotfix, projectPath)
 	},
 }
 
