@@ -7,51 +7,45 @@ package standard
 
 import (
 	"fmt"
+	"github.com/mercedes-benz/gitflow-cli/core"
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/mercedes-benz/gitflow-cli/plugin/core"
 )
 
-// NewPlugin creates plugin for the standard workflow.
-func NewPlugin() core.Plugin {
-	plugin := &standardPlugin{}
-	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.BeforeReleaseStartHook, plugin.beforeReleaseStart)
-	core.GlobalHooks.RegisterHook(pluginName, core.HotfixStartHooks.BeforeHotfixStartHook, plugin.beforeHotfixStart)
-	core.GlobalHooks.RegisterHook(pluginName, core.HotfixFinishHooks.AfterMergeIntoDevelopmentHook, plugin.afterMergeIntoDevelopment)
-	return plugin
+// Fixed configuration for the standard plugin
+var pluginConfig = plugin.Config{
+	Name:             "standard",
+	VersionFileName:  "version.txt",
+	VersionQualifier: "dev",
+	RequiredTools:    []string{},
 }
-
-func init() {
-	core.RegisterFallbackPlugin(NewPlugin())
-}
-
-const pluginName = "Standard"
-
-const versionFileName = "version.txt"
-
-const versionQualifier = "dev"
 
 // standardPlugin is the plugin for the standard workflow.
 type standardPlugin struct {
+	plugin.BasePlugin
 }
 
-func (p *standardPlugin) String() string {
-	return pluginName
+// NewPlugin creates a plugin for the standard workflow.
+func NewPlugin(factory *plugin.Factory) core.Plugin {
+	standardPlugin := &standardPlugin{
+		BasePlugin: factory.NewPlugin(pluginConfig),
+	}
+
+	standardPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, standardPlugin.beforeReleaseStart)
+	standardPlugin.RegisterHook(core.HotfixStartHooks.BeforeHotfixStartHook, standardPlugin.beforeHotfixStart)
+	standardPlugin.RegisterHook(core.HotfixFinishHooks.AfterMergeIntoDevelopmentHook, standardPlugin.afterMergeIntoDevelopment)
+
+	return standardPlugin
 }
 
-func (p *standardPlugin) VersionFileName() string {
-	return versionFileName
-}
-
-func (p *standardPlugin) VersionQualifier() string {
-	return versionQualifier
-}
-
-// RequiredTools returns list of required command line tools.
-func (p *standardPlugin) RequiredTools() []string {
-	return []string{}
+// Register the standard plugin as a fallback plugin
+func init() {
+	factory := plugin.NewPluginFactory()
+	standardPlugin := NewPlugin(factory)
+	factory.Register(standardPlugin)
+	factory.RegisterFallbackPlugin(standardPlugin)
 }
 
 // ReadVersion reads the current version from the project
@@ -59,9 +53,9 @@ func (p *standardPlugin) ReadVersion(repository core.Repository) (core.Version, 
 	projectPath := repository.Local()
 
 	// read the version from the version file
-	bytes, err := os.ReadFile(filepath.Join(projectPath, versionFileName))
+	bytes, err := os.ReadFile(filepath.Join(projectPath, p.Config.VersionFileName))
 	if err != nil {
-		return core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, versionFileName)
+		return core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, p.Config.VersionFileName)
 	}
 
 	// parse the version string using core.ParseVersion
@@ -74,8 +68,8 @@ func (p *standardPlugin) WriteVersion(repository core.Repository, version core.V
 	projectPath := repository.Local()
 
 	// write the version to the version file
-	if err := os.WriteFile(filepath.Join(projectPath, versionFileName), []byte(version.String()), 0644); err != nil {
-		return fmt.Errorf("standard version update failed with %v: %v", err, versionFileName)
+	if err := os.WriteFile(filepath.Join(projectPath, p.Config.VersionFileName), []byte(version.String()), 0644); err != nil {
+		return fmt.Errorf("standard version update failed with %v: %v", err, p.Config.VersionFileName)
 	}
 
 	return nil
@@ -87,12 +81,12 @@ func (p *standardPlugin) beforeReleaseStart(repository core.Repository) error {
 	}
 
 	// Check if a version file already exists
-	versionFilePath := filepath.Join(repository.Local(), versionFileName)
+	versionFilePath := filepath.Join(repository.Local(), p.Config.VersionFileName)
 	if _, err := os.Stat(versionFilePath); err == nil {
 		return nil
 	}
 
-	initVersion := core.NewVersion("1", "0", "0", versionQualifier)
+	initVersion := core.NewVersion("1", "0", "0", p.Config.VersionQualifier)
 	if err := os.WriteFile(versionFilePath, []byte(initVersion.String()), 0644); err != nil {
 		return repository.UndoAllChanges(err)
 	}
@@ -114,7 +108,7 @@ func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 	}
 
 	// Check if a version file already exists
-	versionFilePath := filepath.Join(repository.Local(), versionFileName)
+	versionFilePath := filepath.Join(repository.Local(), p.Config.VersionFileName)
 	if _, err := os.Stat(versionFilePath); err == nil {
 		return nil
 	}
@@ -137,7 +131,7 @@ func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 
 func (p *standardPlugin) afterMergeIntoDevelopment(repository core.Repository) error {
 
-	filesEqual, err := repository.CompareFiles(core.Production.String(), core.Development.String(), versionFileName, versionFileName)
+	filesEqual, err := repository.CompareFiles(core.Production.String(), core.Development.String(), p.Config.VersionFileName, p.Config.VersionFileName)
 
 	if err != nil {
 		return repository.UndoAllChanges(err)

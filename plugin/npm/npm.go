@@ -8,56 +8,51 @@ package npm
 import (
 	"bytes"
 	"fmt"
+	"github.com/mercedes-benz/gitflow-cli/core"
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"os/exec"
 	"strings"
-
-	"github.com/mercedes-benz/gitflow-cli/plugin/core"
 )
 
-// Required tools for the npm plugin.
+// npm-specific command constant
 const (
 	npm = "npm"
 )
 
-// Versioning file for package.json projects.
-const (
-	versionFile      = "package.json"
-	versionQualifier = "dev"
-)
+// Fixed configuration for the NPM plugin
+var pluginConfig = plugin.Config{
+	Name:             "npm",
+	VersionFileName:  "package.json",
+	VersionQualifier: "dev",
+	RequiredTools:    []string{npm},
+}
 
-// npmPlugin is the plugin implementation for npm projects.
-var npmPlugin = &plugin{}
+// npmPlugin is the struct implementing the Plugin interface.
+type npmPlugin struct {
+	plugin.BasePlugin
+}
 
-// init registers the npm plugin.
+// NewPlugin creates a plugin for the NPM build tool.
+func NewPlugin(factory *plugin.Factory) core.Plugin {
+	npmPlugin := &npmPlugin{
+		BasePlugin: factory.NewPlugin(pluginConfig),
+	}
+
+	// Register hooks for this plugin (currently none, but structure is ready for future hooks)
+	// Example hook registration would look like this:
+	// npmPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, npmPlugin.beforeReleaseStart)
+
+	return npmPlugin
+}
+
+// Register the NPM plugin
 func init() {
-	core.RegisterPlugin(npmPlugin)
-}
-
-// plugin is the struct implementing the Plugin interface.
-type plugin struct{}
-
-// String returns the name of the plugin.
-func (p *plugin) String() string {
-	return "NPM"
-}
-
-// VersionFileName returns the filename containing version information.
-func (p *plugin) VersionFileName() string {
-	return versionFile
-}
-
-// VersionQualifier returns the qualifier for version strings.
-func (p *plugin) VersionQualifier() string {
-	return versionQualifier
-}
-
-// RequiredTools returns the list of required tools for this plugin.
-func (p *plugin) RequiredTools() []string {
-	return []string{npm}
+	factory := plugin.NewPluginFactory()
+	factory.Register(NewPlugin(factory))
 }
 
 // ReadVersion reads the version from package.json using npm.
-func (p *plugin) ReadVersion(repository core.Repository) (core.Version, error) {
+func (p *npmPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
 	// Execute npm command to read the version from package.json
 	cmd := exec.Command(npm, "pkg", "get", "version")
 	cmd.Dir = repository.Local()
@@ -84,7 +79,7 @@ func (p *plugin) ReadVersion(repository core.Repository) (core.Version, error) {
 }
 
 // WriteVersion writes the version to package.json using npm.
-func (p *plugin) WriteVersion(repository core.Repository, version core.Version) error {
+func (p *npmPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	// Execute npm command to write the version to package.json
 	cmd := exec.Command(npm, "version", version.String(), "--no-git-tag-version")
 	cmd.Dir = repository.Local()

@@ -40,7 +40,7 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	template := filepath.Join("../..", "helper", "templates", templateName)
+	template := filepath.Join("..", "helper", "templates", templateName)
 
 	// main -> version file (1.0.0)
 	// develop -> version file (1.1.0-"+versionQualifier)
@@ -57,7 +57,7 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	env.AssertBranchExists("origin/hotfix/1.0.1")
 
 	env.AssertVersionEquals(template, "1.0.1", "hotfix/1.0.1")
-	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
+	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
@@ -68,7 +68,7 @@ func testHotfixStartFallback(t *testing.T) {
 	env := helper.SetupTestEnv(t)
 
 	// Path to the templates
-	template := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
+	template := filepath.Join("..", "helper", "templates", "version.txt.tpl")
 
 	// main -> no version file
 	// develop -> no version file
@@ -86,7 +86,7 @@ func testHotfixStartFallback(t *testing.T) {
 	env.AssertBranchExists("origin/hotfix/1.0.1")
 
 	env.AssertVersionEquals(template, "1.0.1", "hotfix/1.0.1")
-	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
+	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }

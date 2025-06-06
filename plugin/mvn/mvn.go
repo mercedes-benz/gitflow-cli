@@ -3,79 +3,64 @@ SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
 SPDX-License-Identifier: MIT
 */
 
-package maven
+package mvn
 
 import (
 	"fmt"
-	"github.com/mercedes-benz/gitflow-cli/plugin/core"
+	"github.com/mercedes-benz/gitflow-cli/core"
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"os/exec"
 	"strings"
 )
 
-// NewPlugin create plugin for the mvn build tool.
-func NewPlugin() core.Plugin {
-	plugin := &mavenPlugin{
-		getVersion:  []string{evaluate, versionProperty, quiet, stdout},
-		setVersion:  []string{versions, noBackups},
-		useReleases: []string{releases, noBackups, failNotReplaced},
-	}
-
-	// RegisterPlugin hooks dynamically for this plugin
-	core.GlobalHooks.RegisterHook(pluginName, core.ReleaseStartHooks.AfterUpdateProjectVersionHook, plugin.afterUpdateProjectVersion)
-
-	return plugin
-}
-
-// RegisterPlugin plugin for the mvn build tool.
-func init() {
-	core.RegisterPlugin(NewPlugin())
-}
-
-const pluginName = "Maven"
-
-const versionFileName = "pom.xml"
-
-const versionQualifier = "SNAPSHOT"
-
+// mvn-specific command constants
 const (
-	Maven = "mvn"
-)
-
-// RequiredTools list of required command line tools
-func (p *mavenPlugin) RequiredTools() []string {
-	return []string{Maven}
-}
-
-func (p *mavenPlugin) String() string {
-	return pluginName
-}
-
-func (p *mavenPlugin) VersionFileName() string {
-	return versionFileName
-}
-
-func (p *mavenPlugin) VersionQualifier() string {
-	return versionQualifier
-}
-
-// Maven build tool commands.
-const (
+	mvn             = "mvn"
 	evaluate        = "help:evaluate"
-	versions        = "versions:set"
-	releases        = "versions:use-releases"
-	newVersion      = "-DnewVersion=%v"
 	versionProperty = "-Dexpression=project.version"
 	quiet           = "-q"
 	stdout          = "-DforceStdout"
+	versions        = "versions:set"
 	noBackups       = "-DgenerateBackupPoms=false"
+	releases        = "versions:use-releases"
 	failNotReplaced = "-DfailIfNotReplaced=true"
+	newVersion      = "-DnewVersion=%s"
 )
 
-// MavenPlugIn is the plugin for the mvn build tool.
+// Fixed configuration for the mvn plugin
+var pluginConfig = plugin.Config{
+	Name:             "mvn",
+	VersionFileName:  "pom.xml",
+	VersionQualifier: "SNAPSHOT",
+	RequiredTools:    []string{mvn},
+}
+
+// mavenPlugin is the plugin for the mvn build tool.
 type mavenPlugin struct {
+	plugin.BasePlugin
 	getVersion  []string
 	setVersion  []string
 	useReleases []string
+}
+
+// NewPlugin creates a plugin for the mvn build tool.
+func NewPlugin(factory *plugin.Factory) core.Plugin {
+	mavenPlugin := &mavenPlugin{
+		BasePlugin:  factory.NewPlugin(pluginConfig),
+		getVersion:  []string{evaluate, versionProperty, quiet, stdout},
+		setVersion:  []string{versions, noBackups},
+		useReleases: []string{releases, failNotReplaced},
+	}
+
+	mavenPlugin.RegisterHook(core.ReleaseStartHooks.AfterUpdateProjectVersionHook, mavenPlugin.afterUpdateProjectVersion)
+
+	return mavenPlugin
+}
+
+// Register the plugin for the mvn build tool.
+func init() {
+	factory := plugin.NewPluginFactory()
+	factory.Register(NewPlugin(factory))
 }
 
 // ReadVersion reads the current version from the project
@@ -87,7 +72,7 @@ func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, err
 	defer func() { core.Log(logs...) }()
 
 	// evaluate the version of the mvn project
-	versionCommand := exec.Command(Maven, p.getVersion...)
+	versionCommand := exec.Command(mvn, p.getVersion...)
 	versionCommand.Dir = projectPath
 
 	// run mvn to evaluate the version of the mvn project
@@ -115,7 +100,7 @@ func (p *mavenPlugin) WriteVersion(repository core.Repository, version core.Vers
 	defer func() { core.Log(versionCommand, output, err) }()
 
 	// update version information
-	versionCommand = exec.Command(Maven, append(p.setVersion, fmt.Sprintf(newVersion, version))...)
+	versionCommand = exec.Command(mvn, append(p.setVersion, fmt.Sprintf(newVersion, version))...)
 	versionCommand.Dir = projectPath
 
 	// run mvn to update version information of the mvn project
@@ -137,7 +122,7 @@ func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) erro
 	// log human-readable description of the mvn command
 	defer func() { core.Log(releasesCommand, output, err) }()
 	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
-	releasesCommand = exec.Command(Maven, p.useReleases...)
+	releasesCommand = exec.Command(mvn, p.useReleases...)
 	releasesCommand.Dir = repository.Local()
 
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project

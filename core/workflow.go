@@ -11,7 +11,7 @@ import (
 )
 
 // Start executes the first plugin that meets the precondition.
-func Start(branch Branch, projectPath string, args ...any) error {
+func Start(branch Branch, projectPath string) error {
 	pluginRegistryLock.Lock()
 	defer pluginRegistryLock.Unlock()
 
@@ -25,7 +25,7 @@ func Start(branch Branch, projectPath string, args ...any) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if CheckVersionFile(projectPath, plugin.VersionFileName()) {
+		if CheckVersionFile(plugin.VersionFileName()) {
 			return executePluginStart(plugin, branch, projectPath)
 		}
 	}
@@ -92,6 +92,9 @@ func Finish(branch Branch, projectPath string) error {
 	// apply suitable settings from the global configuration to the core package
 	applySettings()
 
+	// set path to execute plugin detection and workflow commands
+	ProjectPath = projectPath
+
 	// check if project path exists
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
 		return fmt.Errorf("project path '%v' does not exist", projectPath)
@@ -99,7 +102,7 @@ func Finish(branch Branch, projectPath string) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if CheckVersionFile(projectPath, plugin.VersionFileName()) {
+		if CheckVersionFile(plugin.VersionFileName()) {
 			return executePluginFinish(plugin, branch, projectPath)
 		}
 	}
@@ -265,7 +268,7 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	}
 
 	// perform a git commit with a commit message
-	if err := repository.CommitChanges("Set next hotfix version."); err != nil {
+	if err := repository.CommitChanges("Increment patch version for hotfix."); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 

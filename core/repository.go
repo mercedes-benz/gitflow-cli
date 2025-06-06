@@ -22,7 +22,7 @@ const (
 )
 
 type (
-	// Repository represents a version control system repository.
+	// Repository represents a git repository.
 	Repository interface {
 		Local() string
 		IsClean() error

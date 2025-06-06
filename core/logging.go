@@ -45,7 +45,7 @@ var loggingFlags Logging = StdOut | CmdLine | Output
 
 // Log a message to Go standard logging based on logging flags and variadic arguments.
 func Log(message ...any) {
-	println := func() {
+	printLine := func() {
 		for _, msg := range message {
 			switch msg := msg.(type) {
 			case string:
@@ -79,12 +79,12 @@ func Log(message ...any) {
 
 	if loggingFlags&StdErr != 0 {
 		log.SetOutput(os.Stderr)
-		println()
+		printLine()
 	}
 
 	if loggingFlags&StdOut != 0 {
 		log.SetOutput(os.Stdout)
-		println()
+		printLine()
 	}
 }
 

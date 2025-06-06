@@ -11,6 +11,7 @@ import (
 
 	"github.com/mercedes-benz/gitflow-cli/cmd/hotfix"
 	"github.com/mercedes-benz/gitflow-cli/cmd/release"
+	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -41,6 +42,7 @@ func init() {
 
 	// persistent flags, which, if defined here, will be global for the application
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.gitflow-cli.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&core.ProjectPath, "path", "p", ".", "path to git repository (default is current directory)")
 }
 
 // Read in Viper config file and environment variables if set.
