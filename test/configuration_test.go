@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
 SPDX-License-Identifier: MIT
 */
 
-package plugins
+package test
 
 import (
 	"github.com/mercedes-benz/gitflow-cli/test/helper"
@@ -31,10 +31,10 @@ func setupCustomBranchTest(t *testing.T) (*helper.GitTestEnv, string, string) {
 	)
 
 	// Path to the predefined config file
-	configPath := filepath.Join("../helper/.gitflow-test-config.yaml")
+	configPath := filepath.Join("helper", ".gitflow-test-config.yaml")
 
 	// Create the version file template path
-	versionTemplate := filepath.Join("../helper/templates/version.txt.tpl")
+	versionTemplate := filepath.Join("helper", "templates", "version.txt.tpl")
 
 	return env, configPath, versionTemplate
 }

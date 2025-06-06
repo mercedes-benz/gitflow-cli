@@ -151,10 +151,9 @@ func RegisterFallbackPlugin(plugin Plugin) {
 	fallbackPlugin = plugin
 }
 
-// todo: versionFile could be read out from core
 // CheckVersionFile checks if version file is found
-func CheckVersionFile(projectPath string, versionFile string) bool {
-	_, err := os.Stat(filepath.Join(projectPath, versionFile))
+func CheckVersionFile(versionFile string) bool {
+	_, err := os.Stat(filepath.Join(ProjectPath, versionFile))
 	return !os.IsNotExist(err)
 }
 

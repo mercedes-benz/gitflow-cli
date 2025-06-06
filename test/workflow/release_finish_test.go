@@ -40,7 +40,7 @@ func testReleaseFinish(t *testing.T, templateName string, versionQualifier strin
 	env := helper.SetupTestEnv(t)
 
 	// Create template path from template name
-	template := filepath.Join("../..", "helper", "templates", templateName)
+	template := filepath.Join("..", "helper", "templates", templateName)
 
 	// main -> version file (1.0.0)
 	// develop -> version file (1.1.0-{qualifier})
@@ -75,7 +75,7 @@ func testReleaseFinishFallback(t *testing.T) {
 	env := helper.SetupTestEnv(t)
 
 	// Path to the version file template
-	template := filepath.Join("../..", "helper", "templates", "version.txt.tpl")
+	template := filepath.Join("..", "helper", "templates", "version.txt.tpl")
 
 	// main -> no version file
 	// develop -> version.txt (1.0.0-dev)
