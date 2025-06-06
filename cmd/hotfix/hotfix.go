@@ -7,7 +7,7 @@ package hotfix
 
 import (
 	"fmt"
-	core2 "github.com/mercedes-benz/gitflow-cli/core"
+	"github.com/mercedes-benz/gitflow-cli/core"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -38,9 +38,6 @@ This way, the Gitflow model ensures that fixes for urgent production bugs can
 be delivered quickly, without interrupting ongoing development work.`,
 }
 
-// Required for all plugin operations that execute workflow automation commands in a project directory.
-var projectPath string
-
 // StartCmd represents the start subcommand of HotfixCmd.
 var startCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
@@ -54,7 +51,7 @@ Hotfix branches are created when there's a need to quickly fix an issue in the
 production version of the software.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return core2.Start(core2.Hotfix, projectPath)
+		return core.Start(core.Hotfix, core.ProjectPath)
 	},
 }
 
@@ -71,7 +68,7 @@ Once the fix is complete, the hotfix branch is merged back into both master and
 develop (or the current release branch)`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return core2.Finish(core2.Hotfix, projectPath)
+		return core.Finish(core.Hotfix, core.ProjectPath)
 	},
 }
 
@@ -85,7 +82,7 @@ func init() {
 
 	// persistent flags, which, if defined here, will be global for this command and all subcommands
 	HotfixCmd.PersistentFlags().
-		StringVarP(&projectPath, "path", "p", defaultPath, "project path for workflow automation commands")
+		StringVarP(&core.ProjectPath, "path", "p", defaultPath, "project path for workflow automation commands")
 
 	// enforce rules for the flags
 	if err := HotfixCmd.MarkPersistentFlagDirname("path"); err != nil {

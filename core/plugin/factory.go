@@ -28,9 +28,21 @@ func NewPluginFactory() *Factory {
 	}
 }
 
-// CreatePlugin creates a plugin with injected dependencies.
-func (factory *Factory) CreatePlugin(
-	creator func(factory *Factory) core.Plugin,
-) core.Plugin {
-	return creator(factory)
+// Register registers a plugin with the factory.
+func (factory *Factory) Register(pluginInstance core.Plugin) {
+	factory.RegisterPlugin(pluginInstance)
+}
+
+// RegisterFallback registers a plugin as a fallback plugin.
+func (factory *Factory) RegisterFallback(pluginInstance core.Plugin) {
+	factory.RegisterFallbackPlugin(pluginInstance)
+}
+
+// NewPlugin creates and returns a BasePlugin instance with all dependencies injected.
+// Plugin implementations can use this method to get a pre-configured BasePlugin.
+func (factory *Factory) NewPlugin(config Config) BasePlugin {
+	return BasePlugin{
+		Config: config,
+		Hooks:  factory.Hooks,
+	}
 }

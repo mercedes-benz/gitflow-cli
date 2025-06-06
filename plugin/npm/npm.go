@@ -14,12 +14,17 @@ import (
 	"strings"
 )
 
-// Default configuration for the NPM plugin
-var defaultConfig = plugin.Config{
-	Name:             "NPM",
+// npm-specific command constant
+const (
+	npm = "npm"
+)
+
+// Fixed configuration for the NPM plugin
+var pluginConfig = plugin.Config{
+	Name:             "npm",
 	VersionFileName:  "package.json",
 	VersionQualifier: "dev",
-	RequiredTools:    []string{"npm"},
+	RequiredTools:    []string{npm},
 }
 
 // npmPlugin is the struct implementing the Plugin interface.
@@ -29,14 +34,8 @@ type npmPlugin struct {
 
 // NewPlugin creates a plugin for the NPM build tool.
 func NewPlugin(factory *plugin.Factory) core.Plugin {
-	// Load configurable values from configuration
-	config := plugin.LoadPluginConfig(defaultConfig.Name, defaultConfig)
-
 	npmPlugin := &npmPlugin{
-		BasePlugin: plugin.BasePlugin{
-			Config: config,
-			Hooks:  factory.Hooks,
-		},
+		BasePlugin: factory.NewPlugin(pluginConfig),
 	}
 
 	// Register hooks for this plugin (currently none, but structure is ready for future hooks)
@@ -49,16 +48,13 @@ func NewPlugin(factory *plugin.Factory) core.Plugin {
 // Register the NPM plugin
 func init() {
 	factory := plugin.NewPluginFactory()
-	pluginInstance := factory.CreatePlugin(func(f *plugin.Factory) core.Plugin {
-		return NewPlugin(f)
-	})
-	factory.RegisterPlugin(pluginInstance)
+	factory.Register(NewPlugin(factory))
 }
 
 // ReadVersion reads the version from package.json using npm.
 func (p *npmPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
 	// Execute npm command to read the version from package.json
-	cmd := exec.Command("npm", "pkg", "get", "version")
+	cmd := exec.Command(npm, "pkg", "get", "version")
 	cmd.Dir = repository.Local()
 
 	var stdout bytes.Buffer
@@ -85,7 +81,7 @@ func (p *npmPlugin) ReadVersion(repository core.Repository) (core.Version, error
 // WriteVersion writes the version to package.json using npm.
 func (p *npmPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	// Execute npm command to write the version to package.json
-	cmd := exec.Command("npm", "version", version.String(), "--no-git-tag-version")
+	cmd := exec.Command(npm, "version", version.String(), "--no-git-tag-version")
 	cmd.Dir = repository.Local()
 
 	if err := cmd.Run(); err != nil {

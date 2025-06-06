@@ -27,8 +27,8 @@ const (
 	newVersion      = "-DnewVersion=%s"
 )
 
-// Default configuration for the mvn plugin
-var defaultConfig = plugin.Config{
+// Fixed configuration for the mvn plugin
+var pluginConfig = plugin.Config{
 	Name:             "mvn",
 	VersionFileName:  "pom.xml",
 	VersionQualifier: "SNAPSHOT",
@@ -45,33 +45,22 @@ type mavenPlugin struct {
 
 // NewPlugin creates a plugin for the mvn build tool.
 func NewPlugin(factory *plugin.Factory) core.Plugin {
-	// Load configurable values from configuration
-	config := plugin.LoadPluginConfig(defaultConfig.Name, defaultConfig)
-
 	mavenPlugin := &mavenPlugin{
-		BasePlugin: plugin.BasePlugin{
-			Config: config,
-			Hooks:  factory.Hooks,
-		},
+		BasePlugin:  factory.NewPlugin(pluginConfig),
 		getVersion:  []string{evaluate, versionProperty, quiet, stdout},
 		setVersion:  []string{versions, noBackups},
-		useReleases: []string{releases, noBackups, failNotReplaced},
+		useReleases: []string{releases, failNotReplaced},
 	}
 
-	// Register hooks dynamically for this plugin with the integrated hook registry
 	mavenPlugin.RegisterHook(core.ReleaseStartHooks.AfterUpdateProjectVersionHook, mavenPlugin.afterUpdateProjectVersion)
 
 	return mavenPlugin
 }
 
-// RegisterPlugin registers the plugin for the mvn build tool.
-// This function uses the factory for dependency injection.
+// Register the plugin for the mvn build tool.
 func init() {
 	factory := plugin.NewPluginFactory()
-	pluginInstance := factory.CreatePlugin(func(f *plugin.Factory) core.Plugin {
-		return NewPlugin(f)
-	})
-	factory.RegisterPlugin(pluginInstance)
+	factory.Register(NewPlugin(factory))
 }
 
 // ReadVersion reads the current version from the project

@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"testing"
 	"text/template"
@@ -30,9 +31,47 @@ type GitTestEnv struct {
 	t          *testing.T
 }
 
+// SetupTestEnvOption configures options for SetupTestEnv
+type SetupTestEnvOption func(*testEnvOptions)
+
+// TestEnvOption functions to customize test environment setup
+var (
+	WithProductionBranch = func(branch string) SetupTestEnvOption {
+		return func(opts *testEnvOptions) { opts.productionBranch = branch }
+	}
+	WithDevelopmentBranch = func(branch string) SetupTestEnvOption {
+		return func(opts *testEnvOptions) { opts.developmentBranch = branch }
+	}
+	WithReleaseBranch = func(prefix string) SetupTestEnvOption {
+		return func(opts *testEnvOptions) { opts.releaseBranch = prefix }
+	}
+	WithHotfixBranch = func(prefix string) SetupTestEnvOption {
+		return func(opts *testEnvOptions) { opts.hotfixBranch = prefix }
+	}
+)
+
+// testEnvOptions holds the options for setting up the test environment
+type testEnvOptions struct {
+	productionBranch  string
+	developmentBranch string
+	releaseBranch     string
+	hotfixBranch      string
+}
+
 // SetupTestEnv creates test environment with local repo and simulated remote
-func SetupTestEnv(t *testing.T) *GitTestEnv {
+func SetupTestEnv(t *testing.T, options ...SetupTestEnvOption) *GitTestEnv {
 	t.Helper()
+
+	// Default options
+	opts := &testEnvOptions{
+		productionBranch:  "main",
+		developmentBranch: "develop",
+	}
+
+	// Apply user options
+	for _, option := range options {
+		option(opts)
+	}
 
 	// Create temporary directories for test repositories
 	tmpDir := t.TempDir()
@@ -48,8 +87,8 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 	cmd.Dir = remotePath
 	require.NoError(t, cmd.Run(), "Failed to initialize bare remote repository")
 
-	// Initialize local repository with main branch
-	cmd = exec.Command("git", "init", "--initial-branch=main")
+	// Initialize local repository with production branch
+	cmd = exec.Command("git", "init", "--initial-branch="+opts.productionBranch)
 	cmd.Dir = localPath
 	require.NoError(t, cmd.Run(), "Failed to initialize local repository")
 
@@ -74,18 +113,18 @@ func SetupTestEnv(t *testing.T) *GitTestEnv {
 		t:          t,
 	}
 
-	// Create an empty commit to initialize the main branch
+	// Create an empty commit to initialize the production branch
 	cmd = exec.Command("git", "commit", "--allow-empty", "-m", "Initial empty commit")
 	cmd.Dir = localPath
 	require.NoError(t, cmd.Run(), "Failed to create initial empty commit")
 
-	// Push the empty main branch to remote
-	cmd = exec.Command("git", "push", "-u", "origin", "main")
+	// Push the empty production branch to remote
+	cmd = exec.Command("git", "push", "-u", "origin", opts.productionBranch)
 	cmd.Dir = localPath
-	require.NoError(t, cmd.Run(), "Failed to push main branch")
+	require.NoError(t, cmd.Run(), "Failed to push production branch")
 
-	// Create develop branch
-	env.CreateBranch("develop", "main")
+	// Create development branch
+	env.CreateBranch(opts.developmentBranch, opts.productionBranch)
 
 	return env
 }
@@ -160,8 +199,13 @@ func (env *GitTestEnv) CreateBranch(branch string, commitRef ...string) {
 func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 	env.t.Helper()
 
+	// Save the original os.Args and restore it when done
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
 	// Set command line arguments with the --path parameter
 	os.Args = append([]string{"gitflow-cli", "--path", env.LocalPath}, args...)
+	env.t.Logf("Executing command: gitflow-cli %s", strings.Join(os.Args[1:], " "))
 
 	// Capture output using a pipe
 	r, w, err := os.Pipe()
@@ -171,8 +215,20 @@ func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 	oldStdout, oldStderr := os.Stdout, os.Stderr
 	os.Stdout, os.Stderr = w, w
 
-	// Execute the command
-	cmd.Execute()
+	// Recover from any panics that might occur during command execution
+	var cmdErr error
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				cmdErr = fmt.Errorf("panic during command execution: %v", r)
+				env.t.Logf("PANIC: %v", r)
+				debug.PrintStack() // Print stack trace for debugging
+			}
+		}()
+
+		// Execute the command
+		cmd.Execute()
+	}()
 
 	// Restore original stdout/stderr and close the write end of pipe
 	os.Stdout, os.Stderr = oldStdout, oldStderr
@@ -182,8 +238,16 @@ func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 	output, err := io.ReadAll(r)
 	require.NoError(env.t, err)
 
-	// Log the command output
+	// Log the command output and any errors
+	if cmdErr != nil {
+		env.t.Logf("Command failed: %v", cmdErr)
+	}
 	env.t.Logf("Command output for 'gitflow-cli %s':\n%s", strings.Join(args, " "), string(output))
+
+	// If there was an error, fail the test with more information
+	if cmdErr != nil {
+		env.t.Fatalf("Command failed: %v\nOutput: %s", cmdErr, string(output))
+	}
 
 	return string(output)
 }

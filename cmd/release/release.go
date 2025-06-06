@@ -6,9 +6,7 @@ SPDX-License-Identifier: MIT
 package release
 
 import (
-	"fmt"
-	core2 "github.com/mercedes-benz/gitflow-cli/core"
-	"os"
+	"github.com/mercedes-benz/gitflow-cli/core"
 
 	"github.com/spf13/cobra"
 )
@@ -39,9 +37,6 @@ By doing this, the master branch always reflects the latest released and
 production-ready state of the software.`,
 }
 
-// Required for all plugin operations that execute workflow automation commands in a project directory.
-var projectPath string
-
 // StartCmd represents the start subcommand of ReleaseCmd.
 var startCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
@@ -55,8 +50,8 @@ When the develop branch has acquired enough features for a release, a new
 branch is created. This branch is used to prepare for a new production 
 release.`,
 
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return core2.Start(core2.Release, projectPath)
+	RunE: func(c *cobra.Command, args []string) error {
+		return core.Start(core.Release, core.ProjectPath)
 	},
 }
 
@@ -72,26 +67,13 @@ var finishCmd = &cobra.Command{
 Once the team is satisfied with the state of the release branch, it is merged
 into master and tagged with a version number.`,
 
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return core2.Finish(core2.Release, projectPath)
+	RunE: func(c *cobra.Command, args []string) error {
+		return core.Finish(core.Release, core.ProjectPath)
 	},
 }
 
 // Initialize Cobra flags for the release subcommand.
 func init() {
-	// current working directory as default project path
-	defaultPath, _ := os.Getwd()
-
 	// add subcommands to the release command
 	ReleaseCmd.AddCommand(startCmd, finishCmd)
-
-	// persistent flags, which, if defined here, will be global for this command and all subcommands
-	ReleaseCmd.PersistentFlags().
-		StringVarP(&projectPath, "path", "p", defaultPath, "project path for workflow automation commands")
-
-	// enforce rules for the flags
-	if err := startCmd.MarkPersistentFlagDirname("path"); err != nil {
-		// In init function, we can only log the error
-		fmt.Printf("Error marking flag 'path' as directory: %v\n", err)
-	}
 }

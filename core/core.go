@@ -131,6 +131,9 @@ var branchSettings = map[string]Branch{
 
 var undoChanges = false
 
+// ProjectPath holds the path to the Git repository
+var ProjectPath = "."
+
 // PluginRegistry is the global list of all registered plugins.
 var pluginRegistry Plugins
 var pluginRegistryLock sync.Mutex
@@ -148,6 +151,7 @@ func RegisterFallbackPlugin(plugin Plugin) {
 	fallbackPlugin = plugin
 }
 
+// todo: versionFile could be read out from core
 // CheckVersionFile checks if version file is found
 func CheckVersionFile(projectPath string, versionFile string) bool {
 	_, err := os.Stat(filepath.Join(projectPath, versionFile))

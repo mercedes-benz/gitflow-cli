@@ -57,7 +57,7 @@ func testHotfixStart(t *testing.T, templateName string, versionQualifier string)
 	env.AssertBranchExists("origin/hotfix/1.0.1")
 
 	env.AssertVersionEquals(template, "1.0.1", "hotfix/1.0.1")
-	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
+	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
@@ -86,7 +86,7 @@ func testHotfixStartFallback(t *testing.T) {
 	env.AssertBranchExists("origin/hotfix/1.0.1")
 
 	env.AssertVersionEquals(template, "1.0.1", "hotfix/1.0.1")
-	env.AssertCommitMessageEquals("Set next hotfix version.", "hotfix/1.0.1")
+	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }

@@ -265,7 +265,7 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	}
 
 	// perform a git commit with a commit message
-	if err := repository.CommitChanges("Set next hotfix version."); err != nil {
+	if err := repository.CommitChanges("Increment patch version for hotfix."); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 

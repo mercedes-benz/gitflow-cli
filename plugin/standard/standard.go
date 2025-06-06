@@ -14,9 +14,9 @@ import (
 	"strings"
 )
 
-// Default configuration for the Standard plugin
-var defaultConfig = plugin.Config{
-	Name:             "Standard",
+// Fixed configuration for the standard plugin
+var pluginConfig = plugin.Config{
+	Name:             "standard",
 	VersionFileName:  "version.txt",
 	VersionQualifier: "dev",
 	RequiredTools:    []string{},
@@ -29,17 +29,10 @@ type standardPlugin struct {
 
 // NewPlugin creates a plugin for the standard workflow.
 func NewPlugin(factory *plugin.Factory) core.Plugin {
-	// Load configurable values from configuration
-	config := plugin.LoadPluginConfig(defaultConfig.Name, defaultConfig)
-
 	standardPlugin := &standardPlugin{
-		BasePlugin: plugin.BasePlugin{
-			Config: config,
-			Hooks:  factory.Hooks,
-		},
+		BasePlugin: factory.NewPlugin(pluginConfig),
 	}
 
-	// Register hooks dynamically for this standardPlugin using the integrated method
 	standardPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, standardPlugin.beforeReleaseStart)
 	standardPlugin.RegisterHook(core.HotfixStartHooks.BeforeHotfixStartHook, standardPlugin.beforeHotfixStart)
 	standardPlugin.RegisterHook(core.HotfixFinishHooks.AfterMergeIntoDevelopmentHook, standardPlugin.afterMergeIntoDevelopment)
@@ -50,10 +43,9 @@ func NewPlugin(factory *plugin.Factory) core.Plugin {
 // Register the standard plugin as a fallback plugin
 func init() {
 	factory := plugin.NewPluginFactory()
-	pluginInstance := factory.CreatePlugin(func(f *plugin.Factory) core.Plugin {
-		return NewPlugin(f)
-	})
-	factory.RegisterFallbackPlugin(pluginInstance)
+	standardPlugin := NewPlugin(factory)
+	factory.Register(standardPlugin)
+	factory.RegisterFallbackPlugin(standardPlugin)
 }
 
 // ReadVersion reads the current version from the project
