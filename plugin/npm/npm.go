@@ -6,7 +6,6 @@ SPDX-License-Identifier: MIT
 package npm
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
@@ -51,19 +50,23 @@ func init() {
 
 // ReadVersion reads the version from package.json using npm.
 func (p *npmPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
+	var logs = make([]any, 0)
 	// Execute npm command to read the version from package.json
 	cmd := exec.Command(npm, "pkg", "get", "version")
 	cmd.Dir = repository.Local()
 
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
+	// log human-readable description of the npm command
+	defer func() { core.Log(logs...) }()
 
-	if err := cmd.Run(); err != nil {
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logs = append(logs, cmd, output, err)
 		return core.Version{}, fmt.Errorf("failed to read version: %v", err)
 	}
 
+	logs = append(logs, cmd, output)
 	// Clean the version string
-	versionString := strings.TrimSpace(stdout.String())
+	versionString := strings.TrimSpace(string(output))
 	// Remove surrounding quotes from the npm output
 	versionString = strings.Trim(versionString, "\"")
 
@@ -78,12 +81,20 @@ func (p *npmPlugin) ReadVersion(repository core.Repository) (core.Version, error
 
 // WriteVersion writes the version to package.json using npm.
 func (p *npmPlugin) WriteVersion(repository core.Repository, version core.Version) error {
+	var err error
+	var cmd *exec.Cmd
+	var output []byte
+
 	// Execute npm command to write the version to package.json
-	cmd := exec.Command(npm, "version", version.String(), "--no-git-tag-version")
+	cmd = exec.Command(npm, "version", version.String(), "--no-git-tag-version")
 	cmd.Dir = repository.Local()
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to write version: %v", err)
+	// log human-readable description of the npm command
+	defer func() { core.Log(cmd, output, err) }()
+
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to write version: %v: %s", err, output)
 	}
 
 	return nil

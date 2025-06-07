@@ -48,13 +48,21 @@ func init() {
 
 // ReadVersion reads the current version from the project
 func (p *standardPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
+	var logs = make([]any, 0)
 	projectPath := repository.Local()
+	versionFilePath := filepath.Join(projectPath, p.Config.VersionFileName)
+
+	// log operation description
+	defer func() { core.Log(logs...) }()
 
 	// read the version from the version file
-	bytes, err := os.ReadFile(filepath.Join(projectPath, p.Config.VersionFileName))
+	bytes, err := os.ReadFile(versionFilePath)
 	if err != nil {
+		logs = append(logs, fmt.Sprintf("Reading file: %s", versionFilePath), err)
 		return core.NoVersion, fmt.Errorf("standard version evaluation failed with %v: %v", err, p.Config.VersionFileName)
 	}
+
+	logs = append(logs, fmt.Sprintf("Reading file: %s", versionFilePath), string(bytes))
 
 	// parse the version string using core.ParseVersion
 	versionStr := strings.TrimSpace(string(bytes))
@@ -63,13 +71,29 @@ func (p *standardPlugin) ReadVersion(repository core.Repository) (core.Version, 
 
 // WriteVersion writes a new version to the project
 func (p *standardPlugin) WriteVersion(repository core.Repository, version core.Version) error {
+	var operation string
+	var err error
+	var result string
 	projectPath := repository.Local()
+	versionFilePath := filepath.Join(projectPath, p.Config.VersionFileName)
+
+	operation = fmt.Sprintf("Writing to file: %s, content: %s", versionFilePath, version.String())
+
+	// log operation description
+	defer func() {
+		if err != nil {
+			core.Log(operation, err)
+		} else {
+			core.Log(operation, result)
+		}
+	}()
 
 	// write the version to the version file
-	if err := os.WriteFile(filepath.Join(projectPath, p.Config.VersionFileName), []byte(version.String()), 0644); err != nil {
+	if err = os.WriteFile(versionFilePath, []byte(version.String()), 0644); err != nil {
 		return fmt.Errorf("standard version update failed with %v: %v", err, p.Config.VersionFileName)
 	}
 
+	result = "Success"
 	return nil
 }
 
