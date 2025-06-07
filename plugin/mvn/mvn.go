@@ -37,35 +37,31 @@ var pluginConfig = plugin.Config{
 
 // mavenPlugin is the plugin for the mvn build tool.
 type mavenPlugin struct {
-	plugin.BasePlugin
+	plugin.Plugin
 	getVersion  []string
 	setVersion  []string
 	useReleases []string
 }
 
-// NewPlugin creates a plugin for the mvn build tool.
-func NewPlugin(factory *plugin.Factory) core.Plugin {
+// Register the maven plugin
+func init() {
+	pluginFactory := plugin.NewFactory()
+
+	// Create plugin with pluginFactory to get hooks and other dependencies
 	mavenPlugin := &mavenPlugin{
-		BasePlugin:  factory.NewPlugin(pluginConfig),
+		Plugin:      pluginFactory.NewPlugin(pluginConfig),
 		getVersion:  []string{evaluate, versionProperty, quiet, stdout},
 		setVersion:  []string{versions, noBackups},
-		useReleases: []string{releases, failNotReplaced},
+		useReleases: []string{releases, noBackups, failNotReplaced},
 	}
 
-	mavenPlugin.RegisterHook(core.ReleaseStartHooks.AfterUpdateProjectVersionHook, mavenPlugin.afterUpdateProjectVersion)
-
-	return mavenPlugin
-}
-
-// Register the plugin for the mvn build tool.
-func init() {
-	factory := plugin.NewPluginFactory()
-	factory.Register(NewPlugin(factory))
+	// Register plugin directly in core, bypassing the pluginFactory
+	core.RegisterPlugin(mavenPlugin)
 }
 
 // ReadVersion reads the current version from the project
 func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
-	var logs []any = make([]any, 0)
+	var logs = make([]any, 0)
 	projectPath := repository.Local()
 
 	// log human-readable description of the git command
