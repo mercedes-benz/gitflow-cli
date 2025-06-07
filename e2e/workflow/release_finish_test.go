@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 package workflow
 
 import (
-	"github.com/mercedes-benz/gitflow-cli/test/helper"
+	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 	"path/filepath"
 	"testing"
 )

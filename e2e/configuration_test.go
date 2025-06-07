@@ -3,10 +3,10 @@ SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
 SPDX-License-Identifier: MIT
 */
 
-package test
+package e2e
 
 import (
-	"github.com/mercedes-benz/gitflow-cli/test/helper"
+	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 	"path/filepath"
 	"testing"
 )
