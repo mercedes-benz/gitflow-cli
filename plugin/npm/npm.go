@@ -29,26 +29,24 @@ var pluginConfig = plugin.Config{
 
 // npmPlugin is the struct implementing the Plugin interface.
 type npmPlugin struct {
-	plugin.BasePlugin
+	plugin.Plugin
 }
 
-// NewPlugin creates a plugin for the NPM build tool.
-func NewPlugin(factory *plugin.Factory) core.Plugin {
+// Register the NPM plugin
+func init() {
+	pluginFactory := plugin.NewFactory()
+
+	// Create plugin with pluginFactory to get hooks and other dependencies
 	npmPlugin := &npmPlugin{
-		BasePlugin: factory.NewPlugin(pluginConfig),
+		Plugin: pluginFactory.NewPlugin(pluginConfig),
 	}
 
 	// Register hooks for this plugin (currently none, but structure is ready for future hooks)
 	// Example hook registration would look like this:
 	// npmPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, npmPlugin.beforeReleaseStart)
 
-	return npmPlugin
-}
-
-// Register the NPM plugin
-func init() {
-	factory := plugin.NewPluginFactory()
-	factory.Register(NewPlugin(factory))
+	// Register plugin directly in core, bypassing the pluginFactory
+	core.RegisterPlugin(npmPlugin)
 }
 
 // ReadVersion reads the version from package.json using npm.

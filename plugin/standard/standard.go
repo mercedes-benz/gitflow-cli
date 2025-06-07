@@ -24,28 +24,26 @@ var pluginConfig = plugin.Config{
 
 // standardPlugin is the plugin for the standard workflow.
 type standardPlugin struct {
-	plugin.BasePlugin
-}
-
-// NewPlugin creates a plugin for the standard workflow.
-func NewPlugin(factory *plugin.Factory) core.Plugin {
-	standardPlugin := &standardPlugin{
-		BasePlugin: factory.NewPlugin(pluginConfig),
-	}
-
-	standardPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, standardPlugin.beforeReleaseStart)
-	standardPlugin.RegisterHook(core.HotfixStartHooks.BeforeHotfixStartHook, standardPlugin.beforeHotfixStart)
-	standardPlugin.RegisterHook(core.HotfixFinishHooks.AfterMergeIntoDevelopmentHook, standardPlugin.afterMergeIntoDevelopment)
-
-	return standardPlugin
+	plugin.Plugin
 }
 
 // Register the standard plugin as a fallback plugin
 func init() {
-	factory := plugin.NewPluginFactory()
-	standardPlugin := NewPlugin(factory)
-	factory.Register(standardPlugin)
-	factory.RegisterFallbackPlugin(standardPlugin)
+	pluginFactory := plugin.NewFactory()
+
+	// Create plugin with pluginFactory to get hooks and other dependencies
+	standardPlugin := &standardPlugin{
+		Plugin: pluginFactory.NewPlugin(pluginConfig),
+	}
+
+	// Register hooks
+	standardPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, standardPlugin.beforeReleaseStart)
+	standardPlugin.RegisterHook(core.HotfixStartHooks.BeforeHotfixStartHook, standardPlugin.beforeHotfixStart)
+	standardPlugin.RegisterHook(core.HotfixFinishHooks.AfterMergeIntoDevelopmentHook, standardPlugin.afterMergeIntoDevelopment)
+
+	// Register plugin directly in core, bypassing the pluginFactory
+	core.RegisterPlugin(standardPlugin)
+	core.RegisterFallbackPlugin(standardPlugin)
 }
 
 // ReadVersion reads the current version from the project
