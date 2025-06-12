@@ -36,7 +36,7 @@ From within the project directory the **gitflow-cli** can be built, run and inst
 
 ## Usage
 
-Before starting to use **gitflow-cli**, navigate to the Git repository you want to operate on.
+Before using **gitflow-cli**, either navigate to your target Git repository or specify it with the `--path` flag.
 Make sure the repository meets all [preconditions](#preconditions).
 
 ### Release:
