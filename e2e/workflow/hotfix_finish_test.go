@@ -28,6 +28,11 @@ func TestHotfixFinish(t *testing.T) {
 		testHotfixFinish(t, "package.json.tpl", "dev")
 	})
 
+	// Test with road.yaml template
+	t.Run("RoadPlugin", func(t *testing.T) {
+		testHotfixFinish(t, "road.yaml.tpl", "dev")
+	})
+
 	// Test fallback without versioning file
 	t.Run("StandardPluginFallback", func(t *testing.T) {
 		testHotfixFinishFallback(t)

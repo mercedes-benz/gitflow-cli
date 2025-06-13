@@ -55,7 +55,7 @@ func (p *npmPlugin) ReadVersion(repository core.Repository) (core.Version, error
 	cmd := exec.Command(npm, "pkg", "get", "version")
 	cmd.Dir = repository.Local()
 
-	// log human-readable description of the npm command
+	// log human-readable description of commands
 	defer func() { core.Log(logs...) }()
 
 	output, err := cmd.CombinedOutput()
