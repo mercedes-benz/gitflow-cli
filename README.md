@@ -56,6 +56,8 @@ or even deploying your product on a staging environment. Once the release is rea
 
 ### Hotfix:
 
+Use hotfixes when you need to make targeted fixes to production without deploying pending changes from the development branch.
+
 To initiate a new `hotfix/x.y.z` branch from `main`, use the following command:
 
    ```bash
