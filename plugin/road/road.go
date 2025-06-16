@@ -52,25 +52,17 @@ func init() {
 
 // ReadVersion reads the version from road.yaml file
 func (p *roadPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
-	var logs = make([]any, 0)
 	versionFile := filepath.Join(repository.Local(), p.Config.VersionFileName)
 
-	// log human-readable description of commands
-	defer func() { core.Log(logs...) }()
-
 	// Read and parse the YAML file
-	dataMap, rawData, err := p.readYamlFile(versionFile)
+	dataMap, _, err := p.readYamlFile(versionFile)
 	if err != nil {
-		logs = append(logs, fmt.Sprintf("Reading file: %s", versionFile), err)
 		return core.NoVersion, fmt.Errorf("road version evaluation failed: %v", err)
 	}
-
-	logs = append(logs, fmt.Sprintf("Reading file: %s", versionFile), string(rawData))
 
 	// Extract version from YAML rawData
 	versionStr, err := p.extractVersion(dataMap)
 	if err != nil {
-		logs = append(logs, err.Error())
 		return core.NoVersion, fmt.Errorf("road version evaluation failed: %v", err)
 	}
 
@@ -81,27 +73,12 @@ func (p *roadPlugin) ReadVersion(repository core.Repository) (core.Version, erro
 
 // WriteVersion writes the version to the road.yaml file
 func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Version) error {
-	var operation string
-	var err error
-	var result string
 	versionFile := filepath.Join(repository.Local(), p.Config.VersionFileName)
-
-	operation = fmt.Sprintf("Setting version in %s to: %s", p.Config.VersionFileName, version.String())
-
-	// log operation description
-	defer func() {
-		if err != nil {
-			core.Log(operation, err)
-		} else {
-			core.Log(operation, result)
-		}
-	}()
 
 	// Read and parse the YAML file
 	dataMap, _, err := p.readYamlFile(versionFile)
 	if err != nil {
-		err = fmt.Errorf("road version update failed: %v", err)
-		return err
+		return fmt.Errorf("road version update failed: %v", err)
 	}
 
 	// Update the version in the YAML data
@@ -109,11 +86,9 @@ func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Versi
 
 	// Write the updated YAML back to the file
 	if err := p.writeYamlFile(versionFile, dataMap); err != nil {
-		err = fmt.Errorf("road version update failed: %v", err)
-		return err
+		return fmt.Errorf("road version update failed: %v", err)
 	}
 
-	result = "Success"
 	return nil
 }
 
