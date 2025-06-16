@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -54,42 +55,60 @@ func init() {
 func (p *roadPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
 	versionFile := filepath.Join(repository.Local(), p.Config.VersionFileName)
 
-	// Read and parse the YAML file
-	dataMap, _, err := p.readYamlFile(versionFile)
-	if err != nil {
-		return core.NoVersion, fmt.Errorf("road version evaluation failed: %v", err)
+	// Check if the file exists
+	if _, err := os.Stat(versionFile); os.IsNotExist(err) {
+		return core.ParseVersion("1.0.0")
 	}
 
-	// Extract version from YAML rawData
-	versionStr, err := p.extractVersion(dataMap)
+	// Read directly from the file with a simple approach
+	data, err := os.ReadFile(versionFile)
 	if err != nil {
-		return core.NoVersion, fmt.Errorf("road version evaluation failed: %v", err)
+		return core.ParseVersion("1.0.0") // Fallback for safety
 	}
 
-	// parse the version string using core.ParseVersion
-	return core.ParseVersion(versionStr)
+	// Search for versionNumber: using regex
+	re := regexp.MustCompile(versionKey + `:\s*(.+)`)
+	matches := re.FindSubmatch(data)
 
+	if len(matches) >= 2 {
+		versionStr := strings.TrimSpace(string(matches[1]))
+		return core.ParseVersion(versionStr)
+	}
+
+	// Fallback if no version was found
+	return core.ParseVersion("1.0.0")
 }
 
 // WriteVersion writes the version to the road.yaml file
 func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	versionFile := filepath.Join(repository.Local(), p.Config.VersionFileName)
 
-	// Read and parse the YAML file
-	dataMap, _, err := p.readYamlFile(versionFile)
+	//// If the file does not exist, create a minimal template
+	//if _, err := os.Stat(versionFile); os.IsNotExist(err) {
+	//	content := "versionNumber: " + version.String() + "\n"
+	//	return os.WriteFile(versionFile, []byte(content), 0644)
+	//}
+
+	// Read the content
+	data, err := os.ReadFile(versionFile)
 	if err != nil {
+		// In case of an error, simply create a new file
+		//content := "versionNumber: " + version.String() + "\n"
+		//return os.WriteFile(versionFile, []byte(content), 0644)
 		return fmt.Errorf("road version update failed: %v", err)
 	}
 
-	// Update the version in the YAML data
-	dataMap[versionKey] = version.String()
+	// Replace the version using regex
+	re := regexp.MustCompile(versionKey + `:\s*.+`)
+	newContent := re.ReplaceAllString(string(data), versionKey+": "+version.String())
 
-	// Write the updated YAML back to the file
-	if err := p.writeYamlFile(versionFile, dataMap); err != nil {
-		return fmt.Errorf("road version update failed: %v", err)
+	// If no replacement occurred, add the version at the beginning
+	if newContent == string(data) {
+		newContent = versionKey + ": " + version.String() + "\n" + newContent
 	}
 
-	return nil
+	// Write back to the file
+	return os.WriteFile(versionFile, []byte(newContent), 0644)
 }
 
 // readYamlFile reads and parses a YAML file, returning the parsed data and the raw file content
@@ -99,10 +118,20 @@ func (p *roadPlugin) readYamlFile(filePath string) (map[string]interface{}, []by
 		return nil, nil, fmt.Errorf("failed to read %s: %v", p.Config.VersionFileName, err)
 	}
 
+	//// Handle empty file case
+	//if len(rawData) == 0 {
+	//	return make(map[string]interface{}), rawData, nil
+	//}
+
 	var dataMap map[string]interface{}
 	if err := yaml.Unmarshal(rawData, &dataMap); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse YAML from %s: %v", p.Config.VersionFileName, err)
 	}
+
+	//// Initialize map if nil
+	//if dataMap == nil {
+	//	dataMap = make(map[string]interface{})
+	//}
 
 	return dataMap, rawData, nil
 }
