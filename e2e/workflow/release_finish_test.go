@@ -19,7 +19,7 @@ func TestReleaseFinish(t *testing.T) {
 	})
 
 	// Test with pom.xml template
-	t.Run("MavenPlugin", func(t *testing.T) {
+	t.Run("MvnPlugin", func(t *testing.T) {
 		testReleaseFinish(t, "pom.xml.tpl", "SNAPSHOT")
 	})
 
@@ -28,8 +28,13 @@ func TestReleaseFinish(t *testing.T) {
 		testReleaseFinish(t, "package.json.tpl", "dev")
 	})
 
+	// Test with road.yaml template
+	t.Run("RoadPlugin", func(t *testing.T) {
+		testReleaseFinish(t, "road.yaml.tpl", "dev")
+	})
+
 	// Test fallback without versioning file
-	t.Run("StandardPluginFallback", func(t *testing.T) {
+	t.Run("NoPluginFallback", func(t *testing.T) {
 		testReleaseFinishFallback(t)
 	})
 }

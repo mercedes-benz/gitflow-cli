@@ -52,7 +52,7 @@ func (p *standardPlugin) ReadVersion(repository core.Repository) (core.Version, 
 	projectPath := repository.Local()
 	versionFilePath := filepath.Join(projectPath, p.Config.VersionFileName)
 
-	// log operation description
+	// log human-readable description of commands
 	defer func() { core.Log(logs...) }()
 
 	// read the version from the version file

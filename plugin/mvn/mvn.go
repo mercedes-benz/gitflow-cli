@@ -64,7 +64,7 @@ func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, err
 	var logs = make([]any, 0)
 	projectPath := repository.Local()
 
-	// log human-readable description of the git command
+	// log human-readable description of commands
 	defer func() { core.Log(logs...) }()
 
 	// evaluate the version of the mvn project

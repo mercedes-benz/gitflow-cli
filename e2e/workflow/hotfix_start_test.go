@@ -19,7 +19,7 @@ func TestHotfixStart(t *testing.T) {
 	})
 
 	// Test with pom.xml template
-	t.Run("MavenPlugin", func(t *testing.T) {
+	t.Run("MvnPlugin", func(t *testing.T) {
 		testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
 	})
 
@@ -28,8 +28,13 @@ func TestHotfixStart(t *testing.T) {
 		testHotfixStart(t, "package.json.tpl", "dev")
 	})
 
+	// Test with road.yaml template
+	t.Run("RoadPlugin", func(t *testing.T) {
+		testHotfixStart(t, "road.yaml.tpl", "dev")
+	})
+
 	// Test fallback without versioning file
-	t.Run("StandardPluginFallback", func(t *testing.T) {
+	t.Run("NoPluginFallback", func(t *testing.T) {
 		testHotfixStartFallback(t)
 	})
 }
