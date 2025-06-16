@@ -55,15 +55,10 @@ func init() {
 func (p *roadPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
 	versionFile := filepath.Join(repository.Local(), p.Config.VersionFileName)
 
-	// Check if the file exists
-	if _, err := os.Stat(versionFile); os.IsNotExist(err) {
-		return core.ParseVersion("1.0.0")
-	}
-
-	// Read directly from the file with a simple approach
+	// Read directly from the file
 	data, err := os.ReadFile(versionFile)
 	if err != nil {
-		return core.ParseVersion("1.0.0") // Fallback for safety
+		return core.Version{}, fmt.Errorf("failed to read road version file: %v", err)
 	}
 
 	// Search for versionNumber: using regex
@@ -75,26 +70,17 @@ func (p *roadPlugin) ReadVersion(repository core.Repository) (core.Version, erro
 		return core.ParseVersion(versionStr)
 	}
 
-	// Fallback if no version was found
-	return core.ParseVersion("1.0.0")
+	// No version found in file
+	return core.Version{}, fmt.Errorf("no version found in road.yaml file")
 }
 
 // WriteVersion writes the version to the road.yaml file
 func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	versionFile := filepath.Join(repository.Local(), p.Config.VersionFileName)
 
-	//// If the file does not exist, create a minimal template
-	//if _, err := os.Stat(versionFile); os.IsNotExist(err) {
-	//	content := "versionNumber: " + version.String() + "\n"
-	//	return os.WriteFile(versionFile, []byte(content), 0644)
-	//}
-
 	// Read the content
 	data, err := os.ReadFile(versionFile)
 	if err != nil {
-		// In case of an error, simply create a new file
-		//content := "versionNumber: " + version.String() + "\n"
-		//return os.WriteFile(versionFile, []byte(content), 0644)
 		return fmt.Errorf("road version update failed: %v", err)
 	}
 
@@ -102,9 +88,9 @@ func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Versi
 	re := regexp.MustCompile(versionKey + `:\s*.+`)
 	newContent := re.ReplaceAllString(string(data), versionKey+": "+version.String())
 
-	// If no replacement occurred, add the version at the beginning
+	// If no replacement occurred, return an error
 	if newContent == string(data) {
-		newContent = versionKey + ": " + version.String() + "\n" + newContent
+		return fmt.Errorf("version key not found in road.yaml file")
 	}
 
 	// Write back to the file
@@ -178,9 +164,9 @@ func (p *roadPlugin) writeYamlFile(filePath string, data map[string]interface{})
 		}
 	}
 
-	// If version wasn't found, add it at the beginning
+	// If version wasn't found, return an error
 	if !replaced {
-		lines = append([]string{versionKey + ": " + version}, lines...)
+		return fmt.Errorf("version key not found in %s file", p.Config.VersionFileName)
 	}
 
 	// Write the updated content back to file
