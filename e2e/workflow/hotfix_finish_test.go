@@ -19,7 +19,7 @@ func TestHotfixFinish(t *testing.T) {
 	})
 
 	// Test with pom.xml template
-	t.Run("MavenPlugin", func(t *testing.T) {
+	t.Run("MvnPlugin", func(t *testing.T) {
 		testHotfixFinish(t, "pom.xml.tpl", "SNAPSHOT")
 	})
 
@@ -34,7 +34,7 @@ func TestHotfixFinish(t *testing.T) {
 	})
 
 	// Test fallback without versioning file
-	t.Run("StandardPluginFallback", func(t *testing.T) {
+	t.Run("NoPluginFallback", func(t *testing.T) {
 		testHotfixFinishFallback(t)
 	})
 }
