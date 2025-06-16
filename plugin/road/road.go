@@ -60,8 +60,7 @@ func (p *roadPlugin) ReadVersion(repository core.Repository) (core.Version, erro
 		return core.Version{}, fmt.Errorf("failed to read road version file: %v", err)
 	}
 
-	// Search for versionNumber: using regex with flexible whitespace handling
-	re := regexp.MustCompile(`(?m)^\s*` + versionKey + `\s*:\s*(.+?)\s*$`)
+	re := regexp.MustCompile(`(?m)^` + versionKey + `\s*:\s*(.+?)\s*$`)
 	matches := re.FindSubmatch(data)
 
 	if len(matches) >= 2 {
@@ -83,8 +82,7 @@ func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Versi
 		return fmt.Errorf("road version update failed: %v", err)
 	}
 
-	// Replace the version using regex with flexible whitespace handling
-	re := regexp.MustCompile(`(\s*` + versionKey + `\s*:)(\s*).+`)
+	re := regexp.MustCompile(`(?m)^(` + versionKey + `\s*:)(\s*).+`)
 	newContent := re.ReplaceAllString(string(data), "${1}${2}"+version.String())
 
 	// If no replacement occurred, return an error
