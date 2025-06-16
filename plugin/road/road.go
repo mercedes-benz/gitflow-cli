@@ -104,20 +104,10 @@ func (p *roadPlugin) readYamlFile(filePath string) (map[string]interface{}, []by
 		return nil, nil, fmt.Errorf("failed to read %s: %v", p.Config.VersionFileName, err)
 	}
 
-	//// Handle empty file case
-	//if len(rawData) == 0 {
-	//	return make(map[string]interface{}), rawData, nil
-	//}
-
 	var dataMap map[string]interface{}
 	if err := yaml.Unmarshal(rawData, &dataMap); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse YAML from %s: %v", p.Config.VersionFileName, err)
 	}
-
-	//// Initialize map if nil
-	//if dataMap == nil {
-	//	dataMap = make(map[string]interface{})
-	//}
 
 	return dataMap, rawData, nil
 }
