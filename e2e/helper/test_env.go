@@ -516,8 +516,14 @@ func (env *GitTestEnv) AssertVersionEquals(templatePath, expectedVersion, commit
 
 	// Extract the actual version
 	actualVersion := versionFileContent[startPos:endPos]
+	trimmedActualVersion := strings.TrimSpace(actualVersion)
 
-	// Compare with expected version
-	assert.Equal(env.t, expectedVersion, strings.TrimSpace(actualVersion),
-		"Version in %s in %s should be '%s' but was '%s'", versionFileName, commitRef, expectedVersion, strings.TrimSpace(actualVersion))
+	// Compare with expected version with a more descriptive error message
+	if trimmedActualVersion != expectedVersion {
+		assert.Fail(env.t, fmt.Sprintf("Version mismatch - expected: '%s', actual: '%s'", expectedVersion, trimmedActualVersion))
+		return
+	}
+
+	// If versions match, explicitly mark as successful
+	assert.Equal(env.t, expectedVersion, trimmedActualVersion, "Versions should match")
 }

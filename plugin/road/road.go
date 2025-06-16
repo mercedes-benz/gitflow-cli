@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -95,75 +94,4 @@ func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Versi
 
 	// Write back to the file
 	return os.WriteFile(versionFile, []byte(newContent), 0644)
-}
-
-// readYamlFile reads and parses a YAML file, returning the parsed data and the raw file content
-func (p *roadPlugin) readYamlFile(filePath string) (map[string]interface{}, []byte, error) {
-	rawData, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read %s: %v", p.Config.VersionFileName, err)
-	}
-
-	var dataMap map[string]interface{}
-	if err := yaml.Unmarshal(rawData, &dataMap); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse YAML from %s: %v", p.Config.VersionFileName, err)
-	}
-
-	return dataMap, rawData, nil
-}
-
-// extractVersion extracts the version string from road.yaml file
-func (p *roadPlugin) extractVersion(dataMap map[string]interface{}) (string, error) {
-	versionInterface, found := dataMap[versionKey]
-	if !found || versionInterface == nil {
-		return "", fmt.Errorf("version key not found")
-	}
-
-	version, ok := versionInterface.(string)
-	if !ok {
-		return "", fmt.Errorf("version is not a string")
-	}
-
-	return strings.TrimSpace(version), nil
-}
-
-// writeYamlFile writes YAML data to a file while preserving the original format
-func (p *roadPlugin) writeYamlFile(filePath string, data map[string]interface{}) error {
-	// Read the current file content to get the structure
-	rawData, err := os.ReadFile(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to read %s: %v", p.Config.VersionFileName, err)
-	}
-
-	rawDataString := string(rawData)
-
-	// Get the version value we want to set
-	version := data[versionKey].(string)
-
-	// Simple string replacement approach to find and replace version line
-	// A regular expression could be more robust but this works well for this use case
-	replaced := false
-	lines := strings.Split(rawDataString, "\n")
-	for i, line := range lines {
-		if strings.HasPrefix(strings.TrimSpace(line), versionKey+":") {
-			// Replace only the value, keep indentation intact
-			indent := strings.Index(line, versionKey)
-			lines[i] = strings.Repeat(" ", indent) + versionKey + ": " + version
-			replaced = true
-			break
-		}
-	}
-
-	// If version wasn't found, return an error
-	if !replaced {
-		return fmt.Errorf("version key not found in %s file", p.Config.VersionFileName)
-	}
-
-	// Write the updated content back to file
-	updatedContent := strings.Join(lines, "\n")
-	if err := os.WriteFile(filePath, []byte(updatedContent), 0644); err != nil {
-		return fmt.Errorf("failed to write to %s: %v", p.Config.VersionFileName, err)
-	}
-
-	return nil
 }
