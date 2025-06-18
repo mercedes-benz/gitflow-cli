@@ -20,6 +20,8 @@ const (
 	versionKey = "versionNumber"
 )
 
+var versionRegex = regexp.MustCompile(`(?m)^(` + versionKey + `\s*:)(\s*)(['"]?)(.+?)(['"]?)\s*$`)
+
 // Fixed configuration for the Road plugin
 var pluginConfig = plugin.Config{
 	Name:             "road",
@@ -60,11 +62,18 @@ func (p *roadPlugin) ReadVersion(repository core.Repository) (core.Version, erro
 		return core.Version{}, fmt.Errorf("failed to read road version file: %v", err)
 	}
 
-	re := regexp.MustCompile(`(?m)^` + versionKey + `\s*:\s*(.+?)\s*$`)
-	matches := re.FindSubmatch(data)
+	// Check for multiple version entries
+	allMatches := versionRegex.FindAllSubmatch(data, -1)
+	if len(allMatches) > 1 {
+		return core.Version{}, fmt.Errorf("multiple version entries found in road.yaml file")
+	}
 
-	if len(matches) >= 2 {
-		versionStr := strings.TrimSpace(string(matches[1]))
+	// Get the first (and should be only) match
+	matches := versionRegex.FindSubmatch(data)
+
+	// The version is in the fourth group (index 4)
+	if len(matches) >= 5 {
+		versionStr := strings.TrimSpace(string(matches[4]))
 		return core.ParseVersion(versionStr)
 	}
 
@@ -82,8 +91,8 @@ func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Versi
 		return fmt.Errorf("road version update failed: %v", err)
 	}
 
-	re := regexp.MustCompile(`(?m)^(` + versionKey + `\s*:)(\s*).+`)
-	newContent := re.ReplaceAllString(string(data), "${1}${2}"+version.String())
+	// When replacing, we use exactly one space after the colon and keep the original quotation marks (groups 3 and 5)
+	newContent := versionRegex.ReplaceAllString(string(data), "${1} ${3}"+version.String()+"${5}")
 
 	// If no replacement occurred, return an error
 	if newContent == string(data) {
