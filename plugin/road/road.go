@@ -62,6 +62,13 @@ func (p *roadPlugin) ReadVersion(repository core.Repository) (core.Version, erro
 		return core.Version{}, fmt.Errorf("failed to read road version file: %v", err)
 	}
 
+	// Check for multiple version entries
+	allMatches := versionRegex.FindAllSubmatch(data, -1)
+	if len(allMatches) > 1 {
+		return core.Version{}, fmt.Errorf("multiple version entries found in road.yaml file")
+	}
+
+	// Get the first (and should be only) match
 	matches := versionRegex.FindSubmatch(data)
 
 	// The version is in the fourth group (index 4)

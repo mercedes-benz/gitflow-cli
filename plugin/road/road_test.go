@@ -44,22 +44,22 @@ func TestVersionReadWrite(t *testing.T) {
 		expectedResult string
 	}{
 		{
-			name:           "No quotes",
+			name:           "NoQuotes",
 			initialContent: "versionNumber: 1.2.3",
 			expectedResult: "versionNumber: 1.2.3-dev",
 		},
 		{
-			name:           "Single quotes",
+			name:           "SingleQuotes",
 			initialContent: "versionNumber: '1.2.3'",
 			expectedResult: "versionNumber: '1.2.3-dev'",
 		},
 		{
-			name:           "Double quotes",
+			name:           "DoubleQuotes",
 			initialContent: "versionNumber: \"1.2.3\"",
 			expectedResult: "versionNumber: \"1.2.3-dev\"",
 		},
 		{
-			name:           "With spaces",
+			name:           "WithSpaces",
 			initialContent: "versionNumber:    1.2.3   ",
 			expectedResult: "versionNumber: 1.2.3-dev",
 		},
@@ -102,12 +102,16 @@ func TestVersionNoMatch(t *testing.T) {
 		errorMessage   string
 	}{
 		{
-			name:           "No versionNumber node",
+			name:           "NoVersionNode",
 			initialContent: "otherKey: 1.2.3",
 		},
 		{
-			name:           "versionNumber with leading whitespace",
+			name:           "VersionNodeWithLeadingSpaces",
 			initialContent: " versionNumber: 1.2.3",
+		},
+		{
+			name:           "MultipleVersionNodes",
+			initialContent: "versionNumber: 1.2.3\nversionNumber: 3.4.5",
 		},
 	}
 
