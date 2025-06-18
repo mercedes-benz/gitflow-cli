@@ -84,8 +84,8 @@ func (p *roadPlugin) WriteVersion(repository core.Repository, version core.Versi
 		return fmt.Errorf("road version update failed: %v", err)
 	}
 
-	// When replacing, we keep the original quotation marks (groups 3 and 5)
-	newContent := versionRegex.ReplaceAllString(string(data), "${1}${2}${3}"+version.String()+"${5}")
+	// When replacing, we use exactly one space after the colon and keep the original quotation marks (groups 3 and 5)
+	newContent := versionRegex.ReplaceAllString(string(data), "${1} ${3}"+version.String()+"${5}")
 
 	// If no replacement occurred, return an error
 	if newContent == string(data) {
