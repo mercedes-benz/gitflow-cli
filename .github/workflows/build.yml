@@ -22,7 +22,7 @@ jobs:
         with:
           go-version: 1.23
 
-      - name: Install Maven Plugins
+      - name: Install Test Dependencies
         run: |
           mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=versions-maven-plugin -Dversion=2.16.2
           mvn versions:help
@@ -48,4 +48,3 @@ jobs:
       - name: Run Tests
         run: |
           gotestsum --format standard-verbose -- -failfast -timeout 15m ./...
-
