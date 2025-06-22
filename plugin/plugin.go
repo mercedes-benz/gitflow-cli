@@ -7,6 +7,7 @@ package plugin
 
 import (
 	// import all plugins here to make them available to the plugin registry
+	_ "github.com/mercedes-benz/gitflow-cli/plugin/composer"
 	_ "github.com/mercedes-benz/gitflow-cli/plugin/mvn"
 	_ "github.com/mercedes-benz/gitflow-cli/plugin/npm"
 	_ "github.com/mercedes-benz/gitflow-cli/plugin/road"

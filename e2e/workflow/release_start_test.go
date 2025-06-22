@@ -28,6 +28,11 @@ func TestReleaseStart(t *testing.T) {
 		testReleaseStart(t, "package.json.tpl", "dev")
 	})
 
+	// Test with composer.json template
+	t.Run("ComposerPlugin", func(t *testing.T) {
+		testReleaseStart(t, "composer.json.tpl", "dev")
+	})
+
 	// Test with road.yaml template
 	t.Run("RoadPlugin", func(t *testing.T) {
 		testReleaseStart(t, "road.yaml.tpl", "dev")

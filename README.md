@@ -91,6 +91,7 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 | **standard** | Plugin for projects without a predefined technology stack. | `version.txt`  |
 | **mvn**      | Plugin for [maven](https://maven.apache.org) projects.     | `pom.xml`      |
 | **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.         | `package.json` |
+| **composer** | Plugin for [composer](https://getcomposer.org/) projects.  | `composer.json`|
 | **road**     | Plugin for projects with Road App Manifest configuration.  | `road.yaml`    |
 
 **Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
