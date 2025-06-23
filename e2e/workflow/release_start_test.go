@@ -29,7 +29,7 @@ func TestReleaseStart(t *testing.T) {
 	})
 
 	t.Run("NpmPlugin_BeforeReleaseStartHook", func(t *testing.T) {
-		testBeforeReleaseStartHook(t, "package.json", []byte(`{}`))
+		testBeforeReleaseStartHook(t, "package.json", []byte("{}"))
 	})
 
 	// Test with composer.json template
@@ -38,7 +38,7 @@ func TestReleaseStart(t *testing.T) {
 	})
 
 	t.Run("ComposerPlugin_BeforeReleaseStartHook", func(t *testing.T) {
-		testBeforeReleaseStartHook(t, "composer.json", []byte(`{}`))
+		testBeforeReleaseStartHook(t, "composer.json", []byte("{}"))
 	})
 
 	// Test with road.yaml template

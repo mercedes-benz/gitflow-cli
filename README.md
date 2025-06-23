@@ -39,36 +39,60 @@ From within the project directory the **gitflow-cli** can be built, run and inst
 Before using **gitflow-cli**, either navigate to your target Git repository or specify it with the `--path` flag.
 Make sure the repository meets all [preconditions](#preconditions).
 
-### Release:
+### Release
 
-To initiate a new `release/x.y.z` branch from `develop`, use the following command:
+To initiate a new release, use the following command:
 
    ```bash
    gitflow-cli release start
    ```
 
-You can now use the `release/x.y.z` branch for bug fixing, creating the release changelog, 
-or even deploying your product on a staging environment. Once the release is ready, finish it with:
+Release start will perform the following steps:
+
+* Create a new release branch from `develop` (e.g., `release/1.2.0`)
+* Remove the version qualifier in the version file (e.g., `1.2.0-dev` → `1.2.0`)
+
+You can now use the `release/x.y.z` branch for bug fixing, creating the release changelog, or deploying your app to your testing environment.
+
+Once the release is ready, finish it with:
 
    ```bash
    gitflow-cli release finish
    ```
 
-### Hotfix:
+Release finish will perform the following steps:
+* Merge the `release/x.y.z` branch into `main` (e.g., `release/1.2.0` → `main`)
+* Create a tag in `main` with the corresponding version (e.g., `v1.2.0`)
+* Perform a back-merge into `develop` (e.g., `release/1.2.0` → `develop`)
+* Bump the development version to the next minor version (e.g., `1.3.0-dev`)
 
-Use hotfixes when you need to make targeted fixes to production without deploying pending changes from the development branch.
+### Hotfix
 
-To initiate a new `hotfix/x.y.z` branch from `main`, use the following command:
+Use hotfixes if you have a bug in production, and you need to make targeted fixes to `main` branch without deploying pending changes from `develop`.
+
+To initiate a new hotfix, use the following command:
 
    ```bash
    gitflow-cli hotfix start
    ```
 
-Check out the `hotfix/x.y.z` branch, create a quick patch, and push your changes. Then, finish the hotfix with:
+Hotfix start will perform the following steps:
+* Create a `hotfix/x.y.z` branch from `main` (e.g., `hotfix/1.2.1`)
+* Set the patch version in the version file (e.g., `1.2.0` → `1.2.1`)
+
+You can now check out the `hotfix/x.y.z` branch, create a quick patch, and push your changes.
+
+Once the hotfix is ready, finish it with:
 
    ```bash
    gitflow-cli hotfix finish
    ```
+
+Hotfix finish will perform the following steps:
+* Merge the `hotfix/x.y.z` branch into `main` (e.g., `hotfix/1.2.1` → `main`)
+* Create a tag in `main` with the corresponding version (e.g., `v1.2.1`)
+* Perform a back-merge into `develop` (e.g., `hotfix/1.2.1` → `develop`)
+* Keep the current version in `develop` unchanged (e.g., `1.3.0-dev`)
 
 ## Preconditions
 
@@ -76,13 +100,13 @@ To use **gitflow-cli**, ensure your project meets the basic structural requireme
 
 ### Git Branches
 
-Your repository must define a dedicated **production** and **development** branches (e.g. main and develop).
+Your repository must define a dedicated **production** and **development** branches (e.g., `main` and `develop`).
 These can be [customized](#configuration) as needed.
 
 ### Version File
 
 Each project type may store version information in a different location.
-The **gitflow-cli** detects your project's context and automatically delegates tasks to the appropriate plugin based on the presence of specific files.
+The **gitflow-cli** detects your project's context and automatically delegates tasks to the appropriate plugin based on the presence of specific file.
 
 #### Available Plugins
 
@@ -91,8 +115,8 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 | **standard** | Plugin for projects without a predefined technology stack. | `version.txt`  |
 | **mvn**      | Plugin for [maven](https://maven.apache.org) projects.     | `pom.xml`      |
 | **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.         | `package.json` |
+| **road**     | Plugin for projects with road app manifest configuration.  | `road.yaml`    |
 | **composer** | Plugin for [composer](https://getcomposer.org/) projects.  | `composer.json`|
-| **road**     | Plugin for projects with Road App Manifest configuration.  | `road.yaml`    |
 
 **Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
 
