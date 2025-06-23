@@ -318,7 +318,14 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 
 	// merge release branch into current production branch (with merge commit --no-ff git flag)
 	if err := repository.MergeBranch(releaseVersion.BranchName(Release), NoFastForward); err != nil {
-		if repository.HasConflicts() {
+		mergeConflictsMap, err := repository.GetMergeConflicts()
+
+		if err != nil {
+			return repository.UndoAllChanges(err)
+		}
+
+		if len(mergeConflictsMap) == 1 && len(mergeConflictsMap[plugin.VersionFileName()]) == 1 {
+
 			if err := repository.CheckoutFile(plugin.VersionFileName(), Theirs); err != nil {
 				return repository.UndoAllChanges(err)
 			}
@@ -448,7 +455,14 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 
 	// merge hotfix branch into current develop branch
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
-		if repository.HasConflicts() {
+		mergeConflictsMap, err := repository.GetMergeConflicts()
+
+		if err != nil {
+			return repository.UndoAllChanges(err)
+		}
+
+		if len(mergeConflictsMap) == 1 && len(mergeConflictsMap[plugin.VersionFileName()]) == 1 {
+
 			if err := repository.CheckoutFile(plugin.VersionFileName(), Ours); err != nil {
 				return repository.UndoAllChanges(err)
 			}
