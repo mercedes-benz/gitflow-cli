@@ -29,7 +29,7 @@ func TestHotfixStart(t *testing.T) {
 	})
 
 	t.Run("NpmPlugin_BeforeHotfixStartHook", func(t *testing.T) {
-		testBeforeHotfixStartHook(t, "package.json", []byte(`{}`))
+		testBeforeHotfixStartHook(t, "package.json", []byte("{}"))
 	})
 
 	// Test with composer.json template
@@ -38,7 +38,7 @@ func TestHotfixStart(t *testing.T) {
 	})
 
 	t.Run("ComposerPlugin_BeforeHotfixStartHook", func(t *testing.T) {
-		testBeforeHotfixStartHook(t, "composer.json", []byte(`{}`))
+		testBeforeHotfixStartHook(t, "composer.json", []byte("{}"))
 	})
 
 	// Test with road.yaml template
