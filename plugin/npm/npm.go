@@ -40,9 +40,9 @@ func init() {
 		Plugin: pluginFactory.NewPlugin(pluginConfig),
 	}
 
-	// Register hooks for this plugin (currently none, but structure is ready for future hooks)
-	// Example hook registration would look like this:
-	// npmPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, npmPlugin.beforeReleaseStart)
+	// Register hooks for this plugin
+	npmPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, npmPlugin.beforeReleaseStart)
+	npmPlugin.RegisterHook(core.HotfixStartHooks.BeforeHotfixStartHook, npmPlugin.beforeHotfixStart)
 
 	// Register plugin directly in core, bypassing the pluginFactory
 	core.RegisterPlugin(npmPlugin)
@@ -95,6 +95,76 @@ func (p *npmPlugin) WriteVersion(repository core.Repository, version core.Versio
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to write version: %v: %s", err, output)
+	}
+
+	return nil
+}
+
+// beforeReleaseStart ensures a version is set in the package.json file on the development branch
+func (p *npmPlugin) beforeReleaseStart(repository core.Repository) error {
+	if err := repository.CheckoutBranch(core.Development.String()); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	// Check if version is available in package.json
+	_, err := p.ReadVersion(repository)
+	if err == nil {
+		// Version exists, nothing to do
+		return nil
+	}
+
+	// Version doesn't exist, set it to 1.0.0 with qualifier
+	initVersion := core.NewVersion("1", "0", "0", p.Config.VersionQualifier)
+
+	// Set the version using npm CLI
+	cmd := exec.Command(npm, "version", initVersion.String(), "--no-git-tag-version")
+	cmd.Dir = repository.Local()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		core.Log(cmd, output, err)
+		return repository.UndoAllChanges(fmt.Errorf("failed to set initial version: %v", err))
+	}
+
+	core.Log(cmd, output)
+
+	if err := repository.CommitChanges("Set initial project version."); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	return nil
+}
+
+// beforeHotfixStart ensures a version is set in the package.json file on the production branch
+func (p *npmPlugin) beforeHotfixStart(repository core.Repository) error {
+	if err := repository.CheckoutBranch(core.Production.String()); err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	// Check if version is available in package.json
+	_, err := p.ReadVersion(repository)
+	if err == nil {
+		// Version exists, nothing to do
+		return nil
+	}
+
+	// Version doesn't exist, set it to 1.0.0 (no qualifier for production)
+	initVersion := core.NewVersion("1", "0", "0")
+
+	// Set the version using npm CLI
+	cmd := exec.Command(npm, "version", initVersion.String(), "--no-git-tag-version")
+	cmd.Dir = repository.Local()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		core.Log(cmd, output, err)
+		return repository.UndoAllChanges(fmt.Errorf("failed to set initial version: %v", err))
+	}
+
+	core.Log(cmd, output)
+
+	if err := repository.CommitChanges("Set initial project version."); err != nil {
+		return repository.UndoAllChanges(err)
 	}
 
 	return nil

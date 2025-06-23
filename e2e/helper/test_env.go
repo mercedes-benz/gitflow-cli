@@ -135,8 +135,6 @@ func SetupTestEnv(t *testing.T, options ...SetupTestEnvOption) *GitTestEnv {
 func (env *GitTestEnv) CommitFileFromTemplate(templatePath, bindingValue, commitRef string) {
 	env.t.Helper()
 
-	env.ExecuteGit("checkout", commitRef)
-
 	// Read the template file
 	templateContent, err := os.ReadFile(templatePath)
 	require.NoError(env.t, err, "Failed to read template file: %s", templatePath)
@@ -159,11 +157,23 @@ func (env *GitTestEnv) CommitFileFromTemplate(templatePath, bindingValue, commit
 
 	// Derive the filename from the template name by removing the .tpl extension
 	templateBase := filepath.Base(templatePath)
-	file := strings.TrimSuffix(templateBase, ".tpl")
+	name := strings.TrimSuffix(templateBase, ".tpl")
 
-	// Write the file
-	path := filepath.Join(env.LocalPath, file)
-	err = os.WriteFile(path, renderedContent.Bytes(), 0644)
+	// Use CommitFile to write the file, commit and push it
+	env.CommitFile(name, renderedContent.Bytes(), commitRef)
+}
+
+// CommitFile creates a file with the specified content in the repository,
+// commits it, and pushes it to the remote.
+// The commit message is automatically generated based on the branch name
+func (env *GitTestEnv) CommitFile(name string, content []byte, commitRef string) {
+	env.t.Helper()
+
+	env.ExecuteGit("checkout", commitRef)
+
+	// Create file with content
+	path := filepath.Join(env.LocalPath, name)
+	err := os.WriteFile(path, content, 0644)
 	require.NoError(env.t, err, "Failed to create file: %s", path)
 
 	// Generate commit message based on branch name

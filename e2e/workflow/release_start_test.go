@@ -28,9 +28,17 @@ func TestReleaseStart(t *testing.T) {
 		testReleaseStart(t, "package.json.tpl", "dev")
 	})
 
+	t.Run("NpmPlugin_BeforeReleaseStartHook", func(t *testing.T) {
+		testBeforeReleaseStartHook(t, "package.json", []byte(`{}`))
+	})
+
 	// Test with composer.json template
 	t.Run("ComposerPlugin", func(t *testing.T) {
 		testReleaseStart(t, "composer.json.tpl", "dev")
+	})
+
+	t.Run("ComposerPlugin_BeforeReleaseStartHook", func(t *testing.T) {
+		testBeforeReleaseStartHook(t, "composer.json", []byte(`{}`))
 	})
 
 	// Test with road.yaml template
@@ -98,4 +106,24 @@ func testReleaseStartFallback(t *testing.T) {
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.0.0")
 
 	env.AssertCurrentBranchEquals("release/1.0.0")
+}
+
+// testBeforeReleaseStartHook tests the functionality of the beforeReleaseStart hook
+// specifically for plugins with files without version information
+func testBeforeReleaseStartHook(t *testing.T, name string, content []byte) {
+	// GIVEN: a Git repository with production and development branch
+	env := helper.SetupTestEnv(t)
+
+	// Create a file with the specified content on the develop branch
+	env.CommitFile(name, content, "develop")
+
+	// WHEN: The command "gitflow-cli release start" is executed
+	env.ExecuteGitflow("release", "start")
+
+	// THEN: Hook should have added version to the file
+	env.AssertCommitMessageEquals("Set initial project version.", "develop")
+
+	// check release branch state
+	env.AssertBranchExists("release/1.0.0")
+	env.AssertBranchExists("origin/release/1.0.0")
 }
