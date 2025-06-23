@@ -28,9 +28,17 @@ func TestHotfixStart(t *testing.T) {
 		testHotfixStart(t, "package.json.tpl", "dev")
 	})
 
+	t.Run("NpmPlugin_BeforeHotfixStartHook", func(t *testing.T) {
+		testBeforeHotfixStartHook(t, "package.json", []byte(`{}`))
+	})
+
 	// Test with composer.json template
 	t.Run("ComposerPlugin", func(t *testing.T) {
 		testHotfixStart(t, "composer.json.tpl", "dev")
+	})
+
+	t.Run("ComposerPlugin_BeforeHotfixStartHook", func(t *testing.T) {
+		testBeforeHotfixStartHook(t, "composer.json", []byte(`{}`))
 	})
 
 	// Test with road.yaml template
@@ -99,4 +107,24 @@ func testHotfixStartFallback(t *testing.T) {
 	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
 
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
+}
+
+// testBeforeHotfixStartHook tests the functionality of the beforeHotfixStart hook
+// specifically for plugins with files without version information
+func testBeforeHotfixStartHook(t *testing.T, name string, content []byte) {
+	// GIVEN: a Git repository with production and development branch
+	env := helper.SetupTestEnv(t)
+
+	// Create a file with the specified content on the main branch (production branch)
+	env.CommitFile(name, content, "main")
+
+	// WHEN: The command "gitflow-cli hotfix start" is executed
+	env.ExecuteGitflow("hotfix", "start")
+
+	// THEN: Hook should have added version to the file
+	env.AssertCommitMessageEquals("Set initial project version.", "main")
+
+	// Check hotfix branch state
+	env.AssertBranchExists("hotfix/1.0.1")
+	env.AssertBranchExists("origin/hotfix/1.0.1")
 }
