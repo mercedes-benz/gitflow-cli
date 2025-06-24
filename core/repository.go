@@ -21,6 +21,11 @@ const (
 	Ours
 )
 
+type ConflictMap struct {
+	OurVersion   string
+	TheirVersion string
+}
+
 type (
 	// Repository represents a git repository.
 	Repository interface {
@@ -29,8 +34,8 @@ type (
 		HasBranch(branch Branch) (bool, []string, error)
 		CheckoutBranch(branchName string) error
 		CheckoutFile(fileName string, strategy CheckoutStrategy) error
-		HasConflicts() bool
 		ContinueMerge() error
+		GetMergeConflicts() (map[string][]ConflictMap, error)
 		CreateBranch(branchName string) error
 		MergeBranch(branchName string, mergeType MergeType) error
 		PullBranch(branchName string) error
@@ -104,16 +109,98 @@ func (r *repository) Local() string {
 	return r.projectPath
 }
 
-func (r *repository) HasConflicts() bool {
+// GetMergeConflicts checks all files for merge conflicts and returns a map of files to their conflicts.
+// Each file with conflicts has an entry in the map with a slice of all conflicts found in that file.
+func (r *repository) GetMergeConflicts() (map[string][]ConflictMap, error) {
+	conflicts := make(map[string][]ConflictMap)
+
+	// Get all files with conflicts
 	cmd := exec.Command("git", "diff", "--name-only", "--diff-filter=U")
 	cmd.Dir = r.projectPath
 	output, err := cmd.Output()
 
 	if err != nil {
-		return false
+		return conflicts, nil
 	}
 
-	return len(output) > 0
+	// Split the output and trim the result to get clean file names
+	filesWithConflicts := strings.Split(strings.TrimSpace(string(output)), "\n")
+
+	// Handle the case where there are no conflicts
+	if len(filesWithConflicts) == 0 {
+		return conflicts, nil
+	}
+
+	// Process each file with conflicts
+	for _, fileName := range filesWithConflicts {
+
+		// Read the file content
+		filePath := filepath.Join(r.projectPath, fileName)
+		fileContent, err := os.ReadFile(filePath)
+		if err != nil {
+			return nil, err
+		}
+
+		// Parse conflicts in the current file
+		fileConflicts := parseConflicts(fileContent)
+		if len(fileConflicts) > 0 {
+			conflicts[fileName] = fileConflicts
+		}
+	}
+
+	return conflicts, nil
+}
+
+// Helper function to parse conflicts in a file's content
+func parseConflicts(fileContent []byte) []ConflictMap {
+	var conflicts []ConflictMap
+
+	lines := strings.Split(string(fileContent), "\n")
+	conflictStart := -1
+	ourContent := ""
+	theirContent := ""
+	inOurSection := false
+	inTheirSection := false
+
+	// Analyze each line to find conflict markers
+	for i, line := range lines {
+		if strings.HasPrefix(line, "<<<<<<< ") {
+			// New conflict begins
+			conflictStart = i
+			ourContent = ""
+			theirContent = ""
+			inOurSection = true
+			inTheirSection = false
+		} else if strings.HasPrefix(line, "=======") && conflictStart != -1 {
+			// Separator between our version and their version
+			inOurSection = false
+			inTheirSection = true
+		} else if strings.HasPrefix(line, ">>>>>>> ") && conflictStart != -1 {
+			// End of conflict
+			conflicts = append(conflicts, ConflictMap{
+				OurVersion:   ourContent,
+				TheirVersion: theirContent,
+			})
+			conflictStart = -1
+			inOurSection = false
+			inTheirSection = false
+		} else if conflictStart != -1 {
+			// Collect content of different versions
+			if inOurSection {
+				if ourContent != "" {
+					ourContent += "\n"
+				}
+				ourContent += line
+			} else if inTheirSection {
+				if theirContent != "" {
+					theirContent += "\n"
+				}
+				theirContent += line
+			}
+		}
+	}
+
+	return conflicts
 }
 
 func (r *repository) CheckoutFile(fileName string, strategy CheckoutStrategy) error {
