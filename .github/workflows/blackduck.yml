@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: BlackDuck Scan
-        uses: synopsys-sig/synopsys-action@v1.13.0
+        uses: synopsys-sig/synopsys-action@v1.13.1
         env:
           DETECT_PROJECT_NAME: ${{ github.repository }}
           DETECT_PROJECT_VERSION_LICENSE: MIT License
