@@ -19,15 +19,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: BlackDuck Scan
-        uses: synopsys-sig/synopsys-action@v1.13.1
-        env:
-          DETECT_PROJECT_NAME: ${{ github.repository }}
-          DETECT_PROJECT_VERSION_LICENSE: MIT License
-          DETECT_GO_MOD_DEPENDENCY_TYPES_EXCLUDED: UNUSED
-          DETECT_POLICY_CHECK_FAIL_ON_SEVERITIES: ALL
-          DETECT_BLACKDUCK_SIGNATURE_SCANNER_ARGUMENTS: '--min-scan-interval=0'
+      - name: Black Duck Security Scan
+        uses: blackduck-inc/black-duck-security-scan@v2
         with:
-          blackduck_url: ${{ secrets.BLACKDUCK_URL }}
-          blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
-          blackduck_scan_full:  ${{ github.event_name != 'pull_request' }}
+          blackducksca_url: ${{ secrets.BLACKDUCK_URL }}
+          blackducksca_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
+          blackducksca_scan_full: ${{ github.event_name != 'pull_request' }}
+          blackducksca_scan_failure_severities: 'CRITICAL'
