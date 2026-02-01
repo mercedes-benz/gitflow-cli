@@ -25,7 +25,7 @@ func Start(branch Branch, projectPath string) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if CheckVersionFile(plugin.VersionFileName()) {
+		if CheckVersionFile(plugin) {
 			return executePluginStart(plugin, branch, projectPath)
 		}
 	}
@@ -102,7 +102,7 @@ func Finish(branch Branch, projectPath string) error {
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {
-		if CheckVersionFile(plugin.VersionFileName()) {
+		if CheckVersionFile(plugin) {
 			return executePluginFinish(plugin, branch, projectPath)
 		}
 	}

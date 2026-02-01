@@ -11,6 +11,8 @@ type Config struct {
 	Name string
 	// File name that contains version information
 	VersionFileName string
+	// Optional list of file names that contain version information (alternative to VersionFileName)
+	VersionFileNames []string
 	// Qualifier for SNAPSHOT versions
 	VersionQualifier string
 	// Required external tools

@@ -56,6 +56,10 @@ type (
 		// For example: "pom.xml" for Maven, etc.
 		VersionFileName() string
 
+		// VersionFileNames returns an optional list of file names that contain version information.
+		// This is an alternative to VersionFileName for plugins that support multiple version files.
+		VersionFileNames() []string
+
 		// VersionQualifier returns the suffix that is appended to SNAPSHOT versions.
 		// For example: "SNAPSHOT" for Maven, etc.
 		VersionQualifier() string
@@ -152,9 +156,23 @@ func RegisterFallbackPlugin(plugin Plugin) {
 }
 
 // CheckVersionFile checks if version file is found
-func CheckVersionFile(versionFile string) bool {
-	_, err := os.Stat(filepath.Join(ProjectPath, versionFile))
-	return !os.IsNotExist(err)
+func CheckVersionFile(plugin Plugin) bool {
+	// If VersionFileName is set, use it
+	if versionFileName := plugin.VersionFileName(); versionFileName != "" {
+		_, err := os.Stat(filepath.Join(ProjectPath, versionFileName))
+		return !os.IsNotExist(err)
+	}
+
+	// If VersionFileName is not set, iterate over VersionFileNames
+	// and return true on first match
+	for _, versionFile := range plugin.VersionFileNames() {
+		_, err := os.Stat(filepath.Join(ProjectPath, versionFile))
+		if !os.IsNotExist(err) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // ValidateToolsAvailability Check if some tools are available in the system.
