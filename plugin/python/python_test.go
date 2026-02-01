@@ -15,60 +15,35 @@ import (
 )
 
 func TestVersionFileSelection(t *testing.T) {
-	t.Run("Only_PyprojectToml", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(tmpDir, "pyproject.toml"), []byte(""), 0644); err != nil {
-			t.Fatal(err)
-		}
-
-		original := core.ProjectPath
-		core.ProjectPath = tmpDir
-		defer func() { core.ProjectPath = original }()
-
-		testPlugin := &pythonPlugin{Plugin: plugin.NewFactory().NewPlugin(pluginConfig)}
-		core.CheckVersionFile(testPlugin)
-
-		if testPlugin.VersionFileName() != "pyproject.toml" {
-			t.Fatalf("Expected 'pyproject.toml', got '%s'", testPlugin.VersionFileName())
-		}
+	t.Run("OnlyPyprojectTomlFileExists", func(t *testing.T) {
+		testVersionFile(t, []string{"pyproject.toml"}, "pyproject.toml")
 	})
 
-	t.Run("Only_SetupPy", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(tmpDir, "setup.py"), []byte(""), 0644); err != nil {
-			t.Fatal(err)
-		}
-
-		original := core.ProjectPath
-		core.ProjectPath = tmpDir
-		defer func() { core.ProjectPath = original }()
-
-		testPlugin := &pythonPlugin{Plugin: plugin.NewFactory().NewPlugin(pluginConfig)}
-		core.CheckVersionFile(testPlugin)
-
-		if testPlugin.VersionFileName() != "setup.py" {
-			t.Fatalf("Expected 'setup.py', got '%s'", testPlugin.VersionFileName())
-		}
+	t.Run("OnlySetupPyFileExists", func(t *testing.T) {
+		testVersionFile(t, []string{"setup.py"}, "setup.py")
 	})
 
-	t.Run("Both_PyprojectToml_Priority", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(tmpDir, "pyproject.toml"), []byte(""), 0644); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(tmpDir, "setup.py"), []byte(""), 0644); err != nil {
-			t.Fatal(err)
-		}
-
-		original := core.ProjectPath
-		core.ProjectPath = tmpDir
-		defer func() { core.ProjectPath = original }()
-
-		testPlugin := &pythonPlugin{Plugin: plugin.NewFactory().NewPlugin(pluginConfig)}
-		core.CheckVersionFile(testPlugin)
-
-		if testPlugin.VersionFileName() != "pyproject.toml" {
-			t.Fatalf("Expected 'pyproject.toml', got '%s'", testPlugin.VersionFileName())
-		}
+	t.Run("BothPyprojectTomlAndSetupPyFilesExist", func(t *testing.T) {
+		testVersionFile(t, []string{"pyproject.toml", "setup.py"}, "pyproject.toml")
 	})
+}
+
+func testVersionFile(t *testing.T, files []string, expected string) {
+	tmpDir := t.TempDir()
+	for _, file := range files {
+		if err := os.WriteFile(filepath.Join(tmpDir, file), []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	original := core.ProjectPath
+	core.ProjectPath = tmpDir
+	defer func() { core.ProjectPath = original }()
+
+	testPlugin := &pythonPlugin{Plugin: plugin.NewFactory().NewPlugin(pluginConfig)}
+	core.CheckVersionFile(testPlugin)
+
+	if testPlugin.VersionFileName() != expected {
+		t.Fatalf("Expected '%s', got '%s'", expected, testPlugin.VersionFileName())
+	}
 }
