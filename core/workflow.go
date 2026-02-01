@@ -432,7 +432,7 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 	// check if the repository has a release branch and merge hotfix into it
 	if found, remotes, err := repository.HasBranch(Release); err != nil {
 		return repository.UndoAllChanges(err)
-	} else if found && len(remotes) > 0 {
+	} else if found && len(remotes) == 1 {
 		// checkout release branch
 		if err := repository.CheckoutBranch(remotes[0]); err != nil {
 			return repository.UndoAllChanges(err)

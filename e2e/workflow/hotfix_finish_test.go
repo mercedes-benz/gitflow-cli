@@ -66,10 +66,15 @@ func testHotfixFinish(t *testing.T, templateName string, versionQualifier string
 
 	// main -> version file (1.0.0)
 	// develop -> version file (1.1.0-{qualifier})
+	// release/1.1.0 -> version file (1.1.0)
 	// hotfix/1.0.1 -> version file (1.0.1)
 
 	env.CommitFileFromTemplate(template, "1.0.0", "main")
 	env.CommitFileFromTemplate(template, "1.1.0-"+versionQualifier, "develop")
+
+	env.CreateBranch("release/1.1.0", "develop")
+	env.CommitFileFromTemplate(template, "1.1.0", "release/1.1.0")
+
 	env.CreateBranch("hotfix/1.0.1", "main")
 	env.CommitFileFromTemplate(template, "1.0.1", "hotfix/1.0.1")
 
@@ -82,7 +87,11 @@ func testHotfixFinish(t *testing.T, templateName string, versionQualifier string
 	env.AssertTagEquals("1.0.1", "main")
 	env.AssertVersionEquals(template, "1.0.1", "main")
 
-	// Check develop branch state
+	// Check release branch state - should be merged but version stays as it was
+	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1' into release/1.1.0", "release/1.1.0", 0)
+	env.AssertVersionEquals(template, "1.1.0", "release/1.1.0")
+
+	// Check develop branch state - should be merged but version stays as it was
 	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1' into develop", "develop", 0)
 	env.AssertVersionEquals(template, "1.1.0-"+versionQualifier, "develop")
 
