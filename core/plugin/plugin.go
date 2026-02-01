@@ -25,6 +25,11 @@ func (p *Plugin) VersionFileName() string {
 	return p.Config.VersionFileName
 }
 
+// SetVersionFileName sets the filename containing version information.
+func (p *Plugin) SetVersionFileName(fileName string) {
+	p.Config.VersionFileName = fileName
+}
+
 // VersionFileNames returns optional list of filenames containing version information.
 func (p *Plugin) VersionFileNames() []string {
 	return p.Config.VersionFileNames
