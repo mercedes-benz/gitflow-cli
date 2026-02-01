@@ -6,9 +6,10 @@ SPDX-License-Identifier: MIT
 package workflow
 
 import (
-	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 	"path/filepath"
 	"testing"
+
+	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 )
 
 // Test release start job
@@ -31,6 +32,25 @@ func TestReleaseStart(t *testing.T) {
 	t.Run("NpmPlugin_BeforeReleaseStartHook", func(t *testing.T) {
 		testBeforeReleaseStartHook(t, "package.json", []byte("{}"))
 	})
+
+	// TODO: Uncomment before implementing Python plugin
+	//// Test with pyproject.toml template
+	//t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
+	//	testReleaseStart(t, "pyproject.toml.tpl", "dev")
+	//})
+	//
+	//t.Run("PythonPlugin_Pyproject_BeforeReleaseStartHook", func(t *testing.T) {
+	//	testBeforeReleaseStartHook(t, "pyproject.toml", []byte{})
+	//})
+	//
+	//// Test with setup.py template
+	//t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
+	//	testReleaseStart(t, "setup.py.tpl", "dev")
+	//})
+	//
+	//t.Run("PythonPlugin_SetupPy_BeforeReleaseStartHook", func(t *testing.T) {
+	//	testBeforeReleaseStartHook(t, "setup.py", []byte{})
+	//})
 
 	// Test with composer.json template
 	t.Run("ComposerPlugin", func(t *testing.T) {
