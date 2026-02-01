@@ -14,7 +14,7 @@ import (
 
 // python-specific command constants
 const (
-	python = "python"
+	pip = "pip"
 )
 
 // Fixed configuration for the Python plugin
@@ -25,7 +25,7 @@ var pluginConfig = plugin.Config{
 		"setup.py",
 	},
 	VersionQualifier: "dev",
-	RequiredTools:    []string{python},
+	RequiredTools:    []string{pip},
 }
 
 // pythonPlugin is the struct implementing the Plugin interface.
