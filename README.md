@@ -110,14 +110,14 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 
 #### Available Plugins
 
-| Plugin       | Description                                                                                 | Required File                      | Required Tools   |
-|--------------|---------------------------------------------------------------------------------------------|------------------------------------|------------------|
-| **standard** | Plugin for projects without a predefined technology stack or a dedicated version file.      | `version.txt`                      | `git`            |
-| **mvn**      | Plugin for [maven](https://maven.apache.org) projects.                                      | `pom.xml`                          | `git` `mvn`      |
-| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.                                          | `package.json`                     | `git` `npm`      |
-| *python*     | *Plugin for [python](https://www.python.org/) projects. Not implemented yet, comming soon.* | `pyproject.toml` or `setup.py`     | `git` `pip`      |
-| **composer** | Plugin for [composer](https://getcomposer.org/) projects.                                   | `composer.json`                    | `git` `composer` |
-| **road**     | Plugin for projects with road app manifest configuration.                                   | `road.yaml`                        | `git`            |
+| Plugin       | Description                                                                                      | Required File                  | Required Tools   |
+|--------------|--------------------------------------------------------------------------------------------------|--------------------------------|------------------|
+| **standard** | Plugin for projects without a dedicated version file.                                            | `version.txt`                  | `git`            |
+| **mvn**      | Plugin for [maven](https://maven.apache.org) projects.                                           | `pom.xml`                      | `git` `mvn`      |
+| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.                                               | `package.json`                 | `git` `npm`      |
+| **python**   | **NOT IMPLEMENTED YET, COMMING SOON.**<br>Plugin for [python](https://www.python.org/) projects. | `pyproject.toml` or `setup.py` | `git` `pip`      |
+| **composer** | Plugin for [composer](https://getcomposer.org/) projects.                                        | `composer.json`                | `git` `composer` |
+| **road**     | Plugin for projects with road app manifest configuration.                                        | `road.yaml`                    | `git`            |
 
 **Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
 
