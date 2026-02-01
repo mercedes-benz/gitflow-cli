@@ -17,7 +17,9 @@ import (
 func TestVersionFileSelection(t *testing.T) {
 	t.Run("Only_PyprojectToml", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		os.WriteFile(filepath.Join(tmpDir, "pyproject.toml"), []byte(""), 0644)
+		if err := os.WriteFile(filepath.Join(tmpDir, "pyproject.toml"), []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
 
 		original := core.ProjectPath
 		core.ProjectPath = tmpDir
@@ -33,7 +35,9 @@ func TestVersionFileSelection(t *testing.T) {
 
 	t.Run("Only_SetupPy", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		os.WriteFile(filepath.Join(tmpDir, "setup.py"), []byte(""), 0644)
+		if err := os.WriteFile(filepath.Join(tmpDir, "setup.py"), []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
 
 		original := core.ProjectPath
 		core.ProjectPath = tmpDir
@@ -49,8 +53,12 @@ func TestVersionFileSelection(t *testing.T) {
 
 	t.Run("Both_PyprojectToml_Priority", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		os.WriteFile(filepath.Join(tmpDir, "pyproject.toml"), []byte(""), 0644)
-		os.WriteFile(filepath.Join(tmpDir, "setup.py"), []byte(""), 0644)
+		if err := os.WriteFile(filepath.Join(tmpDir, "pyproject.toml"), []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(tmpDir, "setup.py"), []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
 
 		original := core.ProjectPath
 		core.ProjectPath = tmpDir
