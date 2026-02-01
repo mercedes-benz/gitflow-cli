@@ -315,6 +315,9 @@ func (r *repository) CheckoutBranch(branchName string) error {
 	// log human-readable description of the git command
 	defer func() { Log(checkout, output, err) }()
 
+	// remove remote prefix if present
+	branchName = strings.TrimPrefix(branchName, r.remote+"/")
+
 	// checkout branch
 	checkout = exec.Command(Git, append(r.switchBranch, branchName)...)
 	checkout.Dir = r.projectPath

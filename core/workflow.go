@@ -318,27 +318,8 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 
 	// merge release branch into current production branch (with merge commit --no-ff git flag)
 	if err := repository.MergeBranch(releaseVersion.BranchName(Release), NoFastForward); err != nil {
-		mergeConflictsMap, err := repository.GetMergeConflicts()
-
-		if err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		if len(mergeConflictsMap) == 1 && len(mergeConflictsMap[plugin.VersionFileName()]) == 1 {
-
-			if err := repository.CheckoutFile(plugin.VersionFileName(), Theirs); err != nil {
-				return repository.UndoAllChanges(err)
-			}
-
-			if err := repository.AddFile(plugin.VersionFileName()); err != nil {
-				return repository.UndoAllChanges(err)
-			}
-
-			if err := repository.ContinueMerge(); err != nil {
-				return repository.UndoAllChanges(err)
-			}
-		} else {
-			return repository.UndoAllChanges(err)
+		if err := handleVersionFileMergeConflict(plugin, repository, Theirs); err != nil {
+			return err
 		}
 	}
 
@@ -448,6 +429,23 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 		return repository.UndoAllChanges(err)
 	}
 
+	// check if the repository has a release branch and merge hotfix into it
+	if found, remotes, err := repository.HasBranch(Release); err != nil {
+		return repository.UndoAllChanges(err)
+	} else if found && len(remotes) == 1 {
+		// checkout release branch
+		if err := repository.CheckoutBranch(remotes[0]); err != nil {
+			return repository.UndoAllChanges(err)
+		}
+
+		// merge hotfix branch into current release branch (with merge commit --no-ff git flag)
+		if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
+			if err := handleVersionFileMergeConflict(plugin, repository, Ours); err != nil {
+				return err
+			}
+		}
+	}
+
 	// checkout develop branch
 	if err := repository.CheckoutBranch(Development.String()); err != nil {
 		return repository.UndoAllChanges(err)
@@ -455,27 +453,8 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 
 	// merge hotfix branch into current develop branch
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
-		mergeConflictsMap, err := repository.GetMergeConflicts()
-
-		if err != nil {
-			return repository.UndoAllChanges(err)
-		}
-
-		if len(mergeConflictsMap) == 1 && len(mergeConflictsMap[plugin.VersionFileName()]) == 1 {
-
-			if err := repository.CheckoutFile(plugin.VersionFileName(), Ours); err != nil {
-				return repository.UndoAllChanges(err)
-			}
-
-			if err := repository.AddFile(plugin.VersionFileName()); err != nil {
-				return repository.UndoAllChanges(err)
-			}
-
-			if err := repository.ContinueMerge(); err != nil {
-				return repository.UndoAllChanges(err)
-			}
-		} else {
-			return repository.UndoAllChanges(err)
+		if err := handleVersionFileMergeConflict(plugin, repository, Ours); err != nil {
+			return err
 		}
 	}
 
@@ -504,4 +483,31 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 	}
 
 	return nil
+}
+
+// handleVersionFileMergeConflict handles merge conflicts when only the version file has conflicts
+// using the specified strategy (Ours or Theirs)
+func handleVersionFileMergeConflict(plugin Plugin, repository Repository, strategy CheckoutStrategy) error {
+	mergeConflictsMap, err := repository.GetMergeConflicts()
+	if err != nil {
+		return repository.UndoAllChanges(err)
+	}
+
+	if len(mergeConflictsMap) == 1 && len(mergeConflictsMap[plugin.VersionFileName()]) == 1 {
+		if err := repository.CheckoutFile(plugin.VersionFileName(), strategy); err != nil {
+			return repository.UndoAllChanges(err)
+		}
+
+		if err := repository.AddFile(plugin.VersionFileName()); err != nil {
+			return repository.UndoAllChanges(err)
+		}
+
+		if err := repository.ContinueMerge(); err != nil {
+			return repository.UndoAllChanges(err)
+		}
+
+		return nil
+	}
+
+	return err
 }

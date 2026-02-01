@@ -56,6 +56,9 @@ type (
 		// For example: "pom.xml" for Maven, etc.
 		VersionFileName() string
 
+		// SetVersionFileName sets the name of the file that contains the version information.
+		SetVersionFileName(fileName string)
+
 		// VersionFileNames returns an optional list of file names that contain version information.
 		// This is an alternative to VersionFileName for plugins that support multiple version files.
 		VersionFileNames() []string
@@ -164,10 +167,10 @@ func CheckVersionFile(plugin Plugin) bool {
 		}
 	}
 
-	// If VersionFileName is not set, iterate over VersionFileNames
-	// and return true on first match
+	// If VersionFileName is not set, iterate over VersionFileNames and set the first match in VersionFileName
 	for _, versionFile := range plugin.VersionFileNames() {
 		if _, err := os.Stat(filepath.Join(ProjectPath, versionFile)); !os.IsNotExist(err) {
+			plugin.SetVersionFileName(versionFile)
 			return true
 		}
 	}
