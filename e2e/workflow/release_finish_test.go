@@ -29,16 +29,15 @@ func TestReleaseFinish(t *testing.T) {
 		testReleaseFinish(t, "package.json.tpl", "dev")
 	})
 
-	// TODO: Uncomment before implementing Python plugin
-	//// Test with pyproject.toml template
-	//t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
-	//	testReleaseFinish(t, "pyproject.toml.tpl", "dev")
-	//})
-	//
-	//// Test with setup.py template
-	//t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
-	//	testReleaseFinish(t, "setup.py.tpl", "dev")
-	//})
+	// Test with pyproject.toml template
+	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
+		testReleaseFinish(t, "pyproject.toml.tpl", "dev")
+	})
+
+	// Test with setup.py template
+	t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
+		testReleaseFinish(t, "setup.py.tpl", "dev")
+	})
 
 	// Test with composer.json template
 	t.Run("ComposerPlugin", func(t *testing.T) {
