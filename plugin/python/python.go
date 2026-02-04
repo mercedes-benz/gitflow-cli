@@ -20,10 +20,14 @@ type pythonPlugin struct {
 	manager manager.VersionManager
 }
 
-// Fixed base configuration for the Python plugin
+// Configuration for the Python plugin
 var pluginConfig = plugin.Config{
-	Name:             "python",
-	VersionFileName:  "pyproject.toml", // Default, will be updated based on detected manager
+	Name: "python",
+	// VersionFileName will be set dynamically by core
+	VersionFileNames: []string{
+		"pyproject.toml",
+		"setup.py",
+	},
 	VersionQualifier: "dev",
 	RequiredTools:    []string{}, // Python is optional - we'll check dynamically
 }
@@ -42,29 +46,6 @@ func init() {
 
 	// Register plugin directly in core
 	core.RegisterPlugin(pythonPlugin)
-}
-
-// VersionFileName returns the filename containing version information
-// Override to return dynamic filename based on detected manager or file existence
-func (p *pythonPlugin) VersionFileName() string {
-	// If we have a detected manager, use its version file
-	if p.manager != nil {
-		return p.manager.GetFilePath()
-	}
-
-	// Try to detect a Python package manager if not already done
-	// This ensures the plugin is only selected when a valid manager exists
-	if isPythonInstalled() {
-		detector := manager.NewManagerDetector()
-		if mgr, err := detector.Detect(core.ProjectPath); err == nil {
-			p.manager = mgr
-			return mgr.GetFilePath()
-		}
-	}
-
-	// No valid Python package manager found, return a non-existent filename
-	// This will cause the plugin selection to skip this plugin
-	return ""
 }
 
 // ReadVersion reads the version from the appropriate Python package manager configuration
