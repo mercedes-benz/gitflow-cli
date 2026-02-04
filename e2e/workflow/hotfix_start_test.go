@@ -33,24 +33,23 @@ func TestHotfixStart(t *testing.T) {
 		testBeforeHotfixStartHook(t, "package.json", []byte("{}"))
 	})
 
-	// TODO: Uncomment before implementing Python plugin
-	//// Test with pyproject.toml template
-	//t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
-	//	testHotfixStart(t, "pyproject.toml.tpl", "dev")
-	//})
-	//
-	//t.Run("PythonPlugin_Pyproject_BeforeHotfixStartHook", func(t *testing.T) {
-	//	testBeforeHotfixStartHook(t, "pyproject.toml", []byte{})
-	//})
-	//
-	//// Test with setup.py template
-	//t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
-	//	testHotfixStart(t, "setup.py.tpl", "dev")
-	//})
-	//
-	//t.Run("PythonPlugin_SetupPy_BeforeHotfixStartHook", func(t *testing.T) {
-	//	testBeforeHotfixStartHook(t, "setup.py", []byte{})
-	//})
+	// Test with pyproject.toml template
+	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
+		testHotfixStart(t, "pyproject.toml.tpl", "dev")
+	})
+
+	t.Run("PythonPlugin_Pyproject_BeforeHotfixStartHook", func(t *testing.T) {
+		testBeforeHotfixStartHook(t, "pyproject.toml", []byte{})
+	})
+
+	// Test with setup.py template
+	t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
+		testHotfixStart(t, "setup.py.tpl", "dev")
+	})
+
+	t.Run("PythonPlugin_SetupPy_BeforeHotfixStartHook", func(t *testing.T) {
+		testBeforeHotfixStartHook(t, "setup.py", []byte{})
+	})
 
 	// Test with composer.json template
 	t.Run("ComposerPlugin", func(t *testing.T) {
