@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.23
+          go-version: '1.24'
 
       - name: Install Test Dependencies
         run: |
@@ -28,9 +28,11 @@ jobs:
           mvn versions:help
           mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin -Dversion=3.5.0
           mvn build-helper:help
+          pipx install toml-cli
+          which toml
 
       - name: Cache Go modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/go-build
@@ -47,4 +49,4 @@ jobs:
 
       - name: Run Tests
         run: |
-          gotestsum --format standard-verbose -- -failfast -timeout 15m ./...
+          gotestsum --format standard-verbose -- -timeout 15m ./...

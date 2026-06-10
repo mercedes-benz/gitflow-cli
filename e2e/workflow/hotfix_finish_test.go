@@ -29,16 +29,27 @@ func TestHotfixFinish(t *testing.T) {
 		testHotfixFinish(t, "package.json.tpl", "dev")
 	})
 
-	// TODO: Uncomment before implementing Python plugin
-	//// Test with pyproject.toml template
-	//t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
-	//	testHotfixFinish(t, "pyproject.toml.tpl", "dev")
-	//})
-	//
-	//// Test with setup.py template
-	//t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
-	//	testHotfixFinish(t, "setup.py.tpl", "dev")
-	//})
+	// Test with pyproject.toml template
+	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
+		helper.RequireTools(t, "toml")
+		testHotfixFinish(t, "python/pyproject.toml.tpl", "dev")
+	})
+
+	// Test with pyproject.toml Poetry template
+	t.Run("PythonPlugin_Poetry", func(t *testing.T) {
+		helper.RequireTools(t, "toml")
+		testHotfixFinishPoetry(t)
+	})
+
+	// Test with setup.cfg template
+	t.Run("PythonPlugin_SetupCfg", func(t *testing.T) {
+		testHotfixFinish(t, "python/setup.cfg.tpl", "dev")
+	})
+
+	// Test with setup.py template
+	t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
+		testHotfixFinish(t, "python/setup.py.tpl", "dev")
+	})
 
 	// Test with composer.json template
 	t.Run("ComposerPlugin", func(t *testing.T) {
@@ -95,6 +106,30 @@ func testHotfixFinish(t *testing.T, templateName string, versionQualifier string
 	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1' into develop", "develop", 0)
 	env.AssertVersionEquals(template, "1.1.0-"+versionQualifier, "develop")
 
+	env.AssertBranchDoesNotExist("hotfix/1.0.1")
+	env.AssertCurrentBranchEquals("develop")
+}
+
+func testHotfixFinishPoetry(t *testing.T) {
+	env := helper.SetupTestEnv(t)
+	template := filepath.Join("..", "helper", "templates", "python", "pyproject-poetry.toml.tpl")
+
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.0.0", "main")
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.1.0-dev", "develop")
+
+	env.CreateBranch("release/1.1.0", "develop")
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.1.0", "release/1.1.0")
+
+	env.CreateBranch("hotfix/1.0.1", "main")
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.0.1", "hotfix/1.0.1")
+
+	env.ExecuteGitflow("hotfix", "finish")
+
+	env.AssertCommitMessageEquals("Merge branch 'hotfix/1.0.1'", "main")
+	env.AssertTagEquals("1.0.1", "main")
+	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.0.1", "main")
+	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.1.0", "release/1.1.0")
+	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.1.0-dev", "develop")
 	env.AssertBranchDoesNotExist("hotfix/1.0.1")
 	env.AssertCurrentBranchEquals("develop")
 }

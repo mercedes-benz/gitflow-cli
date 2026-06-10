@@ -26,10 +26,8 @@ var rootCmd = &cobra.Command{
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-func Execute() {
-	if rootCmd.Execute() != nil {
-		os.Exit(1)
-	}
+func Execute() error {
+	return rootCmd.Execute()
 }
 
 // Initialize Cobra flags and configuration settings.

@@ -397,5 +397,11 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.iml
 
+# JetBrains Intellij
+.idea
+*.iws
+*.iml
+*.ipr
+
 # Project Directories
 !cmd/release
