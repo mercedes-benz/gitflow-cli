@@ -272,7 +272,7 @@ func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 		}()
 
 		// Execute the command
-		cmd.Execute()
+		cmdErr = cmd.Execute()
 	}()
 
 	// Restore original stdout/stderr and close the write end of pipe

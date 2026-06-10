@@ -6,6 +6,8 @@ SPDX-License-Identifier: MIT
 package main
 
 import (
+	"os"
+
 	"github.com/mercedes-benz/gitflow-cli/cmd"
 
 	// import the plugin package so that init functions for all plugins are executed automatically
@@ -14,6 +16,7 @@ import (
 
 // Entry point of the workflow automation command line tool.
 func main() {
-	// execute the Cobra root command
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
