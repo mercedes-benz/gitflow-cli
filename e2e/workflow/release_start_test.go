@@ -35,16 +35,30 @@ func TestReleaseStart(t *testing.T) {
 
 	// Test with pyproject.toml template
 	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
-		testReleaseStart(t, "pyproject.toml.tpl", "dev")
+		testReleaseStart(t, "python/pyproject.toml.tpl", "dev")
 	})
 
 	t.Run("PythonPlugin_Pyproject_BeforeReleaseStartHook", func(t *testing.T) {
 		testBeforeReleaseStartHook(t, "pyproject.toml", []byte{})
 	})
 
+	// Test with pyproject.toml Poetry template
+	t.Run("PythonPlugin_Poetry", func(t *testing.T) {
+		testReleaseStartPoetry(t)
+	})
+
+	// Test with setup.cfg template
+	t.Run("PythonPlugin_SetupCfg", func(t *testing.T) {
+		testReleaseStart(t, "python/setup.cfg.tpl", "dev")
+	})
+
+	t.Run("PythonPlugin_SetupCfg_BeforeReleaseStartHook", func(t *testing.T) {
+		testBeforeReleaseStartHook(t, "setup.cfg", []byte{})
+	})
+
 	// Test with setup.py template
 	t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
-		testReleaseStart(t, "setup.py.tpl", "dev")
+		testReleaseStart(t, "python/setup.py.tpl", "dev")
 	})
 
 	t.Run("PythonPlugin_SetupPy_BeforeReleaseStartHook", func(t *testing.T) {
@@ -145,4 +159,20 @@ func testBeforeReleaseStartHook(t *testing.T, name string, content []byte) {
 	// check release branch state
 	env.AssertBranchExists("release/1.0.0")
 	env.AssertBranchExists("origin/release/1.0.0")
+}
+
+func testReleaseStartPoetry(t *testing.T) {
+	env := helper.SetupTestEnv(t)
+	template := filepath.Join("..", "helper", "templates", "python", "pyproject-poetry.toml.tpl")
+
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.0.0", "main")
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.1.0-dev", "develop")
+
+	env.ExecuteGitflow("release", "start")
+
+	env.AssertBranchExists("release/1.1.0")
+	env.AssertBranchExists("origin/release/1.1.0")
+	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.1.0", "release/1.1.0")
+	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.1.0")
+	env.AssertCurrentBranchEquals("release/1.1.0")
 }

@@ -18,6 +18,9 @@ func Start(branch Branch, projectPath string) error {
 	// apply suitable settings from the global configuration to the core package
 	applySettings()
 
+	// set path to execute plugin detection and workflow commands
+	ProjectPath = projectPath
+
 	// check if project path exists
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
 		return fmt.Errorf("project path '%v' does not exist", projectPath)

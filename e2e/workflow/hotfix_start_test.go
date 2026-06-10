@@ -35,16 +35,30 @@ func TestHotfixStart(t *testing.T) {
 
 	// Test with pyproject.toml template
 	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
-		testHotfixStart(t, "pyproject.toml.tpl", "dev")
+		testHotfixStart(t, "python/pyproject.toml.tpl", "dev")
 	})
 
 	t.Run("PythonPlugin_Pyproject_BeforeHotfixStartHook", func(t *testing.T) {
 		testBeforeHotfixStartHook(t, "pyproject.toml", []byte{})
 	})
 
+	// Test with pyproject.toml Poetry template
+	t.Run("PythonPlugin_Poetry", func(t *testing.T) {
+		testHotfixStartPoetry(t)
+	})
+
+	// Test with setup.cfg template
+	t.Run("PythonPlugin_SetupCfg", func(t *testing.T) {
+		testHotfixStart(t, "python/setup.cfg.tpl", "dev")
+	})
+
+	t.Run("PythonPlugin_SetupCfg_BeforeHotfixStartHook", func(t *testing.T) {
+		testBeforeHotfixStartHook(t, "setup.cfg", []byte{})
+	})
+
 	// Test with setup.py template
 	t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
-		testHotfixStart(t, "setup.py.tpl", "dev")
+		testHotfixStart(t, "python/setup.py.tpl", "dev")
 	})
 
 	t.Run("PythonPlugin_SetupPy_BeforeHotfixStartHook", func(t *testing.T) {
@@ -146,4 +160,20 @@ func testBeforeHotfixStartHook(t *testing.T, name string, content []byte) {
 	// Check hotfix branch state
 	env.AssertBranchExists("hotfix/1.0.1")
 	env.AssertBranchExists("origin/hotfix/1.0.1")
+}
+
+func testHotfixStartPoetry(t *testing.T) {
+	env := helper.SetupTestEnv(t)
+	template := filepath.Join("..", "helper", "templates", "python", "pyproject-poetry.toml.tpl")
+
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.0.0", "main")
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.1.0-dev", "develop")
+
+	env.ExecuteGitflow("hotfix", "start")
+
+	env.AssertBranchExists("hotfix/1.0.1")
+	env.AssertBranchExists("origin/hotfix/1.0.1")
+	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.0.1", "hotfix/1.0.1")
+	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
+	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }

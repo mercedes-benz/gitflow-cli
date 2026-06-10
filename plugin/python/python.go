@@ -6,172 +6,179 @@ SPDX-License-Identifier: MIT
 package python
 
 import (
+	_ "embed"
 	"fmt"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
-	"github.com/mercedes-benz/gitflow-cli/plugin/python/manager"
 )
 
-// pythonPlugin is the struct implementing the Plugin interface for Python projects.
+//go:embed scripts/read_setup_cfg.py
+var readSetupCfgScript string
+
+//go:embed scripts/write_setup_cfg.py
+var writeSetupCfgScript string
+
+//go:embed scripts/read_setup_py.py
+var readSetupPyScript string
+
+//go:embed scripts/write_setup_py.py
+var writeSetupPyScript string
+
+const (
+	python3 = "python3"
+	toml    = "toml"
+)
+
 type pythonPlugin struct {
 	plugin.Plugin
-	manager manager.VersionManager
 }
 
-// Configuration for the Python plugin
 var pluginConfig = plugin.Config{
 	Name: "python",
-	// VersionFileName will be set dynamically by core
 	VersionFileNames: []string{
 		"pyproject.toml",
+		"setup.cfg",
 		"setup.py",
 	},
 	VersionQualifier: "dev",
-	RequiredTools:    []string{}, // Python is optional - we'll check dynamically
+	RequiredTools:    []string{python3, toml},
 }
 
-// Register the Python plugin
 func init() {
 	pluginFactory := plugin.NewFactory()
 
-	pythonPlugin := &pythonPlugin{
+	p := &pythonPlugin{
 		Plugin: pluginFactory.NewPlugin(pluginConfig),
 	}
 
-	// Register hooks for this plugin
-	pythonPlugin.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, pythonPlugin.beforeReleaseStart)
-	pythonPlugin.RegisterHook(core.HotfixStartHooks.BeforeHotfixStartHook, pythonPlugin.beforeHotfixStart)
+	p.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, p.beforeReleaseStart)
+	p.RegisterHook(core.HotfixStartHooks.BeforeHotfixStartHook, p.beforeHotfixStart)
 
-	// Register plugin directly in core
-	core.RegisterPlugin(pythonPlugin)
+	core.RegisterPlugin(p)
 }
 
-// ReadVersion reads the version from the appropriate Python package manager configuration
 func (p *pythonPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
 	var logs = make([]any, 0)
 	defer func() { core.Log(logs...) }()
 
-	projectPath := repository.Local()
+	filePath := filepath.Join(repository.Local(), p.VersionFileName())
 
-	// Step 1: Check if Python is installed
-	if !isPythonInstalled() {
-		logs = append(logs, "Python is not installed - skipping Python package manager detection")
-		return core.Version{}, fmt.Errorf("python is not installed")
-	}
-
-	logs = append(logs, "Python detected - checking for package managers")
-
-	// Step 2: Detect and initialize the appropriate manager
-	detector := manager.NewManagerDetector()
-	mgr, err := detector.Detect(projectPath)
-	if err != nil {
-		logs = append(logs, fmt.Sprintf("No Python package manager detected: %v", err))
-		logs = append(logs, "Falling back to default versioning")
-		return core.Version{}, fmt.Errorf("no Python package manager detected: %v", err)
-	}
-
-	p.manager = mgr
-	logs = append(logs, fmt.Sprintf("Using Python package manager: %s", mgr.GetName()))
-
-	// Step 3: Read version from the detected manager
-	versionString, err := mgr.GetVersion()
+	versionString, err := p.readVersion(filePath, repository.Local())
 	if err != nil {
 		logs = append(logs, err)
-		return core.Version{}, fmt.Errorf("failed to read version from %s: %v", mgr.GetName(), err)
+		return core.Version{}, err
 	}
 
-	logs = append(logs, fmt.Sprintf("Read version: %s", versionString))
+	logs = append(logs, fmt.Sprintf("Read version from %s: %s", p.VersionFileName(), versionString))
 
-	// Step 4: Parse the version string
 	version, err := core.ParseVersion(versionString)
 	if err != nil {
-		logs = append(logs, err)
 		return core.Version{}, fmt.Errorf("failed to parse version: %v", err)
 	}
 
 	return version, nil
 }
 
-// WriteVersion writes the version to the appropriate Python package manager configuration
 func (p *pythonPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	var logs = make([]any, 0)
 	defer func() { core.Log(logs...) }()
 
-	projectPath := repository.Local()
+	filePath := filepath.Join(repository.Local(), p.VersionFileName())
 
-	// If manager is not initialized, detect it
-	if p.manager == nil {
-		// Check Python installation first
-		if !isPythonInstalled() {
-			logs = append(logs, "Python is not installed - cannot write version")
-			return fmt.Errorf("python is not installed")
-		}
-
-		detector := manager.NewManagerDetector()
-		mgr, err := detector.Detect(projectPath)
-		if err != nil {
-			logs = append(logs, fmt.Sprintf("Failed to detect Python package manager: %v", err))
-			return fmt.Errorf("failed to detect Python package manager: %v", err)
-		}
-		p.manager = mgr
-	}
-
-	logs = append(logs, fmt.Sprintf("Writing version %s using %s", version.String(), p.manager.GetName()))
-
-	// Write version using the detected manager
-	if err := p.manager.SetVersion(version.String()); err != nil {
+	if err := p.writeVersion(filePath, version.String(), repository.Local()); err != nil {
 		logs = append(logs, err)
-		return fmt.Errorf("failed to write version: %v", err)
+		return err
 	}
 
-	logs = append(logs, "Version written successfully")
+	logs = append(logs, fmt.Sprintf("Wrote version %s to %s", version.String(), p.VersionFileName()))
 	return nil
 }
 
-// beforeReleaseStart ensures a version is set on the development branch
+func (p *pythonPlugin) readVersion(filePath, dir string) (string, error) {
+	switch p.VersionFileName() {
+	case "pyproject.toml":
+		return readPyprojectVersion(filePath)
+	case "setup.cfg":
+		return runPython(dir, readSetupCfgScript, filePath)
+	case "setup.py":
+		return runPython(dir, readSetupPyScript, filePath)
+	default:
+		return "", fmt.Errorf("unsupported version file: %s", p.VersionFileName())
+	}
+}
+
+func (p *pythonPlugin) writeVersion(filePath, version, dir string) error {
+	switch p.VersionFileName() {
+	case "pyproject.toml":
+		return writePyprojectVersion(filePath, version)
+	case "setup.cfg":
+		_, err := runPython(dir, writeSetupCfgScript, filePath, version)
+		return err
+	case "setup.py":
+		_, err := runPython(dir, writeSetupPyScript, filePath, version)
+		return err
+	default:
+		return fmt.Errorf("unsupported version file: %s", p.VersionFileName())
+	}
+}
+
+func readPyprojectVersion(filePath string) (string, error) {
+	if out, err := exec.Command(toml, "get", "--toml-path", filePath, "project.version").Output(); err == nil {
+		return strings.TrimSpace(string(out)), nil
+	}
+	if out, err := exec.Command(toml, "get", "--toml-path", filePath, "tool.poetry.version").Output(); err == nil {
+		return strings.TrimSpace(string(out)), nil
+	}
+	return "", fmt.Errorf("no version found in pyproject.toml")
+}
+
+func writePyprojectVersion(filePath, version string) error {
+	if exec.Command(toml, "get", "--toml-path", filePath, "project.version").Run() == nil {
+		return runToml("set", "--toml-path", filePath, "project.version", version)
+	}
+	if exec.Command(toml, "get", "--toml-path", filePath, "tool.poetry.version").Run() == nil {
+		return runToml("set", "--toml-path", filePath, "tool.poetry.version", version)
+	}
+	exec.Command(toml, "add_section", "--toml-path", filePath, "project").Run()
+	return runToml("set", "--toml-path", filePath, "project.version", version)
+}
+
+func runToml(args ...string) error {
+	if output, err := exec.Command(toml, args...).CombinedOutput(); err != nil {
+		return fmt.Errorf("toml %s failed: %v: %s", args[0], err, output)
+	}
+	return nil
+}
+
+func runPython(dir, script string, args ...string) (string, error) {
+	cmd := exec.Command(python3, append([]string{"-c", script}, args...)...)
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("python3 failed: %v: %s", err, output)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 func (p *pythonPlugin) beforeReleaseStart(repository core.Repository) error {
 	if err := repository.CheckoutBranch(core.Development.String()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
-	// Check if version is available
-	_, err := p.ReadVersion(repository)
-	if err == nil {
-		// Version exists, nothing to do
+	if _, err := p.ReadVersion(repository); err == nil {
 		return nil
 	}
 
-	// Check if error is due to missing Python or no package manager
-	// If so, we should not try to initialize version (let default plugin handle it)
-	if !isPythonInstalled() {
-		core.Log("Python not installed - skipping Python plugin initialization")
-		return nil
-	}
-
-	// Python is installed but no package manager detected
-	// Try to create initial version if we can detect a manager
-	projectPath := repository.Local()
-	detector := manager.NewManagerDetector()
-	mgr, err := detector.Detect(projectPath)
-	if err != nil {
-		// No Python package manager detected, skip initialization
-		core.Log("No Python package manager detected - skipping initialization")
-		return nil
-	}
-
-	p.manager = mgr
-
-	// Version doesn't exist, set it to 1.0.0 with qualifier
 	initVersion := core.NewVersion("1", "0", "0", p.Config.VersionQualifier)
-
 	if err := p.WriteVersion(repository, initVersion); err != nil {
 		return repository.UndoAllChanges(fmt.Errorf("failed to set initial version: %v", err))
 	}
 
 	core.Log(fmt.Sprintf("Set initial project version to %s", initVersion.String()))
-
 	if err := repository.CommitChanges("Set initial project version."); err != nil {
 		return repository.UndoAllChanges(err)
 	}
@@ -179,64 +186,24 @@ func (p *pythonPlugin) beforeReleaseStart(repository core.Repository) error {
 	return nil
 }
 
-// beforeHotfixStart ensures a version is set on the production branch
 func (p *pythonPlugin) beforeHotfixStart(repository core.Repository) error {
 	if err := repository.CheckoutBranch(core.Production.String()); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
-	// Check if version is available
-	_, err := p.ReadVersion(repository)
-	if err == nil {
-		// Version exists, nothing to do
+	if _, err := p.ReadVersion(repository); err == nil {
 		return nil
 	}
 
-	// Check if error is due to missing Python or no package manager
-	if !isPythonInstalled() {
-		core.Log("Python not installed - skipping Python plugin initialization")
-		return nil
-	}
-
-	// Python is installed but no package manager detected
-	projectPath := repository.Local()
-	detector := manager.NewManagerDetector()
-	mgr, err := detector.Detect(projectPath)
-	if err != nil {
-		// No Python package manager detected, skip initialization
-		core.Log("No Python package manager detected - skipping initialization")
-		return nil
-	}
-
-	p.manager = mgr
-
-	// Version doesn't exist, set it to 1.0.0 (no qualifier for production)
 	initVersion := core.NewVersion("1", "0", "0")
-
 	if err := p.WriteVersion(repository, initVersion); err != nil {
 		return repository.UndoAllChanges(fmt.Errorf("failed to set initial version: %v", err))
 	}
 
 	core.Log(fmt.Sprintf("Set initial project version to %s", initVersion.String()))
-
 	if err := repository.CommitChanges("Set initial project version."); err != nil {
 		return repository.UndoAllChanges(err)
 	}
 
 	return nil
-}
-
-// isPythonInstalled checks if Python (python3 or python) is available
-func isPythonInstalled() bool {
-	// Try python3 first (preferred)
-	if _, err := exec.LookPath("python3"); err == nil {
-		return true
-	}
-
-	// Fallback to python
-	if _, err := exec.LookPath("python"); err == nil {
-		return true
-	}
-
-	return false
 }

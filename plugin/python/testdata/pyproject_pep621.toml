@@ -1,0 +1,8 @@
+[project]
+name = "my-app"
+version = "1.2.3"
+description = "some project"
+requires-python = ">=3.8"
+
+[build-system]
+requires = ["setuptools"]

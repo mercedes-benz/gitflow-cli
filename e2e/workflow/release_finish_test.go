@@ -31,12 +31,22 @@ func TestReleaseFinish(t *testing.T) {
 
 	// Test with pyproject.toml template
 	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
-		testReleaseFinish(t, "pyproject.toml.tpl", "dev")
+		testReleaseFinish(t, "python/pyproject.toml.tpl", "dev")
+	})
+
+	// Test with pyproject.toml Poetry template
+	t.Run("PythonPlugin_Poetry", func(t *testing.T) {
+		testReleaseFinishPoetry(t)
+	})
+
+	// Test with setup.cfg template
+	t.Run("PythonPlugin_SetupCfg", func(t *testing.T) {
+		testReleaseFinish(t, "python/setup.cfg.tpl", "dev")
 	})
 
 	// Test with setup.py template
 	t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
-		testReleaseFinish(t, "setup.py.tpl", "dev")
+		testReleaseFinish(t, "python/setup.py.tpl", "dev")
 	})
 
 	// Test with composer.json template
@@ -121,5 +131,25 @@ func testReleaseFinishFallback(t *testing.T) {
 	env.AssertVersionEquals(template, "1.1.0-dev", "develop")
 
 	env.AssertBranchDoesNotExist("release/1.0.0")
+	env.AssertCurrentBranchEquals("develop")
+}
+
+func testReleaseFinishPoetry(t *testing.T) {
+	env := helper.SetupTestEnv(t)
+	template := filepath.Join("..", "helper", "templates", "python", "pyproject-poetry.toml.tpl")
+
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.0.0", "main")
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.1.0-dev", "develop")
+	env.CreateBranch("release/1.1.0", "develop")
+	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.1.0", "release/1.1.0")
+
+	env.ExecuteGitflow("release", "finish")
+
+	env.AssertCommitMessageEquals("Merge branch 'release/1.1.0'", "main")
+	env.AssertTagEquals("1.1.0", "main")
+	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.1.0", "main")
+	env.AssertCommitMessageEquals("Set next minor project version.", "develop", 0)
+	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.2.0-dev", "develop")
+	env.AssertBranchDoesNotExist("release/1.1.0")
 	env.AssertCurrentBranchEquals("develop")
 }
