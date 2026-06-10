@@ -5,23 +5,21 @@ SPDX-License-Identifier: MIT
 
 package composer
 
-import "github.com/mercedes-benz/gitflow-cli/core/plugin"
+import (
+	_ "embed"
+
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
+)
+
+//go:embed testdata/e2e/composer.json.tpl
+var composerTemplate string
 
 var E2ETestConfig = plugin.TestConfig{
-	Name:             "composer",
-	DockerImage:      dockerImage,
-	VersionQualifier: "dev",
-	VersionFileName:  "composer.json",
-	Template: `{
-    "name": "mercedes-benz/gitflow-cli-test",
-    "description": "Test for gitflow-cli",
-    "type": "gitflow-cli-test",
-    "license": "MIT",
-    "version": "{{.Version}}",
-    "minimum-stability": "dev",
-    "prefer-stable": true
-}
-`,
+	Name:               "composer",
+	DockerImage:        dockerImage,
+	VersionQualifier:   "dev",
+	VersionFileName:    "composer.json",
+	Template:           composerTemplate,
 	EmptyFileContent:   []byte("{}"),
 	HasBeforeStartHook: true,
 }

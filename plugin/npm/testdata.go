@@ -5,24 +5,21 @@ SPDX-License-Identifier: MIT
 
 package npm
 
-import "github.com/mercedes-benz/gitflow-cli/core/plugin"
+import (
+	_ "embed"
+
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
+)
+
+//go:embed testdata/e2e/package.json.tpl
+var packageTemplate string
 
 var E2ETestConfig = plugin.TestConfig{
-	Name:             "npm",
-	DockerImage:      dockerImage,
-	VersionQualifier: "dev",
-	VersionFileName:  "package.json",
-	Template: `{
-  "name": "gitflow-cli-test",
-  "version": "{{.Version}}",
-  "description": "Test package for gitflow-cli",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "license": "MIT"
-}
-`,
+	Name:               "npm",
+	DockerImage:        dockerImage,
+	VersionQualifier:   "dev",
+	VersionFileName:    "package.json",
+	Template:           packageTemplate,
 	EmptyFileContent:   []byte("{}"),
 	HasBeforeStartHook: true,
 }

@@ -26,7 +26,7 @@ func setupFromTestdata(t *testing.T, fixture, targetFileName string) (core.Repos
 	t.Helper()
 	tmpDir := t.TempDir()
 
-	content, err := os.ReadFile(filepath.Join("testdata", fixture))
+	content, err := os.ReadFile(filepath.Join("testdata", "unit", fixture))
 	require.NoError(t, err)
 
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, targetFileName), content, 0644))
