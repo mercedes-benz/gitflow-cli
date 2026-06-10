@@ -22,6 +22,7 @@ import (
 
 	// Import the plugin package so that init functions for all plugins are executed automatically
 	_ "github.com/mercedes-benz/gitflow-cli/plugin"
+	_ "github.com/mercedes-benz/gitflow-cli/plugin/python"
 )
 
 // GitTestEnv manages local repository and simulated remote repository

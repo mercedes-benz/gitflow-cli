@@ -7,7 +7,6 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -26,13 +25,6 @@ func Start(branch Branch, projectPath string) error {
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
 		return fmt.Errorf("project path '%v' does not exist", projectPath)
 	}
-
-	// log registered plugins for debugging
-	pluginNames := make([]string, len(pluginRegistry))
-	for i, p := range pluginRegistry {
-		pluginNames[i] = p.String()
-	}
-	log.Printf("Start: pluginRegistry=%v, projectPath=%s", pluginNames, projectPath)
 
 	// execute the first plugin that meets the precondition
 	for _, plugin := range pluginRegistry {

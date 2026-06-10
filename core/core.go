@@ -161,30 +161,21 @@ func RegisterFallbackPlugin(plugin Plugin) {
 // CheckVersionFile checks if version file is found
 func CheckVersionFile(plugin Plugin) bool {
 	// If plugin supports multiple version files, detect the correct one for the current project
-	versionFileNames := plugin.VersionFileNames()
-	if len(versionFileNames) > 0 {
+	if versionFileNames := plugin.VersionFileNames(); len(versionFileNames) > 0 {
 		for _, versionFile := range versionFileNames {
-			fullPath := filepath.Join(ProjectPath, versionFile)
-			if _, err := os.Stat(fullPath); !os.IsNotExist(err) {
+			if _, err := os.Stat(filepath.Join(ProjectPath, versionFile)); !os.IsNotExist(err) {
 				plugin.SetVersionFileName(versionFile)
-				log.Printf("CheckVersionFile: plugin=%s, found=%s", plugin, fullPath)
 				return true
 			}
 		}
-		log.Printf("CheckVersionFile: plugin=%s, no file found in %s (checked: %v)", plugin, ProjectPath, versionFileNames)
 		return false
 	}
 
 	// If VersionFileName is set, use it directly
 	if versionFileName := plugin.VersionFileName(); versionFileName != "" {
-		fullPath := filepath.Join(ProjectPath, versionFileName)
-		if _, err := os.Stat(fullPath); !os.IsNotExist(err) {
-			log.Printf("CheckVersionFile: plugin=%s, found=%s", plugin, fullPath)
+		if _, err := os.Stat(filepath.Join(ProjectPath, versionFileName)); !os.IsNotExist(err) {
 			return true
 		}
-		log.Printf("CheckVersionFile: plugin=%s, file not found=%s", plugin, fullPath)
-	} else {
-		log.Printf("CheckVersionFile: plugin=%s, versionFileNames=%v, versionFileName=%q", plugin, versionFileNames, plugin.VersionFileName())
 	}
 
 	return false
