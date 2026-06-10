@@ -35,15 +35,18 @@ func TestHotfixStart(t *testing.T) {
 
 	// Test with pyproject.toml template
 	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
+		helper.RequireTools(t, "toml")
 		testHotfixStart(t, "python/pyproject.toml.tpl", "dev")
 	})
 
 	t.Run("PythonPlugin_Pyproject_BeforeHotfixStartHook", func(t *testing.T) {
+		helper.RequireTools(t, "toml")
 		testBeforeHotfixStartHook(t, "pyproject.toml", []byte{})
 	})
 
 	// Test with pyproject.toml Poetry template
 	t.Run("PythonPlugin_Poetry", func(t *testing.T) {
+		helper.RequireTools(t, "toml")
 		testHotfixStartPoetry(t)
 	})
 

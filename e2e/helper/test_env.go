@@ -58,6 +58,16 @@ type testEnvOptions struct {
 	hotfixBranch      string
 }
 
+// RequireTools skips the test if any of the given tools are not found in PATH.
+func RequireTools(t *testing.T, tools ...string) {
+	t.Helper()
+	for _, tool := range tools {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skipf("required tool %q not found in PATH, skipping test", tool)
+		}
+	}
+}
+
 // SetupTestEnv creates test environment with local repo and simulated remote
 func SetupTestEnv(t *testing.T, options ...SetupTestEnvOption) *GitTestEnv {
 	t.Helper()

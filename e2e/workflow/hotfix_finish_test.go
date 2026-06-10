@@ -31,11 +31,13 @@ func TestHotfixFinish(t *testing.T) {
 
 	// Test with pyproject.toml template
 	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
+		helper.RequireTools(t, "toml")
 		testHotfixFinish(t, "python/pyproject.toml.tpl", "dev")
 	})
 
 	// Test with pyproject.toml Poetry template
 	t.Run("PythonPlugin_Poetry", func(t *testing.T) {
+		helper.RequireTools(t, "toml")
 		testHotfixFinishPoetry(t)
 	})
 
