@@ -45,7 +45,7 @@ var pluginConfig = plugin.Config{
 		"setup.py",
 	},
 	VersionQualifier: "dev",
-	RequiredTools:    []string{},
+	RequiredTools:    []string{python3},
 }
 
 func init() {
