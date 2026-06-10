@@ -6,176 +6,69 @@ SPDX-License-Identifier: MIT
 package workflow
 
 import (
-	"path/filepath"
 	"testing"
 
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 )
 
-// Test release start job
 func TestReleaseStart(t *testing.T) {
-	// Test with version.txt template
-	t.Run("StandardPlugin", func(t *testing.T) {
-		testReleaseStart(t, "version.txt.tpl", "dev")
-	})
+	for _, tc := range pluginTestConfigs {
+		t.Run(tc.Name+"Plugin", func(t *testing.T) {
+			testReleaseStart(t, tc)
+		})
 
-	// Test with pom.xml template
-	t.Run("MvnPlugin", func(t *testing.T) {
-		testReleaseStart(t, "pom.xml.tpl", "SNAPSHOT")
-	})
+		if tc.HasBeforeStartHook && tc.EmptyFileContent != nil {
+			t.Run(tc.Name+"Plugin_BeforeReleaseStartHook", func(t *testing.T) {
+				testBeforeReleaseStartHook(t, tc)
+			})
+		}
+	}
 
-	// Test with package.json template
-	t.Run("NpmPlugin", func(t *testing.T) {
-		testReleaseStart(t, "package.json.tpl", "dev")
-	})
-
-	t.Run("NpmPlugin_BeforeReleaseStartHook", func(t *testing.T) {
-		testBeforeReleaseStartHook(t, "package.json", []byte("{}"))
-	})
-
-	// Test with pyproject.toml template
-	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
-		helper.RequireTools(t, "toml")
-		testReleaseStart(t, "python/pyproject.toml.tpl", "dev")
-	})
-
-	t.Run("PythonPlugin_Pyproject_BeforeReleaseStartHook", func(t *testing.T) {
-		helper.RequireTools(t, "toml")
-		testBeforeReleaseStartHook(t, "pyproject.toml", []byte{})
-	})
-
-	// Test with pyproject.toml Poetry template
-	t.Run("PythonPlugin_Poetry", func(t *testing.T) {
-		helper.RequireTools(t, "toml")
-		testReleaseStartPoetry(t)
-	})
-
-	// Test with setup.cfg template
-	t.Run("PythonPlugin_SetupCfg", func(t *testing.T) {
-		testReleaseStart(t, "python/setup.cfg.tpl", "dev")
-	})
-
-	t.Run("PythonPlugin_SetupCfg_BeforeReleaseStartHook", func(t *testing.T) {
-		testBeforeReleaseStartHook(t, "setup.cfg", []byte{})
-	})
-
-	// Test with setup.py template
-	t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
-		testReleaseStart(t, "python/setup.py.tpl", "dev")
-	})
-
-	t.Run("PythonPlugin_SetupPy_BeforeReleaseStartHook", func(t *testing.T) {
-		testBeforeReleaseStartHook(t, "setup.py", []byte{})
-	})
-
-	// Test with composer.json template
-	t.Run("ComposerPlugin", func(t *testing.T) {
-		testReleaseStart(t, "composer.json.tpl", "dev")
-	})
-
-	t.Run("ComposerPlugin_BeforeReleaseStartHook", func(t *testing.T) {
-		testBeforeReleaseStartHook(t, "composer.json", []byte("{}"))
-	})
-
-	// Test with road.yaml template
-	t.Run("RoadPlugin", func(t *testing.T) {
-		testReleaseStart(t, "road.yaml.tpl", "dev")
-	})
-
-	// Test fallback without versioning file
 	t.Run("NoPluginFallback", func(t *testing.T) {
 		testReleaseStartFallback(t)
 	})
 }
 
-// testReleaseStart runs the test with the specified template
-func testReleaseStart(t *testing.T, templateName string, versionQualifier string) {
-	// GIVEN: a Git repository with production and development branch
+func testReleaseStart(t *testing.T, tc plugin.TestConfig) {
 	env := helper.SetupTestEnv(t)
+	helper.SetupPluginContainer(t, tc, env.LocalPath)
 
-	// Create template path from template name
-	template := filepath.Join("..", "helper", "templates", templateName)
+	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", "main")
+	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-"+tc.VersionQualifier, "develop")
 
-	// main -> version file (1.0.0)
-	// develop -> version file (1.1.0-{qualifier})
-	env.CommitFileFromTemplate(template, "1.0.0", "main")
-	env.CommitFileFromTemplate(template, "1.1.0-"+versionQualifier, "develop")
-
-	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("release", "start")
 
-	// THEN:
-	// check release branch state
 	env.AssertBranchExists("release/1.1.0")
 	env.AssertBranchExists("origin/release/1.1.0")
-
-	env.AssertVersionEquals(template, "1.1.0", "release/1.1.0")
+	env.AssertTemplateVersionEquals(tc.Template, tc.VersionFileName, "1.1.0", "release/1.1.0")
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.1.0")
-
 	env.AssertCurrentBranchEquals("release/1.1.0")
 }
 
-// TestReleaseStartFallback (test standard plugin with additional functionality)
 func testReleaseStartFallback(t *testing.T) {
-	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
-	// Path to the templates
-	template := filepath.Join("..", "helper", "templates", "version.txt.tpl")
-
-	// main -> no version file
-	// develop -> no version file
-
-	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("release", "start")
 
-	// THEN:
-	// standard plugin creates version file in develop
-	env.AssertVersionEquals(template, "1.0.0-dev", "develop")
+	env.AssertTemplateVersionEquals("{{.Version}}", "version.txt", "1.0.0-dev", "develop")
 	env.AssertCommitMessageEquals("Create versions file", "develop")
-
-	// check release branch state
 	env.AssertBranchExists("release/1.0.0")
 	env.AssertBranchExists("origin/release/1.0.0")
-
-	env.AssertVersionEquals(template, "1.0.0", "release/1.0.0")
+	env.AssertTemplateVersionEquals("{{.Version}}", "version.txt", "1.0.0", "release/1.0.0")
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.0.0")
-
 	env.AssertCurrentBranchEquals("release/1.0.0")
 }
 
-// testBeforeReleaseStartHook tests the functionality of the beforeReleaseStart hook
-// specifically for plugins with files without version information
-func testBeforeReleaseStartHook(t *testing.T, name string, content []byte) {
-	// GIVEN: a Git repository with production and development branch
+func testBeforeReleaseStartHook(t *testing.T, tc plugin.TestConfig) {
 	env := helper.SetupTestEnv(t)
+	helper.SetupPluginContainer(t, tc, env.LocalPath)
 
-	// Create a file with the specified content on the develop branch
-	env.CommitFile(name, content, "develop")
+	env.CommitFile(tc.VersionFileName, tc.EmptyFileContent, "develop")
 
-	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("release", "start")
 
-	// THEN: Hook should have added version to the file
 	env.AssertCommitMessageEquals("Set initial project version.", "develop")
-
-	// check release branch state
 	env.AssertBranchExists("release/1.0.0")
 	env.AssertBranchExists("origin/release/1.0.0")
-}
-
-func testReleaseStartPoetry(t *testing.T) {
-	env := helper.SetupTestEnv(t)
-	template := filepath.Join("..", "helper", "templates", "python", "pyproject-poetry.toml.tpl")
-
-	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.0.0", "main")
-	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.1.0-dev", "develop")
-
-	env.ExecuteGitflow("release", "start")
-
-	env.AssertBranchExists("release/1.1.0")
-	env.AssertBranchExists("origin/release/1.1.0")
-	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.1.0", "release/1.1.0")
-	env.AssertCommitMessageEquals("Remove qualifier from project version.", "release/1.1.0")
-	env.AssertCurrentBranchEquals("release/1.1.0")
 }

@@ -8,9 +8,6 @@ package helper
 import (
 	"bytes"
 	"fmt"
-	"github.com/mercedes-benz/gitflow-cli/cmd"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"os/exec"
@@ -19,6 +16,10 @@ import (
 	"strings"
 	"testing"
 	"text/template"
+
+	"github.com/mercedes-benz/gitflow-cli/cmd"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	// Import the plugin package so that init functions for all plugins are executed automatically
 	_ "github.com/mercedes-benz/gitflow-cli/plugin"
@@ -57,16 +58,6 @@ type testEnvOptions struct {
 	developmentBranch string
 	releaseBranch     string
 	hotfixBranch      string
-}
-
-// RequireTools skips the test if any of the given tools are not found in PATH.
-func RequireTools(t *testing.T, tools ...string) {
-	t.Helper()
-	for _, tool := range tools {
-		if _, err := exec.LookPath(tool); err != nil {
-			t.Skipf("required tool %q not found in PATH, skipping test", tool)
-		}
-	}
 }
 
 // SetupTestEnv creates test environment with local repo and simulated remote
@@ -140,68 +131,23 @@ func SetupTestEnv(t *testing.T, options ...SetupTestEnvOption) *GitTestEnv {
 	return env
 }
 
-// CommitFileFromTemplate creates a file using a template with variables, adds it, commits it, and pushes it to the remote
-// The filename will be derived from the template name (e.g., template "version.txt.tpl" creates file "version.txt")
-// The commit message is automatically generated based on the branch name
-func (env *GitTestEnv) CommitFileFromTemplate(templatePath, bindingValue, commitRef string) {
+// CommitTemplateContent renders a template string with the given version and commits the result.
+func (env *GitTestEnv) CommitTemplateContent(templateContent, fileName, version, commitRef string) {
 	env.t.Helper()
 
-	// Read the template file
-	templateContent, err := os.ReadFile(templatePath)
-	require.NoError(env.t, err, "Failed to read template file: %s", templatePath)
+	tmpl, err := template.New(fileName).Parse(templateContent)
+	require.NoError(env.t, err, "Failed to parse template for %s", fileName)
 
-	// Create a new template and parse the content
-	tmpl, err := template.New(filepath.Base(templatePath)).Parse(string(templateContent))
-	require.NoError(env.t, err, "Failed to parse template: %s", templatePath)
+	data := struct{ Version string }{Version: version}
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, data)
+	require.NoError(env.t, err, "Failed to render template for %s", fileName)
 
-	// Prepare the data for template rendering
-	data := struct {
-		Version string
-	}{
-		Version: bindingValue,
-	}
-
-	// Render the template
-	var renderedContent bytes.Buffer
-	err = tmpl.Execute(&renderedContent, data)
-	require.NoError(env.t, err, "Failed to render template: %s", templatePath)
-
-	// Derive the filename from the template name by removing the .tpl extension
-	templateBase := filepath.Base(templatePath)
-	name := strings.TrimSuffix(templateBase, ".tpl")
-
-	// Use CommitFile to write the file, commit and push it
-	env.CommitFile(name, renderedContent.Bytes(), commitRef)
-}
-
-// CommitFileFromTemplateAs works like CommitFileFromTemplate but uses the given fileName
-// instead of deriving it from the template path. Useful when the template name differs
-// from the target file name (e.g., pyproject-poetry.toml.tpl -> pyproject.toml).
-func (env *GitTestEnv) CommitFileFromTemplateAs(templatePath, fileName, bindingValue, commitRef string) {
-	env.t.Helper()
-
-	templateContent, err := os.ReadFile(templatePath)
-	require.NoError(env.t, err, "Failed to read template file: %s", templatePath)
-
-	tmpl, err := template.New(filepath.Base(templatePath)).Parse(string(templateContent))
-	require.NoError(env.t, err, "Failed to parse template: %s", templatePath)
-
-	data := struct {
-		Version string
-	}{
-		Version: bindingValue,
-	}
-
-	var renderedContent bytes.Buffer
-	err = tmpl.Execute(&renderedContent, data)
-	require.NoError(env.t, err, "Failed to render template: %s", templatePath)
-
-	env.CommitFile(fileName, renderedContent.Bytes(), commitRef)
+	env.CommitFile(fileName, buf.Bytes(), commitRef)
 }
 
 // CommitFile creates a file with the specified content in the repository,
 // commits it, and pushes it to the remote.
-// The commit message is automatically generated based on the branch name
 func (env *GitTestEnv) CommitFile(name string, content []byte, commitRef string) {
 	env.t.Helper()
 
@@ -338,54 +284,7 @@ func (env *GitTestEnv) AssertCurrentBranchEquals(expectedBranch string) {
 	assert.Equal(env.t, expectedBranch, currentBranch, "Current branch should be '%s', but got '%s'", expectedBranch, currentBranch)
 }
 
-// AssertFileEquals checks if a file in a branch has the expected content
-// If comparing a template file ending with .tpl, it will check the {{.Version}} placeholder against expectedContent
-// depth specifies which commit to retrieve:
-// 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
-func (env *GitTestEnv) AssertFileEquals(path, expectedContent, commitRef string, depth ...int) {
-	env.t.Helper()
-
-	if len(depth) > 0 && depth[0] > 0 {
-		commitRef = fmt.Sprintf("%s~%d", commitRef, depth[0])
-	}
-
-	fileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, path))
-
-	// Check if this is a template file (.tpl extension)
-	if strings.HasSuffix(path, ".tpl") {
-		// If it's a template file, parse it to extract the version placeholder
-		tmpl, err := template.New("test").Parse(fileContent)
-		require.NoError(env.t, err, "Failed to parse template file: %s", path)
-
-		// Create a buffer to render the template with the expected content
-		var buf bytes.Buffer
-		err = tmpl.Execute(&buf, struct {
-			Version string
-		}{
-			Version: expectedContent,
-		})
-		require.NoError(env.t, err, "Failed to render template with version: %s", expectedContent)
-
-		// Get the actual file name (without .tpl extension)
-		actualFileName := strings.TrimSuffix(filepath.Base(path), ".tpl")
-
-		// Get the actual file content from the repository
-		actualFileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, actualFileName))
-
-		// Compare the rendered template with the actual file content
-		assert.Equal(env.t, buf.String(), actualFileContent,
-			"File %s in %s with version %s has unexpected content",
-			actualFileName, commitRef, expectedContent)
-	} else {
-		// For non-template files, do a direct comparison as before
-		assert.Equal(env.t, expectedContent, fileContent,
-			"File %s in %s has unexpected content", path, commitRef)
-	}
-}
-
 // AssertCommitMessageEquals checks if the first line of the commit message at the given branch and depth matches the expected message
-// depth specifies which commit to retrieve:
-// 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
 func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, commitRef string, depth ...int) {
 	env.t.Helper()
 
@@ -403,8 +302,6 @@ func (env *GitTestEnv) AssertCommitMessageEquals(expectedMessage, commitRef stri
 }
 
 // AssertTagEquals checks if the tag at the given branch and depth matches the expected tag
-// depth specifies which commit to retrieve:
-// 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
 func (env *GitTestEnv) AssertTagEquals(expectedTag, commitRef string, depth ...int) {
 	env.t.Helper()
 
@@ -417,30 +314,76 @@ func (env *GitTestEnv) AssertTagEquals(expectedTag, commitRef string, depth ...i
 	assert.Equal(env.t, expectedTag, actualTag, "Tag of %s~%d should be '%s' but was '%s'", commitRef, depthValue, expectedTag, actualTag)
 }
 
-// GetCommitMessage gets the message of a specific commit
-// depth specifies which commit to retrieve:
-// 0 = HEAD (latest), 1 = HEAD~1 (previous commit), etc.
+// AssertTemplateVersionEquals checks if the version in a file matches the expected version
+// using inline template content instead of a file path.
+func (env *GitTestEnv) AssertTemplateVersionEquals(templateContent, fileName, expectedVersion, commitRef string, depth ...int) {
+	env.t.Helper()
+
+	if len(depth) > 0 && depth[0] > 0 {
+		commitRef = fmt.Sprintf("%s~%d", commitRef, depth[0])
+	}
+
+	// Simple template: content is just "{{.Version}}"
+	if strings.TrimSpace(templateContent) == "{{.Version}}" {
+		actual := strings.TrimSpace(env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, fileName)))
+		assert.Equal(env.t, expectedVersion, actual,
+			"Version in %s at %s should be '%s' but was '%s'", fileName, commitRef, expectedVersion, actual)
+		return
+	}
+
+	// Complex template: use marker replacement to locate version
+	parsedTemplate, err := template.New(fileName).Parse(templateContent)
+	require.NoError(env.t, err, "Failed to parse template")
+
+	versionMarker := "###VERSION_MARKER###"
+	var markerContent bytes.Buffer
+	err = parsedTemplate.Execute(&markerContent, struct{ Version string }{Version: versionMarker})
+	require.NoError(env.t, err, "Failed to render template with marker")
+
+	markerOutput := markerContent.String()
+	markerPos := strings.Index(markerOutput, versionMarker)
+	require.True(env.t, markerPos >= 0, "Could not find version marker in rendered template")
+
+	prefix := markerOutput[:markerPos]
+	suffix := markerOutput[markerPos+len(versionMarker):]
+
+	actualFileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, fileName))
+
+	prefixPos := strings.Index(actualFileContent, prefix)
+	require.True(env.t, prefixPos >= 0, "Could not find content before version in actual file")
+
+	startPos := prefixPos + len(prefix)
+	var endPos int
+	if suffix != "" {
+		suffixPos := strings.Index(actualFileContent[startPos:], suffix)
+		require.True(env.t, suffixPos >= 0, "Could not find content after version in actual file")
+		endPos = startPos + suffixPos
+	} else {
+		endPos = len(actualFileContent)
+	}
+
+	actualVersion := strings.TrimSpace(actualFileContent[startPos:endPos])
+	assert.Equal(env.t, expectedVersion, actualVersion,
+		"Version in %s at %s should be '%s' but was '%s'", fileName, commitRef, expectedVersion, actualVersion)
+}
+
+// getCommitMessage gets the message of a specific commit
 func (env *GitTestEnv) getCommitMessage(commitRef string, depth ...int) string {
 	env.t.Helper()
 
 	commitOffset := "HEAD"
 	if len(depth) > 0 && depth[0] > 0 {
-		// If depth is provided and > 0, get older commits
 		commitOffset = fmt.Sprintf("HEAD~%d", depth[0])
 	}
 
 	args := []string{"log", "-1", "--pretty=%B"}
 	if commitRef != "" {
-		// If commitRef is specified, use it as the base reference
 		if len(depth) > 0 && depth[0] > 0 {
-			// For a specific commitRef with offset
 			args = append(args, fmt.Sprintf("%s~%d", commitRef, depth[0]))
 		} else {
-			// For the commitRef itself
 			args = append(args, commitRef)
 		}
 	} else {
-		// If no commitRef is specified, use the HEAD with potential offset
 		args = append(args, commitOffset)
 	}
 
@@ -448,9 +391,7 @@ func (env *GitTestEnv) getCommitMessage(commitRef string, depth ...int) string {
 	return strings.TrimSpace(output)
 }
 
-// GetTag gets all tags pointing to a specific commit
-// depth specifies which commit to retrieve:
-// 0 = HEAD or specified commit (latest), 1 = HEAD~1 (previous commit), etc.
+// getTag gets all tags pointing to a specific commit
 func (env *GitTestEnv) getTag(commit string, depth ...int) string {
 	env.t.Helper()
 
@@ -460,7 +401,6 @@ func (env *GitTestEnv) getTag(commit string, depth ...int) string {
 	}
 
 	if len(depth) > 0 && depth[0] > 0 {
-		// If depth is provided and > 0, get older commits
 		if commit != "" {
 			commitRef = fmt.Sprintf("%s~%d", commit, depth[0])
 		} else {
@@ -469,172 +409,4 @@ func (env *GitTestEnv) getTag(commit string, depth ...int) string {
 	}
 
 	return strings.TrimSpace(env.ExecuteGit("tag", "--points-at", commitRef))
-}
-
-// AssertVersionEquals checks if the version in a file matches the expected version
-// It renders the template both with the expected version and with a special marker,
-// then compares the difference to extract the version from the actual file
-func (env *GitTestEnv) AssertVersionEquals(templatePath, expectedVersion, commitRef string, depth ...int) {
-	env.t.Helper()
-
-	// Derive the actual filename from the template name by removing the .tpl extension
-	templateFileName := filepath.Base(templatePath)
-	versionFileName := strings.TrimSuffix(templateFileName, ".tpl")
-
-	// Get the commit reference with optional depth
-	if len(depth) > 0 && depth[0] > 0 {
-		commitRef = fmt.Sprintf("%s~%d", commitRef, depth[0])
-	}
-
-	// Read the template file
-	templateContent, err := os.ReadFile(templatePath)
-	if err != nil {
-		assert.Fail(env.t, "Failed to read template file: %s: %v", templatePath, err)
-		return
-	}
-
-	// Get the actual file content from the specified branch/commit
-	versionFileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, versionFileName))
-
-	// For simple templates that contain only {{.Version}} (like version.txt.tpl)
-	if strings.TrimSpace(string(templateContent)) == "{{.Version}}" {
-		assert.Equal(env.t, expectedVersion, strings.TrimSpace(versionFileContent),
-			"Version in %s in %s should be '%s' but was '%s'", versionFileName, commitRef, expectedVersion, strings.TrimSpace(versionFileContent))
-		return
-	}
-
-	// For more complex templates, we'll use the template engine to find where the version is
-
-	// Parse the template
-	parsedTemplate, err := template.New(templateFileName).Parse(string(templateContent))
-	if err != nil {
-		assert.Fail(env.t, "Failed to parse template file: %s: %v", templatePath, err)
-		return
-	}
-
-	// Create rendered content with a unique marker
-	versionMarker := "###VERSION_MARKER###"
-	var markerContent bytes.Buffer
-	err = parsedTemplate.Execute(&markerContent, struct {
-		Version string
-	}{
-		Version: versionMarker,
-	})
-	if err != nil {
-		assert.Fail(env.t, "Failed to render template with marker: %v", err)
-		return
-	}
-
-	// Locate the marker in the rendered content
-	versionMarkerOutput := markerContent.String()
-	markerPos := strings.Index(versionMarkerOutput, versionMarker)
-	if markerPos < 0 {
-		assert.Fail(env.t, "Could not find version marker in rendered template output")
-		return
-	}
-
-	// Extract the position of the version in the actual file
-	// Find content before and after the marker to locate where it would be in the actual file
-	prefix := versionMarkerOutput[:markerPos]
-	suffix := versionMarkerOutput[markerPos+len(versionMarker):]
-
-	// Find the same prefix in the actual file
-	prefixPos := strings.Index(versionFileContent, prefix)
-	if prefixPos < 0 {
-		assert.Fail(env.t, "Could not find content before version in actual file")
-		return
-	}
-
-	startPos := prefixPos + len(prefix)
-
-	// Find where the version ends in the actual file
-	var endPos int
-	if suffix != "" {
-		suffixPos := strings.Index(versionFileContent[startPos:], suffix)
-		if suffixPos < 0 {
-			assert.Fail(env.t, "Could not find content after version in actual file")
-			return
-		}
-		endPos = startPos + suffixPos
-	} else {
-		endPos = len(versionFileContent)
-	}
-
-	// Extract the actual version
-	actualVersion := versionFileContent[startPos:endPos]
-	trimmedActualVersion := strings.TrimSpace(actualVersion)
-
-	// Compare with expected version with a more descriptive error message
-	if trimmedActualVersion != expectedVersion {
-		assert.Fail(env.t, fmt.Sprintf("Version mismatch - expected: '%s', actual: '%s'", expectedVersion, trimmedActualVersion))
-		return
-	}
-
-	// If versions match, explicitly mark as successful
-	assert.Equal(env.t, expectedVersion, trimmedActualVersion, "Versions should match")
-}
-
-// AssertVersionEqualsAs works like AssertVersionEquals but uses the given fileName
-// to look up the file in git, instead of deriving it from the template path.
-func (env *GitTestEnv) AssertVersionEqualsAs(templatePath, fileName, expectedVersion, commitRef string, depth ...int) {
-	env.t.Helper()
-
-	if len(depth) > 0 && depth[0] > 0 {
-		commitRef = fmt.Sprintf("%s~%d", commitRef, depth[0])
-	}
-
-	templateContent, err := os.ReadFile(templatePath)
-	if err != nil {
-		assert.Fail(env.t, "Failed to read template file: %s: %v", templatePath, err)
-		return
-	}
-
-	versionFileContent := env.ExecuteGit("show", fmt.Sprintf("%s:%s", commitRef, fileName))
-
-	templateFileName := filepath.Base(templatePath)
-	parsedTemplate, err := template.New(templateFileName).Parse(string(templateContent))
-	if err != nil {
-		assert.Fail(env.t, "Failed to parse template file: %s: %v", templatePath, err)
-		return
-	}
-
-	versionMarker := "###VERSION_MARKER###"
-	var markerContent bytes.Buffer
-	err = parsedTemplate.Execute(&markerContent, struct{ Version string }{Version: versionMarker})
-	if err != nil {
-		assert.Fail(env.t, "Failed to render template with marker: %v", err)
-		return
-	}
-
-	versionMarkerOutput := markerContent.String()
-	markerPos := strings.Index(versionMarkerOutput, versionMarker)
-	if markerPos < 0 {
-		assert.Fail(env.t, "Could not find version marker in rendered template output")
-		return
-	}
-
-	prefix := versionMarkerOutput[:markerPos]
-	suffix := versionMarkerOutput[markerPos+len(versionMarker):]
-
-	prefixPos := strings.Index(versionFileContent, prefix)
-	if prefixPos < 0 {
-		assert.Fail(env.t, "Could not find content before version in actual file")
-		return
-	}
-
-	startPos := prefixPos + len(prefix)
-	var endPos int
-	if suffix != "" {
-		suffixPos := strings.Index(versionFileContent[startPos:], suffix)
-		if suffixPos < 0 {
-			assert.Fail(env.t, "Could not find content after version in actual file")
-			return
-		}
-		endPos = startPos + suffixPos
-	} else {
-		endPos = len(versionFileContent)
-	}
-
-	actualVersion := strings.TrimSpace(versionFileContent[startPos:endPos])
-	assert.Equal(env.t, expectedVersion, actualVersion, "Versions should match")
 }

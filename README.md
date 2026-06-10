@@ -34,6 +34,11 @@ From within the project directory the **gitflow-cli** can be built, run and inst
 
    **Note:** Make sure you have [Go](https://go.dev/doc/install) installed and that the `go/bin` directory is part of your PATH.
 
+### Prerequisites
+
+- **git** — required for all operations
+- **docker** — required for plugins running in Docker mode (default). Install [Docker Desktop](https://docs.docker.com/get-docker/) or Docker Engine.
+
 ## Usage
 
 Before using **gitflow-cli**, either navigate to your target Git repository or specify it with the `--path` flag.
@@ -110,14 +115,16 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 
 #### Available Plugins
 
-| Plugin       | Description                                                  | Required File                  | Required Tools    |
-|--------------|--------------------------------------------------------------|--------------------------------|-------------------|
-| **standard** | Plugin for projects without a dedicated version file.        | `version.txt`                  | `git`             |
-| **mvn**      | Plugin for [maven](https://maven.apache.org) projects.       | `pom.xml`                      | `git` `mvn`       |
-| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.           | `package.json`                 | `git` `npm`       |
-| **python**   | Plugin for [python](https://www.python.org/) projects.       | `pyproject.toml`, `setup.cfg`, or `setup.py` | `git` `toml`           |
-| **composer** | Plugin for [composer](https://getcomposer.org/) projects.    | `composer.json`                | `git` `composer`  |
-| **road**     | Plugin for projects with road app manifest configuration.    | `road.yaml`                    | `git`             |
+| Plugin       | Description                                                                                      | Required File                  | Docker Image (default)             | Native Tools     |
+|--------------|--------------------------------------------------------------------------------------------------|--------------------------------|------------------------------------|------------------|
+| **standard** | Plugin for projects without a dedicated version file.                                            | `version.txt`                  | —                                  | `git`            |
+| **mvn**      | Plugin for [maven](https://maven.apache.org) projects.                                           | `pom.xml`                      | `maven:3.9-eclipse-temurin-17`     | `git` `mvn`      |
+| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.                                               | `package.json`                 | `node:20-slim`                     | `git` `npm`      |
+| **python**   | Plugin for [python](https://www.python.org/) projects.                                           | `pyproject.toml`, `setup.cfg`, or `setup.py` | `python:3.12-slim`   | `git` `python3` `toml` |
+| **composer** | Plugin for [composer](https://getcomposer.org/) projects.                                        | `composer.json`                | `composer:2`                       | `git` `composer` |
+| **road**     | Plugin for projects with road app manifest configuration.                                        | `road.yaml`                    | —                                  | `git`            |
+
+By default, plugins that require external CLI tools (mvn, npm, composer, python/toml) execute commands inside Docker containers. This means you only need `git` and `docker` installed locally — no need to install Maven, Node.js, Composer, or Python on your machine. To switch a plugin to native execution, see [Configuration](#configuration).
 
 **Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
 
@@ -134,9 +141,32 @@ The **gitflow-cli** detects your project's context and automatically delegates t
      hotfix: hotfix | custom-name                          # hotfix branch prefix
      undo: true | false                                    # rollback local changes in case of an error, default = false
      logging: stderr | stdout | cmdline | output | off     # diagnostic logging for the Gitflow workflow, default = stdout | cmdline | output
+
+   plugins:
+     mvn:
+       executor: docker | native                           # execution mode, default = docker
+       command: mvn                                        # executable name or path, used in both modes
+     npm:
+       executor: docker | native
+       command: npm
+     python:
+       executor: docker | native
+       command: toml                                       # the toml CLI tool used for pyproject.toml
+     composer:
+       executor: docker | native
+       command: composer
    ```
 
    You can also specify a custom configuration file using the top-level flag `--config file-path`.
+
+### Plugin Execution Modes
+
+   Each plugin that requires external CLI tools supports two execution modes:
+
+   - **docker** (default): Commands run inside a disposable Docker container. Only `docker` needs to be installed on the host. Containers are removed automatically after each invocation (`--rm`).
+   - **native**: Commands run directly on the host. The respective CLI tool (e.g., `mvn`, `npm`, `composer`, `toml`) must be installed and available in PATH.
+
+   You can optionally override the executable via `command`. This applies to both modes — in native mode it's the binary that gets called, in docker mode it's the command run inside the container. If not configured, the plugin's default tool name is used.
 
 ## Contributing
 

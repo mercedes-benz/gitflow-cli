@@ -6,177 +6,69 @@ SPDX-License-Identifier: MIT
 package workflow
 
 import (
-	"path/filepath"
 	"testing"
 
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 )
 
-// test Hotfix Start Job
 func TestHotfixStart(t *testing.T) {
-	// Test with version.txt template
-	t.Run("StandardPlugin", func(t *testing.T) {
-		testHotfixStart(t, "version.txt.tpl", "dev")
-	})
+	for _, tc := range pluginTestConfigs {
+		t.Run(tc.Name+"Plugin", func(t *testing.T) {
+			testHotfixStart(t, tc)
+		})
 
-	// Test with pom.xml template
-	t.Run("MvnPlugin", func(t *testing.T) {
-		testHotfixStart(t, "pom.xml.tpl", "SNAPSHOT")
-	})
+		if tc.HasBeforeStartHook && tc.EmptyFileContent != nil {
+			t.Run(tc.Name+"Plugin_BeforeHotfixStartHook", func(t *testing.T) {
+				testBeforeHotfixStartHook(t, tc)
+			})
+		}
+	}
 
-	// Test with package.json template
-	t.Run("NpmPlugin", func(t *testing.T) {
-		testHotfixStart(t, "package.json.tpl", "dev")
-	})
-
-	t.Run("NpmPlugin_BeforeHotfixStartHook", func(t *testing.T) {
-		testBeforeHotfixStartHook(t, "package.json", []byte("{}"))
-	})
-
-	// Test with pyproject.toml template
-	t.Run("PythonPlugin_Pyproject", func(t *testing.T) {
-		helper.RequireTools(t, "toml")
-		testHotfixStart(t, "python/pyproject.toml.tpl", "dev")
-	})
-
-	t.Run("PythonPlugin_Pyproject_BeforeHotfixStartHook", func(t *testing.T) {
-		helper.RequireTools(t, "toml")
-		testBeforeHotfixStartHook(t, "pyproject.toml", []byte{})
-	})
-
-	// Test with pyproject.toml Poetry template
-	t.Run("PythonPlugin_Poetry", func(t *testing.T) {
-		helper.RequireTools(t, "toml")
-		testHotfixStartPoetry(t)
-	})
-
-	// Test with setup.cfg template
-	t.Run("PythonPlugin_SetupCfg", func(t *testing.T) {
-		testHotfixStart(t, "python/setup.cfg.tpl", "dev")
-	})
-
-	t.Run("PythonPlugin_SetupCfg_BeforeHotfixStartHook", func(t *testing.T) {
-		testBeforeHotfixStartHook(t, "setup.cfg", []byte{})
-	})
-
-	// Test with setup.py template
-	t.Run("PythonPlugin_SetupPy", func(t *testing.T) {
-		testHotfixStart(t, "python/setup.py.tpl", "dev")
-	})
-
-	t.Run("PythonPlugin_SetupPy_BeforeHotfixStartHook", func(t *testing.T) {
-		testBeforeHotfixStartHook(t, "setup.py", []byte{})
-	})
-
-	// Test with composer.json template
-	t.Run("ComposerPlugin", func(t *testing.T) {
-		testHotfixStart(t, "composer.json.tpl", "dev")
-	})
-
-	t.Run("ComposerPlugin_BeforeHotfixStartHook", func(t *testing.T) {
-		testBeforeHotfixStartHook(t, "composer.json", []byte("{}"))
-	})
-
-	// Test with road.yaml template
-	t.Run("RoadPlugin", func(t *testing.T) {
-		testHotfixStart(t, "road.yaml.tpl", "dev")
-	})
-
-	// Test fallback without versioning file
 	t.Run("NoPluginFallback", func(t *testing.T) {
 		testHotfixStartFallback(t)
 	})
 }
 
-// testHotfixStart runs the test with the specified template
-func testHotfixStart(t *testing.T, templateName string, versionQualifier string) {
-	// GIVEN: a Git repository with production and development branch
+func testHotfixStart(t *testing.T, tc plugin.TestConfig) {
 	env := helper.SetupTestEnv(t)
+	helper.SetupPluginContainer(t, tc, env.LocalPath)
 
-	// Create template path from template name
-	template := filepath.Join("..", "helper", "templates", templateName)
+	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", "main")
+	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-"+tc.VersionQualifier, "develop")
 
-	// main -> version file (1.0.0)
-	// develop -> version file (1.1.0-"+versionQualifier)
-
-	env.CommitFileFromTemplate(template, "1.0.0", "main")
-	env.CommitFileFromTemplate(template, "1.1.0-"+versionQualifier, "develop")
-
-	// WHEN: The command "gitflow-cli hotfix start" is executed
 	env.ExecuteGitflow("hotfix", "start")
 
-	// THEN:
-	// check hotfix branch state
 	env.AssertBranchExists("hotfix/1.0.1")
 	env.AssertBranchExists("origin/hotfix/1.0.1")
-
-	env.AssertVersionEquals(template, "1.0.1", "hotfix/1.0.1")
+	env.AssertTemplateVersionEquals(tc.Template, tc.VersionFileName, "1.0.1", "hotfix/1.0.1")
 	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
-
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
 
-// TestHotfixStartFallback (test standard plugin with additional functionality)
 func testHotfixStartFallback(t *testing.T) {
-	// GIVEN: a Git repository with production and development branch
 	env := helper.SetupTestEnv(t)
 
-	// Path to the templates
-	template := filepath.Join("..", "helper", "templates", "version.txt.tpl")
-
-	// main -> no version file
-	// develop -> no version file
-
-	// WHEN: The command "gitflow-cli release start" is executed
 	env.ExecuteGitflow("hotfix", "start")
 
-	// THEN:
-	// standard plugin creates version file in main
-	env.AssertVersionEquals(template, "1.0.0", "main")
+	env.AssertTemplateVersionEquals("{{.Version}}", "version.txt", "1.0.0", "main")
 	env.AssertCommitMessageEquals("Create versions file", "main")
-
-	// check hotfix branch state
 	env.AssertBranchExists("hotfix/1.0.1")
 	env.AssertBranchExists("origin/hotfix/1.0.1")
-
-	env.AssertVersionEquals(template, "1.0.1", "hotfix/1.0.1")
+	env.AssertTemplateVersionEquals("{{.Version}}", "version.txt", "1.0.1", "hotfix/1.0.1")
 	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
-
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
 
-// testBeforeHotfixStartHook tests the functionality of the beforeHotfixStart hook
-// specifically for plugins with files without version information
-func testBeforeHotfixStartHook(t *testing.T, name string, content []byte) {
-	// GIVEN: a Git repository with production and development branch
+func testBeforeHotfixStartHook(t *testing.T, tc plugin.TestConfig) {
 	env := helper.SetupTestEnv(t)
+	helper.SetupPluginContainer(t, tc, env.LocalPath)
 
-	// Create a file with the specified content on the main branch (production branch)
-	env.CommitFile(name, content, "main")
+	env.CommitFile(tc.VersionFileName, tc.EmptyFileContent, "main")
 
-	// WHEN: The command "gitflow-cli hotfix start" is executed
 	env.ExecuteGitflow("hotfix", "start")
 
-	// THEN: Hook should have added version to the file
 	env.AssertCommitMessageEquals("Set initial project version.", "main")
-
-	// Check hotfix branch state
 	env.AssertBranchExists("hotfix/1.0.1")
 	env.AssertBranchExists("origin/hotfix/1.0.1")
-}
-
-func testHotfixStartPoetry(t *testing.T) {
-	env := helper.SetupTestEnv(t)
-	template := filepath.Join("..", "helper", "templates", "python", "pyproject-poetry.toml.tpl")
-
-	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.0.0", "main")
-	env.CommitFileFromTemplateAs(template, "pyproject.toml", "1.1.0-dev", "develop")
-
-	env.ExecuteGitflow("hotfix", "start")
-
-	env.AssertBranchExists("hotfix/1.0.1")
-	env.AssertBranchExists("origin/hotfix/1.0.1")
-	env.AssertVersionEqualsAs(template, "pyproject.toml", "1.0.1", "hotfix/1.0.1")
-	env.AssertCommitMessageEquals("Increment patch version for hotfix.", "hotfix/1.0.1")
-	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }

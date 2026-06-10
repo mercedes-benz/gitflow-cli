@@ -12,9 +12,14 @@ import (
 
 	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func init() {
+	viper.Set("plugins.python.executor", "native")
+}
 
 // setupFromTestdata copies a fixture file into a temp dir with the given target name.
 func setupFromTestdata(t *testing.T, fixture, targetFileName string) (core.Repository, *pythonPlugin) {
@@ -26,7 +31,7 @@ func setupFromTestdata(t *testing.T, fixture, targetFileName string) (core.Repos
 
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, targetFileName), content, 0644))
 
-	p := &pythonPlugin{Plugin: plugin.NewFactory().NewPlugin(pluginConfig)}
+	p := &pythonPlugin{Plugin: plugin.NewFactory().NewPluginWithExecutor(pluginConfig, dockerImage)}
 	p.Config.VersionFileName = targetFileName
 
 	return core.NewRepository(tmpDir, ""), p
@@ -39,7 +44,7 @@ func setupEmpty(t *testing.T, targetFileName string) (core.Repository, *pythonPl
 
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, targetFileName), []byte(""), 0644))
 
-	p := &pythonPlugin{Plugin: plugin.NewFactory().NewPlugin(pluginConfig)}
+	p := &pythonPlugin{Plugin: plugin.NewFactory().NewPluginWithExecutor(pluginConfig, dockerImage)}
 	p.Config.VersionFileName = targetFileName
 
 	return core.NewRepository(tmpDir, ""), p

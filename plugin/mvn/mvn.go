@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
-	"os/exec"
 	"strings"
 )
 
@@ -25,6 +24,8 @@ const (
 	releases        = "versions:use-releases"
 	failNotReplaced = "-DfailIfNotReplaced=true"
 	newVersion      = "-DnewVersion=%s"
+
+	dockerImage = "maven:3.9-eclipse-temurin-17"
 )
 
 // Fixed configuration for the mvn plugin
@@ -49,7 +50,7 @@ func init() {
 
 	// Create plugin with pluginFactory to get hooks and other dependencies
 	mavenPlugin := &mavenPlugin{
-		Plugin:      pluginFactory.NewPlugin(pluginConfig),
+		Plugin:      pluginFactory.NewPluginWithExecutor(pluginConfig, dockerImage),
 		getVersion:  []string{evaluate, versionProperty, quiet, stdout},
 		setVersion:  []string{versions, noBackups},
 		useReleases: []string{releases, noBackups, failNotReplaced},
@@ -68,8 +69,7 @@ func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, err
 	defer func() { core.Log(logs...) }()
 
 	// evaluate the version of the mvn project
-	versionCommand := exec.Command(mvn, p.getVersion...)
-	versionCommand.Dir = projectPath
+	versionCommand := p.Executor.Command(projectPath, mvn, p.getVersion...)
 
 	// run mvn to evaluate the version of the mvn project
 	output, err := versionCommand.CombinedOutput()
@@ -88,16 +88,14 @@ func (p *mavenPlugin) ReadVersion(repository core.Repository) (core.Version, err
 // WriteVersion writes a new version to the project
 func (p *mavenPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	var err error
-	var versionCommand *exec.Cmd
 	var output []byte
 	projectPath := repository.Local()
 
+	// update version information
+	versionCommand := p.Executor.Command(projectPath, mvn, append(p.setVersion, fmt.Sprintf(newVersion, version))...)
+
 	// log human-readable description of the mvn command
 	defer func() { core.Log(versionCommand, output, err) }()
-
-	// update version information
-	versionCommand = exec.Command(mvn, append(p.setVersion, fmt.Sprintf(newVersion, version))...)
-	versionCommand.Dir = projectPath
 
 	// run mvn to update version information of the mvn project
 	if output, err = versionCommand.CombinedOutput(); err != nil {
@@ -112,14 +110,13 @@ func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) erro
 	fmt.Println("After Update Project Version Hook")
 
 	var err error
-	var releasesCommand *exec.Cmd
 	var output []byte
+
+	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
+	releasesCommand := p.Executor.Command(repository.Local(), mvn, p.useReleases...)
 
 	// log human-readable description of the mvn command
 	defer func() { core.Log(releasesCommand, output, err) }()
-	// replace -SNAPSHOT versions and fail if not replaced (i.e. if the version has not been released)
-	releasesCommand = exec.Command(mvn, p.useReleases...)
-	releasesCommand.Dir = repository.Local()
 
 	// run mvn to replace -SNAPSHOT versions with releases in the mvn project
 	if output, err = releasesCommand.CombinedOutput(); err != nil {

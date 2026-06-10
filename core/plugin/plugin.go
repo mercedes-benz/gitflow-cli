@@ -11,8 +11,9 @@ import (
 
 // Plugin provides a default implementation for common Plugin interface methods.
 type Plugin struct {
-	Config Config
-	Hooks  *core.HookRegistry // Shared hook registry for all plugins
+	Config   Config
+	Hooks    *core.HookRegistry // Shared hook registry for all plugins
+	Executor *Executor
 }
 
 // String returns the name of the plugin.
@@ -41,7 +42,12 @@ func (p *Plugin) VersionQualifier() string {
 }
 
 // RequiredTools returns list of required command line tools.
+// If an Executor is configured, it delegates to the executor to determine
+// whether "docker" or the native tools are required.
 func (p *Plugin) RequiredTools() []string {
+	if p.Executor != nil {
+		return p.Executor.RequiredTools(p.Config.RequiredTools)
+	}
 	return p.Config.RequiredTools
 }
 

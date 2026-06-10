@@ -4,3 +4,13 @@ core:
   release: custom-release
   hotfix: custom-hotfix
 
+plugins:
+  mvn:
+    executor: docker
+  npm:
+    executor: docker
+  python:
+    executor: docker
+  composer:
+    executor: docker
+

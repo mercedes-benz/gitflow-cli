@@ -30,3 +30,16 @@ func (factory *Factory) NewPlugin(config Config) Plugin {
 		Hooks:  factory.Hooks,
 	}
 }
+
+// NewPluginWithExecutor creates a Plugin with an Executor for the given Docker image.
+// The executor mode (docker/native) is read from Viper configuration at runtime.
+func (factory *Factory) NewPluginWithExecutor(config Config, image string) Plugin {
+	return Plugin{
+		Config: config,
+		Hooks:  factory.Hooks,
+		Executor: &Executor{
+			PluginName: config.Name,
+			Image:      image,
+		},
+	}
+}

@@ -9,13 +9,14 @@ import (
 	"fmt"
 	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
-	"os/exec"
 	"strings"
 )
 
 // composer-specific command constants
 const (
 	composer = "composer"
+
+	dockerImage = "composer:2"
 )
 
 // Fixed configuration for the Composer plugin
@@ -36,7 +37,7 @@ func init() {
 	pluginFactory := plugin.NewFactory()
 
 	composerPlugin := &composerPlugin{
-		Plugin: pluginFactory.NewPlugin(pluginConfig),
+		Plugin: pluginFactory.NewPluginWithExecutor(pluginConfig, dockerImage),
 	}
 
 	// Register hooks for this plugin
@@ -50,8 +51,7 @@ func init() {
 func (p *composerPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
 	var logs = make([]any, 0)
 	// Execute composer command to read the version from composer.json
-	cmd := exec.Command(composer, "config", "version", "--no-ansi")
-	cmd.Dir = repository.Local()
+	cmd := p.Executor.Command(repository.Local(), composer, "config", "version", "--no-ansi")
 
 	// log human-readable description of commands
 	defer func() { core.Log(logs...) }()
@@ -78,12 +78,10 @@ func (p *composerPlugin) ReadVersion(repository core.Repository) (core.Version, 
 // WriteVersion writes the version to composer.json using composer.
 func (p *composerPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	var err error
-	var cmd *exec.Cmd
 	var output []byte
 
 	// Execute composer command to write the version to composer.json
-	cmd = exec.Command(composer, "config", "version", version.String(), "--no-ansi")
-	cmd.Dir = repository.Local()
+	cmd := p.Executor.Command(repository.Local(), composer, "config", "version", version.String(), "--no-ansi")
 
 	// log human-readable description of the composer command
 	defer func() { core.Log(cmd, output, err) }()
@@ -113,8 +111,7 @@ func (p *composerPlugin) beforeReleaseStart(repository core.Repository) error {
 	initVersion := core.NewVersion("1", "0", "0", p.Config.VersionQualifier)
 
 	// Set the version using composer CLI
-	cmd := exec.Command(composer, "config", "version", initVersion.String(), "--no-ansi")
-	cmd.Dir = repository.Local()
+	cmd := p.Executor.Command(repository.Local(), composer, "config", "version", initVersion.String(), "--no-ansi")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -148,8 +145,7 @@ func (p *composerPlugin) beforeHotfixStart(repository core.Repository) error {
 	initVersion := core.NewVersion("1", "0", "0")
 
 	// Set the version using composer CLI
-	cmd := exec.Command(composer, "config", "version", initVersion.String(), "--no-ansi")
-	cmd.Dir = repository.Local()
+	cmd := p.Executor.Command(repository.Local(), composer, "config", "version", initVersion.String(), "--no-ansi")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

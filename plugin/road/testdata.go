@@ -1,4 +1,18 @@
-configFormat: 1.0.0
+/*
+SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
+SPDX-License-Identifier: MIT
+*/
+
+package road
+
+import "github.com/mercedes-benz/gitflow-cli/core/plugin"
+
+var E2ETestConfig = plugin.TestConfig{
+	Name:             "road",
+	DockerImage:      "",
+	VersionQualifier: "dev",
+	VersionFileName:  "road.yaml",
+	Template: `configFormat: 1.0.0
 versionNumber: {{.Version}}
 schema: example-schema
 geo: region-1
@@ -29,3 +43,7 @@ executable:
 ---
 variant: test
 geo: region-3
+`,
+	EmptyFileContent:   nil,
+	HasBeforeStartHook: false,
+}
