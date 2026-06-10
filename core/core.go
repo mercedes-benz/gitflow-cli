@@ -163,17 +163,22 @@ func CheckVersionFile(plugin Plugin) bool {
 	// If plugin supports multiple version files, detect the correct one for the current project
 	if versionFileNames := plugin.VersionFileNames(); len(versionFileNames) > 0 {
 		for _, versionFile := range versionFileNames {
-			if _, err := os.Stat(filepath.Join(ProjectPath, versionFile)); !os.IsNotExist(err) {
+			fullPath := filepath.Join(ProjectPath, versionFile)
+			if _, err := os.Stat(fullPath); !os.IsNotExist(err) {
 				plugin.SetVersionFileName(versionFile)
+				log.Printf("CheckVersionFile: plugin=%s, found=%s", plugin, fullPath)
 				return true
 			}
 		}
+		log.Printf("CheckVersionFile: plugin=%s, no file found in %s (checked: %v)", plugin, ProjectPath, versionFileNames)
 		return false
 	}
 
 	// If VersionFileName is set, use it directly
 	if versionFileName := plugin.VersionFileName(); versionFileName != "" {
-		if _, err := os.Stat(filepath.Join(ProjectPath, versionFileName)); !os.IsNotExist(err) {
+		fullPath := filepath.Join(ProjectPath, versionFileName)
+		if _, err := os.Stat(fullPath); !os.IsNotExist(err) {
+			log.Printf("CheckVersionFile: plugin=%s, found=%s", plugin, fullPath)
 			return true
 		}
 	}
