@@ -28,6 +28,7 @@ jobs:
           mvn versions:help
           mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=build-helper-maven-plugin -Dversion=3.5.0
           mvn build-helper:help
+          pipx install toml-cli
 
       - name: Cache Go modules
         uses: actions/cache@v4
