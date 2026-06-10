@@ -59,6 +59,7 @@ func init() {
 	p.RegisterHook(core.HotfixStartHooks.BeforeHotfixStartHook, p.beforeHotfixStart)
 
 	core.RegisterPlugin(p)
+	fmt.Printf("python plugin init: registered with versionFileNames=%v\n", pluginConfig.VersionFileNames)
 }
 
 func (p *pythonPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
