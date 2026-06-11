@@ -6,14 +6,44 @@ SPDX-License-Identifier: MIT
 package road
 
 import (
-	"github.com/mercedes-benz/gitflow-cli/core"
-	"github.com/mercedes-benz/gitflow-cli/core/plugin"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	_ "embed"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/mercedes-benz/gitflow-cli/core"
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
+	"github.com/mercedes-benz/gitflow-cli/e2e/workflow"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+//go:embed testdata/e2e/road.yaml.tpl
+var roadTemplate string
+
+var e2eConfig = plugin.TestConfig{
+	Name:             "road",
+	DockerImage:      pluginConfig.DockerImage,
+	VersionQualifier: "dev",
+	VersionFileName:  "road.yaml",
+	Template:         roadTemplate,
+}
+
+func TestReleaseStart(t *testing.T) {
+	workflow.RunReleaseStart(t, e2eConfig)
+}
+
+func TestReleaseFinish(t *testing.T) {
+	workflow.RunReleaseFinish(t, e2eConfig)
+}
+
+func TestHotfixStart(t *testing.T) {
+	workflow.RunHotfixStart(t, e2eConfig)
+}
+
+func TestHotfixFinish(t *testing.T) {
+	workflow.RunHotfixFinish(t, e2eConfig)
+}
 
 // Helper function to set up test environment
 func setupTest(t *testing.T, content string) (string, core.Repository, *roadPlugin) {

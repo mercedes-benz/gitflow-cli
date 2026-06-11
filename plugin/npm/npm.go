@@ -13,11 +13,7 @@ import (
 )
 
 // npm-specific command constant
-const (
-	npm = "npm"
-
-	dockerImage = "node:20-slim"
-)
+const npm = "npm"
 
 // Fixed configuration for the NPM plugin
 var pluginConfig = plugin.Config{
@@ -25,6 +21,7 @@ var pluginConfig = plugin.Config{
 	VersionFileName:  "package.json",
 	VersionQualifier: "dev",
 	RequiredTools:    []string{npm},
+	DockerImage:      "node:20-slim",
 }
 
 // npmPlugin is the struct implementing the Plugin interface.
@@ -38,7 +35,7 @@ func init() {
 
 	// Create plugin with pluginFactory to get hooks and other dependencies
 	npmPlugin := &npmPlugin{
-		Plugin: pluginFactory.NewPluginWithExecutor(pluginConfig, dockerImage),
+		Plugin: pluginFactory.NewPlugin(pluginConfig),
 	}
 
 	// Register hooks for this plugin

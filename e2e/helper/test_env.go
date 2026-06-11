@@ -18,12 +18,9 @@ import (
 	"text/template"
 
 	"github.com/mercedes-benz/gitflow-cli/cmd"
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	// Import the plugin package so that init functions for all plugins are executed automatically
-	_ "github.com/mercedes-benz/gitflow-cli/plugin"
-	_ "github.com/mercedes-benz/gitflow-cli/plugin/python"
 )
 
 // GitTestEnv manages local repository and simulated remote repository
@@ -31,6 +28,7 @@ type GitTestEnv struct {
 	LocalPath  string // Path to local repository
 	RemotePath string // Path to simulated remote repository
 	t          *testing.T
+	dockerMode bool
 }
 
 // SetupTestEnvOption configures options for SetupTestEnv
@@ -50,6 +48,11 @@ var (
 	WithHotfixBranch = func(prefix string) SetupTestEnvOption {
 		return func(opts *testEnvOptions) { opts.hotfixBranch = prefix }
 	}
+	WithDockerMode = func(hasImage bool) SetupTestEnvOption {
+		return func(opts *testEnvOptions) {
+			opts.dockerMode = hasImage && os.Getenv("GITFLOW_TEST_MODE") != "native"
+		}
+	}
 )
 
 // testEnvOptions holds the options for setting up the test environment
@@ -58,6 +61,7 @@ type testEnvOptions struct {
 	developmentBranch string
 	releaseBranch     string
 	hotfixBranch      string
+	dockerMode        bool
 }
 
 // SetupTestEnv creates test environment with local repo and simulated remote
@@ -113,6 +117,11 @@ func SetupTestEnv(t *testing.T, options ...SetupTestEnvOption) *GitTestEnv {
 		LocalPath:  localPath,
 		RemotePath: remotePath,
 		t:          t,
+		dockerMode: opts.dockerMode,
+	}
+
+	if opts.dockerMode {
+		t.Cleanup(func() { plugin.ExecutorModeOverride = "" })
 	}
 
 	// Create an empty commit to initialize the production branch
@@ -196,7 +205,11 @@ func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 	defer func() { os.Args = oldArgs }()
 
 	// Set command line arguments with the --path parameter
-	os.Args = append([]string{"gitflow-cli", "--path", env.LocalPath}, args...)
+	baseArgs := []string{"gitflow-cli", "--path", env.LocalPath}
+	if env.dockerMode {
+		baseArgs = append(baseArgs, "--docker-mode")
+	}
+	os.Args = append(baseArgs, args...)
 	env.t.Logf("Executing command: gitflow-cli %s", strings.Join(os.Args[1:], " "))
 
 	// Capture output using a pipe
@@ -207,28 +220,38 @@ func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 	oldStdout, oldStderr := os.Stdout, os.Stderr
 	os.Stdout, os.Stderr = w, w
 
+	// Start background reader BEFORE execution to prevent pipe deadlock.
+	// OS pipes have a limited kernel buffer (~64KB); heavy output (e.g. Maven
+	// dependency downloads) fills it and blocks writes if nobody is reading.
+	var output []byte
+	var readErr error
+	done := make(chan struct{})
+	go func() {
+		output, readErr = io.ReadAll(r)
+		close(done)
+	}()
+
 	// Recover from any panics that might occur during command execution
 	var cmdErr error
 	func() {
 		defer func() {
-			if r := recover(); r != nil {
-				cmdErr = fmt.Errorf("panic during command execution: %v", r)
-				env.t.Logf("PANIC: %v", r)
-				debug.PrintStack() // Print stack trace for debugging
+			if rec := recover(); rec != nil {
+				cmdErr = fmt.Errorf("panic during command execution: %v", rec)
+				env.t.Logf("PANIC: %v", rec)
+				debug.PrintStack()
 			}
 		}()
 
-		// Execute the command
 		cmdErr = cmd.Execute()
 	}()
 
-	// Restore original stdout/stderr and close the write end of pipe
+	// Restore original stdout/stderr and close the write end to signal EOF to reader
 	os.Stdout, os.Stderr = oldStdout, oldStderr
 	w.Close()
 
-	// Read the captured output
-	output, err := io.ReadAll(r)
-	require.NoError(env.t, err)
+	// Wait for reader goroutine to finish
+	<-done
+	require.NoError(env.t, readErr)
 
 	// Log the command output and any errors
 	if cmdErr != nil {

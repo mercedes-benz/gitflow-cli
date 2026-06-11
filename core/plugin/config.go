@@ -17,6 +17,10 @@ type Config struct {
 	VersionQualifier string
 	// Required external tools
 	RequiredTools []string
+	// DockerImage is the container image for docker execution mode (empty = native only)
+	DockerImage string
+	// DockerSetup contains commands run before the actual command in docker mode (e.g., "pip install -q toml-cli")
+	DockerSetup []string
 }
 
 // TestConfig provides test data for e2e tests.
@@ -35,10 +39,4 @@ type TestConfig struct {
 	Template string
 	// VersionFileName is the resulting file name (e.g., "pom.xml", "package.json")
 	VersionFileName string
-	// EmptyFileContent is the content for hook tests (file without version info)
-	EmptyFileContent []byte
-	// HasBeforeStartHook indicates whether the plugin registers beforeReleaseStart/beforeHotfixStart hooks
-	HasBeforeStartHook bool
-	// SetupCommands are commands executed inside the container after start (e.g., installing tools)
-	SetupCommands [][]string
 }

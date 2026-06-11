@@ -12,21 +12,9 @@ import (
 	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 )
 
-func TestHotfixFinish(t *testing.T) {
-	for _, tc := range pluginTestConfigs {
-		t.Run(tc.Name+"Plugin", func(t *testing.T) {
-			testHotfixFinish(t, tc)
-		})
-	}
-
-	t.Run("NoPluginFallback", func(t *testing.T) {
-		testHotfixFinishFallback(t)
-	})
-}
-
-func testHotfixFinish(t *testing.T, tc plugin.TestConfig) {
-	env := helper.SetupTestEnv(t)
-	helper.SetupPluginContainer(t, tc, env.LocalPath)
+func RunHotfixFinish(t *testing.T, tc plugin.TestConfig) {
+	t.Helper()
+	env := helper.SetupTestEnv(t, helper.WithDockerMode(tc.DockerImage != ""))
 
 	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", "main")
 	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-"+tc.VersionQualifier, "develop")
@@ -53,7 +41,8 @@ func testHotfixFinish(t *testing.T, tc plugin.TestConfig) {
 	env.AssertCurrentBranchEquals("develop")
 }
 
-func testHotfixFinishFallback(t *testing.T) {
+func RunHotfixFinishFallback(t *testing.T) {
+	t.Helper()
 	env := helper.SetupTestEnv(t)
 
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "main")

@@ -23,23 +23,14 @@ func NewFactory() *Factory {
 }
 
 // NewPlugin creates and returns a Plugin instance with all dependencies injected.
-// Plugin implementations can use this method to get a pre-configured Plugin.
 func (factory *Factory) NewPlugin(config Config) Plugin {
 	return Plugin{
 		Config: config,
 		Hooks:  factory.Hooks,
-	}
-}
-
-// NewPluginWithExecutor creates a Plugin with an Executor for the given Docker image.
-// The executor mode (docker/native) is read from Viper configuration at runtime.
-func (factory *Factory) NewPluginWithExecutor(config Config, image string) Plugin {
-	return Plugin{
-		Config: config,
-		Hooks:  factory.Hooks,
-		Executor: &Executor{
-			PluginName: config.Name,
-			Image:      image,
+		Executor: Executor{
+			PluginName:  config.Name,
+			Image:       config.DockerImage,
+			DockerSetup: config.DockerSetup,
 		},
 	}
 }

@@ -25,7 +25,6 @@ const (
 	failNotReplaced = "-DfailIfNotReplaced=true"
 	newVersion      = "-DnewVersion=%s"
 
-	dockerImage = "maven:3.9-eclipse-temurin-17"
 )
 
 // Fixed configuration for the mvn plugin
@@ -34,6 +33,7 @@ var pluginConfig = plugin.Config{
 	VersionFileName:  "pom.xml",
 	VersionQualifier: "SNAPSHOT",
 	RequiredTools:    []string{mvn},
+	DockerImage:      "maven:3.9-eclipse-temurin-17",
 }
 
 // mavenPlugin is the plugin for the mvn build tool.
@@ -50,7 +50,7 @@ func init() {
 
 	// Create plugin with pluginFactory to get hooks and other dependencies
 	mavenPlugin := &mavenPlugin{
-		Plugin:      pluginFactory.NewPluginWithExecutor(pluginConfig, dockerImage),
+		Plugin:      pluginFactory.NewPlugin(pluginConfig),
 		getVersion:  []string{evaluate, versionProperty, quiet, stdout},
 		setVersion:  []string{versions, noBackups},
 		useReleases: []string{releases, noBackups, failNotReplaced},

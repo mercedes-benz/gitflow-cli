@@ -46,9 +46,12 @@ var startCmd = &cobra.Command{
 
 	Long: `Create a new production release branch.
 
-When the develop branch has acquired enough features for a release, a new 
-branch is created. This branch is used to prepare for a new production 
-release.`,
+When the develop branch has acquired enough features for a release, a new
+branch is created. This branch is used to prepare for a new production
+release.
+
+By default, plugin commands run natively on the host. Use --docker to run
+them inside a Docker container instead.`,
 
 	RunE: func(c *cobra.Command, args []string) error {
 		return core.Start(core.Release, core.ProjectPath)
@@ -65,7 +68,10 @@ var finishCmd = &cobra.Command{
 	Long: `Finish the current production release branch.
 
 Once the team is satisfied with the state of the release branch, it is merged
-into master and tagged with a version number.`,
+into master and tagged with a version number.
+
+By default, plugin commands run natively on the host. Use --docker to run
+them inside a Docker container instead.`,
 
 	RunE: func(c *cobra.Command, args []string) error {
 		return core.Finish(core.Release, core.ProjectPath)

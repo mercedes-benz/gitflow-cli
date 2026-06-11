@@ -12,27 +12,9 @@ import (
 	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 )
 
-func TestReleaseStart(t *testing.T) {
-	for _, tc := range pluginTestConfigs {
-		t.Run(tc.Name+"Plugin", func(t *testing.T) {
-			testReleaseStart(t, tc)
-		})
-
-		if tc.HasBeforeStartHook && tc.EmptyFileContent != nil {
-			t.Run(tc.Name+"Plugin_BeforeReleaseStartHook", func(t *testing.T) {
-				testBeforeReleaseStartHook(t, tc)
-			})
-		}
-	}
-
-	t.Run("NoPluginFallback", func(t *testing.T) {
-		testReleaseStartFallback(t)
-	})
-}
-
-func testReleaseStart(t *testing.T, tc plugin.TestConfig) {
-	env := helper.SetupTestEnv(t)
-	helper.SetupPluginContainer(t, tc, env.LocalPath)
+func RunReleaseStart(t *testing.T, tc plugin.TestConfig) {
+	t.Helper()
+	env := helper.SetupTestEnv(t, helper.WithDockerMode(tc.DockerImage != ""))
 
 	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", "main")
 	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-"+tc.VersionQualifier, "develop")
@@ -46,7 +28,8 @@ func testReleaseStart(t *testing.T, tc plugin.TestConfig) {
 	env.AssertCurrentBranchEquals("release/1.1.0")
 }
 
-func testReleaseStartFallback(t *testing.T) {
+func RunReleaseStartFallback(t *testing.T) {
+	t.Helper()
 	env := helper.SetupTestEnv(t)
 
 	env.ExecuteGitflow("release", "start")
@@ -60,11 +43,11 @@ func testReleaseStartFallback(t *testing.T) {
 	env.AssertCurrentBranchEquals("release/1.0.0")
 }
 
-func testBeforeReleaseStartHook(t *testing.T, tc plugin.TestConfig) {
-	env := helper.SetupTestEnv(t)
-	helper.SetupPluginContainer(t, tc, env.LocalPath)
+func RunBeforeReleaseStartHook(t *testing.T, tc plugin.TestConfig, emptyContent []byte) {
+	t.Helper()
+	env := helper.SetupTestEnv(t, helper.WithDockerMode(tc.DockerImage != ""))
 
-	env.CommitFile(tc.VersionFileName, tc.EmptyFileContent, "develop")
+	env.CommitFile(tc.VersionFileName, emptyContent, "develop")
 
 	env.ExecuteGitflow("release", "start")
 

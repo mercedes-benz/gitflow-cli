@@ -9,50 +9,30 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"sync"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 const (
-	ModeDocker = "docker"
-	ModeNative = "native"
+	ModeDocker = "docker-mode"
+	ModeNative = "native-mode"
 )
 
-// activeContainers maps plugin names to running container IDs.
-// Tests register containers here so that Executor uses "docker exec" instead of "docker run".
-var (
-	activeContainers   = make(map[string]string)
-	activeContainersMu sync.RWMutex
-)
-
-// RegisterContainer registers a running container ID for a plugin.
-// When set, the executor uses "docker exec" on this container instead of "docker run".
-func RegisterContainer(pluginName, containerID string) {
-	activeContainersMu.Lock()
-	defer activeContainersMu.Unlock()
-	activeContainers[pluginName] = containerID
-	log.Printf("[executor] Registered container for plugin=%s containerID=%s", pluginName, containerID[:12])
-}
-
-// UnregisterContainer removes the container registration for a plugin.
-func UnregisterContainer(pluginName string) {
-	activeContainersMu.Lock()
-	defer activeContainersMu.Unlock()
-	delete(activeContainers, pluginName)
-	log.Printf("[executor] Unregistered container for plugin=%s", pluginName)
-}
+// ExecutorModeOverride is set by CLI flags (--docker-mode/--native-mode) and takes highest priority.
+var ExecutorModeOverride string
 
 // Executor executes CLI commands either natively or inside a Docker container.
 type Executor struct {
-	PluginName string
-	Image      string
+	PluginName  string
+	Image       string
+	DockerSetup []string
 }
 
 // Command returns an *exec.Cmd that runs the given tool with args.
 // In native mode, the command runs directly on the host.
-// In docker mode with a registered container, it uses "docker exec" on the running container.
-// In docker mode without a registered container, it uses "docker run --rm" (ephemeral container).
+// In docker mode, it uses "docker run --rm" with the plugin's image.
+// If DockerSetup is set, commands are wrapped in sh -c with setup commands prepended.
 func (e *Executor) Command(workDir string, name string, args ...string) *exec.Cmd {
 	command := e.resolveCommand(name)
 
@@ -63,21 +43,35 @@ func (e *Executor) Command(workDir string, name string, args ...string) *exec.Cm
 		return cmd
 	}
 
-	if containerID := e.containerID(); containerID != "" {
-		dockerArgs := []string{"exec", "-w", "/work", containerID, command}
-		dockerArgs = append(dockerArgs, args...)
-		log.Printf("[executor] docker exec: container=%s, command=%s %v", containerID[:12], command, args)
-		return exec.Command("docker", dockerArgs...)
-	}
-
+	image := e.resolveImage()
 	dockerArgs := []string{
 		"run", "--rm",
 		"-v", workDir + ":/work",
 		"-w", "/work",
-		e.Image, command,
 	}
-	dockerArgs = append(dockerArgs, args...)
-	log.Printf("[executor] docker run: image=%s, command=%s %v (dir=%s)", e.Image, command, args, workDir)
+
+	if len(e.DockerSetup) > 0 {
+		dockerArgs = append(dockerArgs, "-v", "gitflow-"+e.PluginName+"-cache:/root/.cache")
+	}
+
+	dockerArgs = append(dockerArgs, image)
+
+	if len(e.DockerSetup) > 0 {
+		quotedParts := make([]string, 0, len(args)+1)
+		quotedParts = append(quotedParts, shellQuote(command))
+		for _, a := range args {
+			quotedParts = append(quotedParts, shellQuote(a))
+		}
+		setupChain := strings.Join(e.DockerSetup, " && ")
+		fullCmd := setupChain + " && " + strings.Join(quotedParts, " ")
+		dockerArgs = append(dockerArgs, "sh", "-c", fullCmd)
+		log.Printf("[executor] docker run: image=%s, setup=%v, command=%s %v (dir=%s)", image, e.DockerSetup, command, args, workDir)
+	} else {
+		dockerArgs = append(dockerArgs, command)
+		dockerArgs = append(dockerArgs, args...)
+		log.Printf("[executor] docker run: image=%s, command=%s %v (dir=%s)", image, command, args, workDir)
+	}
+
 	return exec.Command("docker", dockerArgs...)
 }
 
@@ -91,12 +85,25 @@ func (e *Executor) RequiredTools(nativeTools []string) []string {
 }
 
 func (e *Executor) mode() string {
-	key := fmt.Sprintf("plugins.%s.executor", e.PluginName)
-	mode := viper.GetString(key)
-	if mode == ModeNative {
+	if e.Image == "" {
 		return ModeNative
 	}
-	return ModeDocker
+	if ExecutorModeOverride != "" {
+		return ExecutorModeOverride
+	}
+	if mode := viper.GetString(fmt.Sprintf("plugins.%s.mode", e.PluginName)); mode != "" {
+		return mode
+	}
+	return ModeNative
+}
+
+// resolveImage returns the configured Docker image for this plugin, or falls back to the default.
+func (e *Executor) resolveImage() string {
+	key := fmt.Sprintf("plugins.%s.image", e.PluginName)
+	if image := viper.GetString(key); image != "" {
+		return image
+	}
+	return e.Image
 }
 
 // resolveCommand returns the configured command for this plugin, or falls back to the given name.
@@ -108,8 +115,12 @@ func (e *Executor) resolveCommand(name string) string {
 	return name
 }
 
-func (e *Executor) containerID() string {
-	activeContainersMu.RLock()
-	defer activeContainersMu.RUnlock()
-	return activeContainers[e.PluginName]
+func shellQuote(s string) string {
+	if s == "" {
+		return "''"
+	}
+	if !strings.ContainsAny(s, " \t\n'\"\\$`!#&|;(){}[]<>?*~") {
+		return s
+	}
+	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
 }

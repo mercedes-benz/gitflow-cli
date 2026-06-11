@@ -12,12 +12,8 @@ import (
 	"strings"
 )
 
-// composer-specific command constants
-const (
-	composer = "composer"
-
-	dockerImage = "composer:2"
-)
+// composer-specific command constant
+const composer = "composer"
 
 // Fixed configuration for the Composer plugin
 var pluginConfig = plugin.Config{
@@ -25,6 +21,7 @@ var pluginConfig = plugin.Config{
 	VersionFileName:  "composer.json",
 	VersionQualifier: "dev",
 	RequiredTools:    []string{composer},
+	DockerImage:      "composer:2",
 }
 
 // composerPlugin is the struct implementing the Plugin interface.
@@ -37,7 +34,7 @@ func init() {
 	pluginFactory := plugin.NewFactory()
 
 	composerPlugin := &composerPlugin{
-		Plugin: pluginFactory.NewPluginWithExecutor(pluginConfig, dockerImage),
+		Plugin: pluginFactory.NewPlugin(pluginConfig),
 	}
 
 	// Register hooks for this plugin

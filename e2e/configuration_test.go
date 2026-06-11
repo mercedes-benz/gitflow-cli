@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
-	"github.com/mercedes-benz/gitflow-cli/plugin/standard"
+	_ "github.com/mercedes-benz/gitflow-cli/plugin"
 )
 
 // Constants for custom branch names used in all tests
@@ -19,9 +19,11 @@ const (
 	developmentBranch = "custom-develop"
 	releaseBranch     = "custom-release"
 	hotfixBranch      = "custom-hotfix"
-)
 
-var tc = standard.E2ETestConfig
+	versionTemplate = "{{.Version}}"
+	versionFileName = "version.txt"
+	versionQualifier = "dev"
+)
 
 // setupCustomBranchTest creates a test environment with custom branch names
 func setupCustomBranchTest(t *testing.T) (*helper.GitTestEnv, string) {
@@ -43,8 +45,8 @@ func setupCustomBranchTest(t *testing.T) (*helper.GitTestEnv, string) {
 func TestReleaseStartWithConfigFile(t *testing.T) {
 	env, configPath := setupCustomBranchTest(t)
 
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", productionBranch)
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-dev", developmentBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.0.0", productionBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.1.0-dev", developmentBranch)
 
 	env.ExecuteGitflow("release", "start", "--config", configPath)
 
@@ -52,7 +54,7 @@ func TestReleaseStartWithConfigFile(t *testing.T) {
 	env.AssertBranchExists(customReleaseBranch)
 	env.AssertBranchExists("origin/" + customReleaseBranch)
 	env.AssertCurrentBranchEquals(customReleaseBranch)
-	env.AssertTemplateVersionEquals(tc.Template, tc.VersionFileName, "1.1.0", customReleaseBranch)
+	env.AssertTemplateVersionEquals(versionTemplate, versionFileName, "1.1.0", customReleaseBranch)
 	env.AssertCommitMessageEquals("Remove qualifier from project version.", customReleaseBranch)
 }
 
@@ -60,22 +62,22 @@ func TestReleaseStartWithConfigFile(t *testing.T) {
 func TestReleaseFinishWithConfigFile(t *testing.T) {
 	env, configPath := setupCustomBranchTest(t)
 
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", productionBranch)
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-dev", developmentBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.0.0", productionBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.1.0-dev", developmentBranch)
 
 	customReleaseBranch := releaseBranch + "/1.1.0"
 	env.CreateBranch(customReleaseBranch, developmentBranch)
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0", customReleaseBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.1.0", customReleaseBranch)
 
 	env.ExecuteGitflow("release", "finish", "--config", configPath)
 
 	env.AssertCommitMessageEquals("Merge branch '"+customReleaseBranch+"' into "+productionBranch, productionBranch)
 	env.AssertTagEquals("1.1.0", productionBranch)
-	env.AssertTemplateVersionEquals(tc.Template, tc.VersionFileName, "1.1.0", productionBranch)
+	env.AssertTemplateVersionEquals(versionTemplate, versionFileName, "1.1.0", productionBranch)
 
 	env.AssertCommitMessageEquals("Merge branch '"+customReleaseBranch+"' into "+developmentBranch, developmentBranch, 1)
 	env.AssertCommitMessageEquals("Set next minor project version.", developmentBranch, 0)
-	env.AssertTemplateVersionEquals(tc.Template, tc.VersionFileName, "1.2.0-dev", developmentBranch)
+	env.AssertTemplateVersionEquals(versionTemplate, versionFileName, "1.2.0-dev", developmentBranch)
 
 	env.AssertBranchDoesNotExist(customReleaseBranch)
 	env.AssertCurrentBranchEquals(developmentBranch)
@@ -85,8 +87,8 @@ func TestReleaseFinishWithConfigFile(t *testing.T) {
 func TestHotfixStartWithConfigFile(t *testing.T) {
 	env, configPath := setupCustomBranchTest(t)
 
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", productionBranch)
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-dev", developmentBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.0.0", productionBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.1.0-dev", developmentBranch)
 
 	env.ExecuteGitflow("hotfix", "start", "--config", configPath)
 
@@ -94,7 +96,7 @@ func TestHotfixStartWithConfigFile(t *testing.T) {
 	env.AssertBranchExists(customHotfixBranch)
 	env.AssertBranchExists("origin/" + customHotfixBranch)
 	env.AssertCurrentBranchEquals(customHotfixBranch)
-	env.AssertTemplateVersionEquals(tc.Template, tc.VersionFileName, "1.0.1", customHotfixBranch)
+	env.AssertTemplateVersionEquals(versionTemplate, versionFileName, "1.0.1", customHotfixBranch)
 	env.AssertCommitMessageEquals("Increment patch version for hotfix.", customHotfixBranch)
 }
 
@@ -102,21 +104,21 @@ func TestHotfixStartWithConfigFile(t *testing.T) {
 func TestHotfixFinishWithConfigFile(t *testing.T) {
 	env, configPath := setupCustomBranchTest(t)
 
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", productionBranch)
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-dev", developmentBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.0.0", productionBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.1.0-dev", developmentBranch)
 
 	customHotfixBranch := hotfixBranch + "/1.0.1"
 	env.CreateBranch(customHotfixBranch, productionBranch)
-	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.1", customHotfixBranch)
+	env.CommitTemplateContent(versionTemplate, versionFileName, "1.0.1", customHotfixBranch)
 
 	env.ExecuteGitflow("hotfix", "finish", "--config", configPath)
 
 	env.AssertCommitMessageEquals("Merge branch '"+customHotfixBranch+"' into "+productionBranch, productionBranch)
 	env.AssertTagEquals("1.0.1", productionBranch)
-	env.AssertTemplateVersionEquals(tc.Template, tc.VersionFileName, "1.0.1", productionBranch)
+	env.AssertTemplateVersionEquals(versionTemplate, versionFileName, "1.0.1", productionBranch)
 
 	env.AssertCommitMessageEquals("Merge branch '"+customHotfixBranch+"' into "+developmentBranch, developmentBranch)
-	env.AssertTemplateVersionEquals(tc.Template, tc.VersionFileName, "1.1.0-dev", developmentBranch)
+	env.AssertTemplateVersionEquals(versionTemplate, versionFileName, "1.1.0-dev", developmentBranch)
 
 	env.AssertBranchDoesNotExist(customHotfixBranch)
 	env.AssertCurrentBranchEquals(developmentBranch)

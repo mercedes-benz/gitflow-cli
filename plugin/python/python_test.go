@@ -6,19 +6,134 @@ SPDX-License-Identifier: MIT
 package python
 
 import (
+	_ "embed"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
-	"github.com/spf13/viper"
+	"github.com/mercedes-benz/gitflow-cli/e2e/workflow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	viper.Set("plugins.python.executor", "native")
+
+//go:embed testdata/e2e/pyproject_pep621.toml.tpl
+var pyprojectTemplate string
+
+//go:embed testdata/e2e/pyproject_poetry.toml.tpl
+var poetryTemplate string
+
+//go:embed testdata/e2e/setup.cfg.tpl
+var setupCfgTemplate string
+
+//go:embed testdata/e2e/setup.py.tpl
+var setupPyTemplate string
+
+type pythonE2EConfig struct {
+	plugin.TestConfig
+	EmptyFileContent []byte
+}
+
+var e2eConfigs = []pythonE2EConfig{
+	{
+		TestConfig: plugin.TestConfig{
+			Name:             "python_pyproject",
+			PluginName:       "python",
+			DockerImage:      pluginConfig.DockerImage,
+			VersionQualifier: "dev",
+			VersionFileName:  "pyproject.toml",
+			Template:         pyprojectTemplate,
+		},
+		EmptyFileContent: []byte{},
+	},
+	{
+		TestConfig: plugin.TestConfig{
+			Name:             "python_poetry",
+			PluginName:       "python",
+			DockerImage:      pluginConfig.DockerImage,
+			VersionQualifier: "dev",
+			VersionFileName:  "pyproject.toml",
+			Template:         poetryTemplate,
+		},
+	},
+	{
+		TestConfig: plugin.TestConfig{
+			Name:             "python_setup_cfg",
+			PluginName:       "python",
+			DockerImage:      pluginConfig.DockerImage,
+			VersionQualifier: "dev",
+			VersionFileName:  "setup.cfg",
+			Template:         setupCfgTemplate,
+		},
+		EmptyFileContent: []byte{},
+	},
+	{
+		TestConfig: plugin.TestConfig{
+			Name:             "python_setup_py",
+			PluginName:       "python",
+			DockerImage:      pluginConfig.DockerImage,
+			VersionQualifier: "dev",
+			VersionFileName:  "setup.py",
+			Template:         setupPyTemplate,
+		},
+		EmptyFileContent: []byte{},
+	},
+}
+
+func TestE2E_ReleaseStart(t *testing.T) {
+	for _, tc := range e2eConfigs {
+		t.Run(tc.Name, func(t *testing.T) {
+			workflow.RunReleaseStart(t, tc.TestConfig)
+		})
+	}
+}
+
+func TestE2E_ReleaseStart_BeforeHook(t *testing.T) {
+	for _, tc := range e2eConfigs {
+		if tc.EmptyFileContent == nil {
+			continue
+		}
+		t.Run(tc.Name, func(t *testing.T) {
+			workflow.RunBeforeReleaseStartHook(t, tc.TestConfig, tc.EmptyFileContent)
+		})
+	}
+}
+
+func TestE2E_ReleaseFinish(t *testing.T) {
+	for _, tc := range e2eConfigs {
+		t.Run(tc.Name, func(t *testing.T) {
+			workflow.RunReleaseFinish(t, tc.TestConfig)
+		})
+	}
+}
+
+func TestE2E_HotfixStart(t *testing.T) {
+	for _, tc := range e2eConfigs {
+		t.Run(tc.Name, func(t *testing.T) {
+			workflow.RunHotfixStart(t, tc.TestConfig)
+		})
+	}
+}
+
+func TestE2E_HotfixStart_BeforeHook(t *testing.T) {
+	for _, tc := range e2eConfigs {
+		if tc.EmptyFileContent == nil {
+			continue
+		}
+		t.Run(tc.Name, func(t *testing.T) {
+			workflow.RunBeforeHotfixStartHook(t, tc.TestConfig, tc.EmptyFileContent)
+		})
+	}
+}
+
+func TestE2E_HotfixFinish(t *testing.T) {
+	for _, tc := range e2eConfigs {
+		t.Run(tc.Name, func(t *testing.T) {
+			workflow.RunHotfixFinish(t, tc.TestConfig)
+		})
+	}
 }
 
 // setupFromTestdata copies a fixture file into a temp dir with the given target name.
@@ -31,7 +146,7 @@ func setupFromTestdata(t *testing.T, fixture, targetFileName string) (core.Repos
 
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, targetFileName), content, 0644))
 
-	p := &pythonPlugin{Plugin: plugin.NewFactory().NewPluginWithExecutor(pluginConfig, dockerImage)}
+	p := &pythonPlugin{Plugin: plugin.NewFactory().NewPlugin(pluginConfig)}
 	p.Config.VersionFileName = targetFileName
 
 	return core.NewRepository(tmpDir, ""), p
@@ -44,7 +159,7 @@ func setupEmpty(t *testing.T, targetFileName string) (core.Repository, *pythonPl
 
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, targetFileName), []byte(""), 0644))
 
-	p := &pythonPlugin{Plugin: plugin.NewFactory().NewPluginWithExecutor(pluginConfig, dockerImage)}
+	p := &pythonPlugin{Plugin: plugin.NewFactory().NewPlugin(pluginConfig)}
 	p.Config.VersionFileName = targetFileName
 
 	return core.NewRepository(tmpDir, ""), p

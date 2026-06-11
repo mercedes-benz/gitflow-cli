@@ -12,6 +12,7 @@ import (
 	"github.com/mercedes-benz/gitflow-cli/cmd/hotfix"
 	"github.com/mercedes-benz/gitflow-cli/cmd/release"
 	"github.com/mercedes-benz/gitflow-cli/core"
+	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -41,10 +42,19 @@ func init() {
 	// persistent flags, which, if defined here, will be global for the application
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.gitflow-cli.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&core.ProjectPath, "path", "p", ".", "path to git repository (default is current directory)")
+	rootCmd.PersistentFlags().Bool("docker-mode", false, "run plugin commands inside a Docker container")
+	rootCmd.PersistentFlags().Bool("native-mode", false, "run plugin commands natively on the host (default)")
+	rootCmd.MarkFlagsMutuallyExclusive("docker-mode", "native-mode")
 }
 
 // Read in Viper config file and environment variables if set.
 func initConfiguration() {
+	if docker, _ := rootCmd.Flags().GetBool("docker-mode"); docker {
+		plugin.ExecutorModeOverride = plugin.ModeDocker
+	} else if native, _ := rootCmd.Flags().GetBool("native-mode"); native {
+		plugin.ExecutorModeOverride = plugin.ModeNative
+	}
+
 	if cfgFile != "" {
 		// use config file from the flag
 		viper.SetConfigFile(cfgFile)

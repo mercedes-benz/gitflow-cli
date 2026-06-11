@@ -29,8 +29,6 @@ var writeSetupPyScript string
 const (
 	python3 = "python3"
 	toml    = "toml"
-
-	dockerImage = "python:3.12-slim"
 )
 
 type pythonPlugin struct {
@@ -46,13 +44,15 @@ var pluginConfig = plugin.Config{
 	},
 	VersionQualifier: "dev",
 	RequiredTools:    []string{python3, toml},
+	DockerImage:      "python:3.12-slim",
+	DockerSetup:      []string{"pip install -q toml-cli"},
 }
 
 func init() {
 	pluginFactory := plugin.NewFactory()
 
 	p := &pythonPlugin{
-		Plugin: pluginFactory.NewPluginWithExecutor(pluginConfig, dockerImage),
+		Plugin: pluginFactory.NewPlugin(pluginConfig),
 	}
 
 	p.RegisterHook(core.ReleaseStartHooks.BeforeReleaseStartHook, p.beforeReleaseStart)

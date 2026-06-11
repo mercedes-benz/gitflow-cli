@@ -12,27 +12,9 @@ import (
 	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
 )
 
-func TestHotfixStart(t *testing.T) {
-	for _, tc := range pluginTestConfigs {
-		t.Run(tc.Name+"Plugin", func(t *testing.T) {
-			testHotfixStart(t, tc)
-		})
-
-		if tc.HasBeforeStartHook && tc.EmptyFileContent != nil {
-			t.Run(tc.Name+"Plugin_BeforeHotfixStartHook", func(t *testing.T) {
-				testBeforeHotfixStartHook(t, tc)
-			})
-		}
-	}
-
-	t.Run("NoPluginFallback", func(t *testing.T) {
-		testHotfixStartFallback(t)
-	})
-}
-
-func testHotfixStart(t *testing.T, tc plugin.TestConfig) {
-	env := helper.SetupTestEnv(t)
-	helper.SetupPluginContainer(t, tc, env.LocalPath)
+func RunHotfixStart(t *testing.T, tc plugin.TestConfig) {
+	t.Helper()
+	env := helper.SetupTestEnv(t, helper.WithDockerMode(tc.DockerImage != ""))
 
 	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", "main")
 	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-"+tc.VersionQualifier, "develop")
@@ -46,7 +28,8 @@ func testHotfixStart(t *testing.T, tc plugin.TestConfig) {
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
 
-func testHotfixStartFallback(t *testing.T) {
+func RunHotfixStartFallback(t *testing.T) {
+	t.Helper()
 	env := helper.SetupTestEnv(t)
 
 	env.ExecuteGitflow("hotfix", "start")
@@ -60,11 +43,11 @@ func testHotfixStartFallback(t *testing.T) {
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
 
-func testBeforeHotfixStartHook(t *testing.T, tc plugin.TestConfig) {
-	env := helper.SetupTestEnv(t)
-	helper.SetupPluginContainer(t, tc, env.LocalPath)
+func RunBeforeHotfixStartHook(t *testing.T, tc plugin.TestConfig, emptyContent []byte) {
+	t.Helper()
+	env := helper.SetupTestEnv(t, helper.WithDockerMode(tc.DockerImage != ""))
 
-	env.CommitFile(tc.VersionFileName, tc.EmptyFileContent, "main")
+	env.CommitFile(tc.VersionFileName, emptyContent, "main")
 
 	env.ExecuteGitflow("hotfix", "start")
 
