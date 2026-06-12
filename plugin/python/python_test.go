@@ -18,6 +18,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func useDockerMode(t *testing.T) {
+	t.Helper()
+	mode := os.Getenv("GITFLOW_TEST_MODE")
+	if mode == "" {
+		mode = plugin.ModeDocker
+	}
+	if mode != plugin.ModeDocker {
+		return
+	}
+	plugin.ExecutorModeOverride = plugin.ModeDocker
+	t.Cleanup(func() { plugin.ExecutorModeOverride = "" })
+}
+
 
 //go:embed testdata/e2e/pyproject_pep621.toml.tpl
 var pyprojectTemplate string
@@ -202,6 +215,7 @@ func TestVersionFileSelection(t *testing.T) {
 
 // TestReadVersion_PyprojectPEP621 tests reading version from PEP 621 pyproject.toml
 func TestReadVersion_PyprojectPEP621(t *testing.T) {
+	useDockerMode(t)
 	t.Run("StandardVersion", func(t *testing.T) {
 		repo, p := setupFromTestdata(t, "pyproject_pep621.toml", "pyproject.toml")
 		v, err := p.ReadVersion(repo)
@@ -237,6 +251,7 @@ func TestReadVersion_PyprojectPEP621(t *testing.T) {
 
 // TestReadVersion_PyprojectPoetry tests reading version from Poetry pyproject.toml
 func TestReadVersion_PyprojectPoetry(t *testing.T) {
+	useDockerMode(t)
 	t.Run("StandardVersion", func(t *testing.T) {
 		repo, p := setupFromTestdata(t, "pyproject_poetry.toml", "pyproject.toml")
 		v, err := p.ReadVersion(repo)
@@ -260,6 +275,7 @@ func TestReadVersion_PyprojectPoetry(t *testing.T) {
 
 // TestReadVersion_SetupCfg tests reading version from setup.cfg
 func TestReadVersion_SetupCfg(t *testing.T) {
+	useDockerMode(t)
 	t.Run("StandardVersion", func(t *testing.T) {
 		repo, p := setupFromTestdata(t, "setup.cfg", "setup.cfg")
 		v, err := p.ReadVersion(repo)
@@ -301,6 +317,7 @@ func TestReadVersion_SetupCfg(t *testing.T) {
 
 // TestReadVersion_SetupPy tests reading version from setup.py
 func TestReadVersion_SetupPy(t *testing.T) {
+	useDockerMode(t)
 	t.Run("StandardVersion", func(t *testing.T) {
 		repo, p := setupFromTestdata(t, "setup.py", "setup.py")
 		v, err := p.ReadVersion(repo)
@@ -336,6 +353,7 @@ func TestReadVersion_SetupPy(t *testing.T) {
 
 // TestWriteVersion_PyprojectPEP621 tests writing version to PEP 621 pyproject.toml
 func TestWriteVersion_PyprojectPEP621(t *testing.T) {
+	useDockerMode(t)
 	t.Run("ReplaceExistingVersion", func(t *testing.T) {
 		repo, p := setupFromTestdata(t, "pyproject_pep621.toml", "pyproject.toml")
 		require.NoError(t, p.WriteVersion(repo, core.NewVersion("2", "0", "0")))
@@ -375,6 +393,7 @@ func TestWriteVersion_PyprojectPEP621(t *testing.T) {
 
 // TestWriteVersion_PyprojectPoetry tests writing version to Poetry pyproject.toml
 func TestWriteVersion_PyprojectPoetry(t *testing.T) {
+	useDockerMode(t)
 	t.Run("ReplaceExistingVersion", func(t *testing.T) {
 		repo, p := setupFromTestdata(t, "pyproject_poetry.toml", "pyproject.toml")
 		require.NoError(t, p.WriteVersion(repo, core.NewVersion("3", "0", "0")))
@@ -397,6 +416,7 @@ func TestWriteVersion_PyprojectPoetry(t *testing.T) {
 
 // TestWriteVersion_SetupCfg tests writing version to setup.cfg
 func TestWriteVersion_SetupCfg(t *testing.T) {
+	useDockerMode(t)
 	t.Run("ReplaceExistingVersion", func(t *testing.T) {
 		repo, p := setupFromTestdata(t, "setup.cfg", "setup.cfg")
 		require.NoError(t, p.WriteVersion(repo, core.NewVersion("2", "0", "0", "dev")))
@@ -427,6 +447,7 @@ func TestWriteVersion_SetupCfg(t *testing.T) {
 
 // TestWriteVersion_SetupPy tests writing version to setup.py
 func TestWriteVersion_SetupPy(t *testing.T) {
+	useDockerMode(t)
 	t.Run("ReplaceExistingVersion", func(t *testing.T) {
 		repo, p := setupFromTestdata(t, "setup.py", "setup.py")
 		require.NoError(t, p.WriteVersion(repo, core.NewVersion("2", "0", "0")))
@@ -479,6 +500,7 @@ func TestReadWriteRoundtrip(t *testing.T) {
 
 	for _, f := range fixtures {
 		t.Run(f.name, func(t *testing.T) {
+			useDockerMode(t)
 			repo, p := setupFromTestdata(t, f.fixture, f.targetFile)
 
 			original, err := p.ReadVersion(repo)

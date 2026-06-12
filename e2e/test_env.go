@@ -53,7 +53,11 @@ var (
 	}
 	WithDockerMode = func(hasImage bool) SetupTestEnvOption {
 		return func(opts *testEnvOptions) {
-			opts.dockerMode = hasImage && os.Getenv("GITFLOW_TEST_MODE") != "native"
+			mode := os.Getenv("GITFLOW_TEST_MODE")
+			if mode == "" {
+				mode = "docker-mode"
+			}
+			opts.dockerMode = hasImage && mode == "docker-mode"
 		}
 	}
 )
