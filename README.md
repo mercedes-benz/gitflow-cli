@@ -34,6 +34,11 @@ From within the project directory the **gitflow-cli** can be built, run and inst
 
    **Note:** Make sure you have [Go](https://go.dev/doc/install) installed and that the `go/bin` directory is part of your PATH.
 
+### Prerequisites
+
+- **git** — required for all operations
+- **docker** — required only when using `--docker-mode` flag or `mode: docker-mode` in config. Install [Docker Desktop](https://docs.docker.com/get-docker/) or Docker Engine.
+
 ## Usage
 
 Before using **gitflow-cli**, either navigate to your target Git repository or specify it with the `--path` flag.
@@ -44,7 +49,7 @@ Make sure the repository meets all [preconditions](#preconditions).
 To initiate a new release, use the following command:
 
    ```bash
-   gitflow-cli release start
+   gitflow-cli release start [--docker-mode | --native-mode]
    ```
 
 Release start will perform the following steps:
@@ -57,7 +62,7 @@ You can now use the `release/x.y.z` branch for bug fixing, creating the release 
 Once the release is ready, finish it with:
 
    ```bash
-   gitflow-cli release finish
+   gitflow-cli release finish [--docker-mode | --native-mode]
    ```
 
 Release finish will perform the following steps:
@@ -73,7 +78,7 @@ Use hotfixes if you have a bug in production, and you need to make targeted fixe
 To initiate a new hotfix, use the following command:
 
    ```bash
-   gitflow-cli hotfix start
+   gitflow-cli hotfix start [--docker-mode | --native-mode]
    ```
 
 Hotfix start will perform the following steps:
@@ -85,7 +90,7 @@ You can now check out the `hotfix/x.y.z` branch, create a quick patch, and push 
 Once the hotfix is ready, finish it with:
 
    ```bash
-   gitflow-cli hotfix finish
+   gitflow-cli hotfix finish [--docker-mode | --native-mode]
    ```
 
 Hotfix finish will perform the following steps:
@@ -110,14 +115,16 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 
 #### Available Plugins
 
-| Plugin       | Description                                                  | Required File                  | Required Tools    |
-|--------------|--------------------------------------------------------------|--------------------------------|-------------------|
-| **standard** | Plugin for projects without a dedicated version file.        | `version.txt`                  | `git`             |
-| **mvn**      | Plugin for [maven](https://maven.apache.org) projects.       | `pom.xml`                      | `git` `mvn`       |
-| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.           | `package.json`                 | `git` `npm`       |
-| **python**   | Plugin for [python](https://www.python.org/) projects.       | `pyproject.toml`, `setup.cfg`, or `setup.py` | `git` `toml`           |
-| **composer** | Plugin for [composer](https://getcomposer.org/) projects.    | `composer.json`                | `git` `composer`  |
-| **road**     | Plugin for projects with road app manifest configuration.    | `road.yaml`                    | `git`             |
+| Plugin       | Description                                                                                      | Required File                                 |
+|--------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------|
+| **standard** | Plugin for projects without a dedicated version file.                                            | `version.txt`                                 |
+| **mvn**      | Plugin for [maven](https://maven.apache.org) projects.                                           | `pom.xml`                                     |
+| **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.                                               | `package.json`                                |
+| **python**   | Plugin for [python](https://www.python.org/) projects.                                           | `pyproject.toml`, `setup.cfg`, or `setup.py`  |
+| **composer** | Plugin for [composer](https://getcomposer.org/) projects.                                        | `composer.json`                               |
+| **road**     | Plugin for projects with road app manifest configuration.                                        | `road.yaml`                                   |
+
+By default, all plugins execute commands **natively** on the host. This requires the respective CLI tools (e.g., `mvn`, `npm`, `composer`, `toml`) to be installed and available in PATH. Alternatively, you can use `--docker-mode` to run plugin commands inside Docker containers — in that case, only `git` and `docker` are needed locally.
 
 **Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
 
@@ -134,9 +141,49 @@ The **gitflow-cli** detects your project's context and automatically delegates t
      hotfix: hotfix | custom-name                          # hotfix branch prefix
      undo: true | false                                    # rollback local changes in case of an error, default = false
      logging: stderr | stdout | cmdline | output | off     # diagnostic logging for the Gitflow workflow, default = stdout | cmdline | output
+
+   plugins:
+     mvn:
+       mode: docker-mode | native-mode                    # execution mode, default = native-mode
+       image: maven:3.9-eclipse-temurin-17                # Docker image override (default shown)
+       command: mvn                                       # executable name or path, used in both modes
+     npm:
+       mode: docker-mode | native-mode
+       image: node:20-slim
+       command: npm
+     python:
+       mode: docker-mode | native-mode
+       image: python:3.12-slim
+       command: toml                                       # the toml CLI tool used for pyproject.toml
+     composer:
+       mode: docker-mode | native-mode
+       image: composer:2
+       command: composer
+     standard:
+       mode: docker-mode | native-mode
+       image: alpine:3
+     road:
+       mode: docker-mode | native-mode
+       image: alpine:3
    ```
 
    You can also specify a custom configuration file using the top-level flag `--config file-path`.
+
+### Plugin Execution Modes
+
+   All plugins support two execution modes:
+
+   - **native-mode** (default): Commands run directly on the host. The respective CLI tool (e.g., `mvn`, `npm`, `composer`, `toml`) must be installed and available in PATH.
+   - **docker-mode**: Commands run inside a disposable Docker container. Only `docker` needs to be installed on the host. Containers are removed automatically after each invocation (`--rm`).
+
+   The execution mode is resolved in the following priority order:
+   1. CLI flag: `--docker-mode` or `--native-mode` (applies to all plugins)
+   2. Per-plugin config: `plugins.<name>.mode` in config file
+   3. Default: `native-mode`
+
+   Per-plugin configuration options (all optional):
+   - **`image`**: Override the Docker image used in docker mode. If not set, the plugin's built-in default is used (see table above).
+   - **`command`**: Override the executable name or path. Applies to both modes — in native mode it's the binary that gets called, in docker mode it's the command run inside the container. If not set, the plugin's default tool name is used.
 
 ## Contributing
 

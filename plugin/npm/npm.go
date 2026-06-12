@@ -9,14 +9,11 @@ import (
 	"fmt"
 	"github.com/mercedes-benz/gitflow-cli/core"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
-	"os/exec"
 	"strings"
 )
 
 // npm-specific command constant
-const (
-	npm = "npm"
-)
+const npm = "npm"
 
 // Fixed configuration for the NPM plugin
 var pluginConfig = plugin.Config{
@@ -24,6 +21,7 @@ var pluginConfig = plugin.Config{
 	VersionFileName:  "package.json",
 	VersionQualifier: "dev",
 	RequiredTools:    []string{npm},
+	DockerImage:      "node:20-slim",
 }
 
 // npmPlugin is the struct implementing the Plugin interface.
@@ -52,8 +50,7 @@ func init() {
 func (p *npmPlugin) ReadVersion(repository core.Repository) (core.Version, error) {
 	var logs = make([]any, 0)
 	// Execute npm command to read the version from package.json
-	cmd := exec.Command(npm, "pkg", "get", "version")
-	cmd.Dir = repository.Local()
+	cmd := p.Executor.Command(repository.Local(), npm, "pkg", "get", "version")
 
 	// log human-readable description of commands
 	defer func() { core.Log(logs...) }()
@@ -82,12 +79,10 @@ func (p *npmPlugin) ReadVersion(repository core.Repository) (core.Version, error
 // WriteVersion writes the version to package.json using npm.
 func (p *npmPlugin) WriteVersion(repository core.Repository, version core.Version) error {
 	var err error
-	var cmd *exec.Cmd
 	var output []byte
 
 	// Execute npm command to write the version to package.json
-	cmd = exec.Command(npm, "version", version.String(), "--no-git-tag-version")
-	cmd.Dir = repository.Local()
+	cmd := p.Executor.Command(repository.Local(), npm, "version", version.String(), "--no-git-tag-version")
 
 	// log human-readable description of the npm command
 	defer func() { core.Log(cmd, output, err) }()
@@ -117,8 +112,7 @@ func (p *npmPlugin) beforeReleaseStart(repository core.Repository) error {
 	initVersion := core.NewVersion("1", "0", "0", p.Config.VersionQualifier)
 
 	// Set the version using npm CLI
-	cmd := exec.Command(npm, "version", initVersion.String(), "--no-git-tag-version")
-	cmd.Dir = repository.Local()
+	cmd := p.Executor.Command(repository.Local(), npm, "version", initVersion.String(), "--no-git-tag-version")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -152,8 +146,7 @@ func (p *npmPlugin) beforeHotfixStart(repository core.Repository) error {
 	initVersion := core.NewVersion("1", "0", "0")
 
 	// Set the version using npm CLI
-	cmd := exec.Command(npm, "version", initVersion.String(), "--no-git-tag-version")
-	cmd.Dir = repository.Local()
+	cmd := p.Executor.Command(repository.Local(), npm, "version", initVersion.String(), "--no-git-tag-version")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

@@ -8,8 +8,6 @@ package python
 import (
 	_ "embed"
 	"fmt"
-	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/mercedes-benz/gitflow-cli/core"
@@ -45,7 +43,9 @@ var pluginConfig = plugin.Config{
 		"setup.py",
 	},
 	VersionQualifier: "dev",
-	RequiredTools:    []string{python3},
+	RequiredTools:    []string{python3, toml},
+	DockerImage:      "python:3.12-slim",
+	DockerSetup:      []string{"pip install -q toml-cli"},
 }
 
 func init() {
@@ -65,9 +65,9 @@ func (p *pythonPlugin) ReadVersion(repository core.Repository) (core.Version, er
 	var logs = make([]any, 0)
 	defer func() { core.Log(logs...) }()
 
-	filePath := filepath.Join(repository.Local(), p.VersionFileName())
+	projectPath := repository.Local()
 
-	versionString, err := p.readVersion(filePath, repository.Local())
+	versionString, err := p.readVersion(projectPath)
 	if err != nil {
 		logs = append(logs, err)
 		return core.Version{}, err
@@ -87,9 +87,9 @@ func (p *pythonPlugin) WriteVersion(repository core.Repository, version core.Ver
 	var logs = make([]any, 0)
 	defer func() { core.Log(logs...) }()
 
-	filePath := filepath.Join(repository.Local(), p.VersionFileName())
+	projectPath := repository.Local()
 
-	if err := p.writeVersion(filePath, version.String(), repository.Local()); err != nil {
+	if err := p.writeVersion(projectPath, version.String()); err != nil {
 		logs = append(logs, err)
 		return err
 	}
@@ -98,65 +98,71 @@ func (p *pythonPlugin) WriteVersion(repository core.Repository, version core.Ver
 	return nil
 }
 
-func (p *pythonPlugin) readVersion(filePath, dir string) (string, error) {
+func (p *pythonPlugin) readVersion(projectPath string) (string, error) {
 	switch p.VersionFileName() {
 	case "pyproject.toml":
-		return readPyprojectVersion(filePath)
+		return p.readPyprojectVersion(projectPath)
 	case "setup.cfg":
-		return runPython(dir, readSetupCfgScript, filePath)
+		return p.runPython(projectPath, readSetupCfgScript, p.VersionFileName())
 	case "setup.py":
-		return runPython(dir, readSetupPyScript, filePath)
+		return p.runPython(projectPath, readSetupPyScript, p.VersionFileName())
 	default:
 		return "", fmt.Errorf("unsupported version file: %s", p.VersionFileName())
 	}
 }
 
-func (p *pythonPlugin) writeVersion(filePath, version, dir string) error {
+func (p *pythonPlugin) writeVersion(projectPath, version string) error {
 	switch p.VersionFileName() {
 	case "pyproject.toml":
-		return writePyprojectVersion(filePath, version)
+		return p.writePyprojectVersion(projectPath, version)
 	case "setup.cfg":
-		_, err := runPython(dir, writeSetupCfgScript, filePath, version)
+		_, err := p.runPython(projectPath, writeSetupCfgScript, p.VersionFileName(), version)
 		return err
 	case "setup.py":
-		_, err := runPython(dir, writeSetupPyScript, filePath, version)
+		_, err := p.runPython(projectPath, writeSetupPyScript, p.VersionFileName(), version)
 		return err
 	default:
 		return fmt.Errorf("unsupported version file: %s", p.VersionFileName())
 	}
 }
 
-func readPyprojectVersion(filePath string) (string, error) {
-	if out, err := exec.Command(toml, "get", "--toml-path", filePath, "project.version").Output(); err == nil {
+func (p *pythonPlugin) readPyprojectVersion(projectPath string) (string, error) {
+	cmd := p.Executor.Command(projectPath, toml, "get", "--toml-path", p.VersionFileName(), "project.version")
+	if out, err := cmd.Output(); err == nil {
 		return strings.TrimSpace(string(out)), nil
 	}
-	if out, err := exec.Command(toml, "get", "--toml-path", filePath, "tool.poetry.version").Output(); err == nil {
+	cmd = p.Executor.Command(projectPath, toml, "get", "--toml-path", p.VersionFileName(), "tool.poetry.version")
+	if out, err := cmd.Output(); err == nil {
 		return strings.TrimSpace(string(out)), nil
 	}
 	return "", fmt.Errorf("no version found in pyproject.toml")
 }
 
-func writePyprojectVersion(filePath, version string) error {
-	if exec.Command(toml, "get", "--toml-path", filePath, "project.version").Run() == nil {
-		return runToml("set", "--toml-path", filePath, "project.version", version)
+func (p *pythonPlugin) writePyprojectVersion(projectPath, version string) error {
+	cmd := p.Executor.Command(projectPath, toml, "get", "--toml-path", p.VersionFileName(), "project.version")
+	if cmd.Run() == nil {
+		return p.runToml(projectPath, "set", "--toml-path", p.VersionFileName(), "project.version", version)
 	}
-	if exec.Command(toml, "get", "--toml-path", filePath, "tool.poetry.version").Run() == nil {
-		return runToml("set", "--toml-path", filePath, "tool.poetry.version", version)
+	cmd = p.Executor.Command(projectPath, toml, "get", "--toml-path", p.VersionFileName(), "tool.poetry.version")
+	if cmd.Run() == nil {
+		return p.runToml(projectPath, "set", "--toml-path", p.VersionFileName(), "tool.poetry.version", version)
 	}
-	exec.Command(toml, "add_section", "--toml-path", filePath, "project").Run()
-	return runToml("set", "--toml-path", filePath, "project.version", version)
+	// No existing section — create project section and set version
+	p.Executor.Command(projectPath, toml, "add_section", "--toml-path", p.VersionFileName(), "project").Run()
+	return p.runToml(projectPath, "set", "--toml-path", p.VersionFileName(), "project.version", version)
 }
 
-func runToml(args ...string) error {
-	if output, err := exec.Command(toml, args...).CombinedOutput(); err != nil {
+func (p *pythonPlugin) runToml(projectPath string, args ...string) error {
+	cmd := p.Executor.Command(projectPath, toml, args...)
+	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("toml %s failed: %v: %s", args[0], err, output)
 	}
 	return nil
 }
 
-func runPython(dir, script string, args ...string) (string, error) {
-	cmd := exec.Command(python3, append([]string{"-c", script}, args...)...)
-	cmd.Dir = dir
+func (p *pythonPlugin) runPython(projectPath, script string, args ...string) (string, error) {
+	cmdArgs := append([]string{"-c", script}, args...)
+	cmd := p.Executor.Command(projectPath, python3, cmdArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("python3 failed: %v: %s", err, output)

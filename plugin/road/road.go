@@ -28,6 +28,7 @@ var pluginConfig = plugin.Config{
 	VersionFileName:  "road.yaml",
 	VersionQualifier: "dev",
 	RequiredTools:    []string{},
+	DockerImage:      "alpine:3",
 }
 
 // roadPlugin is the struct implementing the Plugin interface.

@@ -11,8 +11,9 @@ import (
 
 // Plugin provides a default implementation for common Plugin interface methods.
 type Plugin struct {
-	Config Config
-	Hooks  *core.HookRegistry // Shared hook registry for all plugins
+	Config   Config
+	Hooks    *core.HookRegistry // Shared hook registry for all plugins
+	Executor Executor
 }
 
 // String returns the name of the plugin.
@@ -41,8 +42,9 @@ func (p *Plugin) VersionQualifier() string {
 }
 
 // RequiredTools returns list of required command line tools.
+// Delegates to the executor to determine whether "docker" or the native tools are required.
 func (p *Plugin) RequiredTools() []string {
-	return p.Config.RequiredTools
+	return p.Executor.RequiredTools(p.Config.RequiredTools)
 }
 
 // RegisterHook is a helper method to register a hook function.

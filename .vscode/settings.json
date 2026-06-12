@@ -1,0 +1,7 @@
+{
+  "go.testTimeout": "300s",
+  "go.testExplorer.enable": true,
+  "go.testExplorer.showOutput": true,
+  "go.testFlags": ["-v", "-count=1"],
+  "go.testEnvVars": { "GITFLOW_TEST_MODE": "docker-mode" }
+}

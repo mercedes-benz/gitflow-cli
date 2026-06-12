@@ -1,5 +1,5 @@
 [project]
 name = "test-python-project"
-version = "{{ .Version }}"
+version = "{{.Version}}"
 description = "Test Python project"
 requires-python = ">=3.8"

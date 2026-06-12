@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "test-python-project"
-version = "{{ .Version }}"
+version = "{{.Version}}"
 description = "Test Python project"
 authors = ["Test Author <test@example.com>"]
 

@@ -20,6 +20,7 @@ var pluginConfig = plugin.Config{
 	VersionFileName:  "version.txt",
 	VersionQualifier: "dev",
 	RequiredTools:    []string{},
+	DockerImage:      "alpine:3",
 }
 
 // standardPlugin is the plugin for the standard workflow.
