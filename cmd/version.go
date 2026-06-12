@@ -5,23 +5,26 @@ SPDX-License-Identifier: MIT
 
 package cmd
 
-import "runtime/debug"
+import (
+	"runtime/debug"
+	"time"
+)
 
 func buildVersion() string {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
 		return "dev"
 	}
-	var revision, time, modified string
+	var revision, vcsTime, modified string
 	for _, s := range info.Settings {
 		switch s.Key {
 		case "vcs.revision":
 			revision = s.Value
 		case "vcs.time":
-			time = s.Value
+			vcsTime = s.Value
 		case "vcs.modified":
 			if s.Value == "true" {
-				modified = " (dirty)"
+				modified = " | dirty"
 			}
 		}
 	}
@@ -31,5 +34,11 @@ func buildVersion() string {
 	if len(revision) > 7 {
 		revision = revision[:7]
 	}
-	return revision + " " + time + modified
+	t, err := time.Parse(time.RFC3339, vcsTime)
+	if err != nil {
+		return revision + modified
+	}
+	local := t.Local()
+	formatted := local.Format("2006-01-02, 15:04")
+	return revision + " (" + formatted + ")" + modified
 }

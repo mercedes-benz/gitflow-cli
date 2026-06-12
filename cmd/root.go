@@ -34,6 +34,7 @@ func Execute() error {
 // Initialize Cobra flags and configuration settings.
 func init() {
 	rootCmd.Version = buildVersion()
+	rootCmd.SetVersionTemplate("{{.Version}}\n")
 
 	// sets the passed functions to be run when each command's ExecuteHook method is called
 	cobra.OnInitialize(initConfiguration)
