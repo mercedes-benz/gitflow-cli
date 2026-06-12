@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Install gitflow-cli",
+      "type": "go",
+      "request": "launch",
+      "mode": "exec",
+      "program": "${env:GOPATH}/bin/gitflow-cli",
+      "preLaunchTask": "install gitflow-cli"
+    }
+  ]
+}
