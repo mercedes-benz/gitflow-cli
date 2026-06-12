@@ -43,11 +43,11 @@ func RunReleaseStartFallback(t *testing.T) {
 	env.AssertCurrentBranchEquals("release/1.0.0")
 }
 
-func RunBeforeReleaseStartHook(t *testing.T, tc plugin.TestConfig, emptyContent []byte) {
+func RunBeforeReleaseStartHook(t *testing.T, tc plugin.TestConfig) {
 	t.Helper()
 	env := e2e.SetupTestEnv(t, e2e.WithDockerMode(tc.DockerImage != ""))
 
-	env.CommitFile(tc.VersionFileName, emptyContent, "develop")
+	env.CommitFile(tc.VersionFileName, tc.EmptyContent, "develop")
 
 	env.ExecuteGitflow("release", "start")
 

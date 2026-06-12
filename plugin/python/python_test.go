@@ -44,107 +44,94 @@ var setupCfgTemplate string
 //go:embed testdata/e2e/setup.py.tpl
 var setupPyTemplate string
 
-type pythonE2EConfig struct {
-	plugin.TestConfig
-	EmptyFileContent []byte
-}
-
-var e2eConfigs = []pythonE2EConfig{
+var testConfigs = []plugin.TestConfig{
 	{
-		TestConfig: plugin.TestConfig{
-			Name:             "python_pyproject",
-			PluginName:       "python",
-			DockerImage:      pluginConfig.DockerImage,
-			VersionQualifier: "dev",
-			VersionFileName:  "pyproject.toml",
-			Template:         pyprojectTemplate,
-		},
-		EmptyFileContent: []byte{},
+		Name:             "python_pyproject",
+		PluginName:       "python",
+		DockerImage:      pluginConfig.DockerImage,
+		VersionQualifier: "dev",
+		VersionFileName:  "pyproject.toml",
+		Template:         pyprojectTemplate,
+		EmptyContent:     []byte{},
 	},
 	{
-		TestConfig: plugin.TestConfig{
-			Name:             "python_poetry",
-			PluginName:       "python",
-			DockerImage:      pluginConfig.DockerImage,
-			VersionQualifier: "dev",
-			VersionFileName:  "pyproject.toml",
-			Template:         poetryTemplate,
-		},
+		Name:             "python_poetry",
+		PluginName:       "python",
+		DockerImage:      pluginConfig.DockerImage,
+		VersionQualifier: "dev",
+		VersionFileName:  "pyproject.toml",
+		Template:         poetryTemplate,
 	},
 	{
-		TestConfig: plugin.TestConfig{
-			Name:             "python_setup_cfg",
-			PluginName:       "python",
-			DockerImage:      pluginConfig.DockerImage,
-			VersionQualifier: "dev",
-			VersionFileName:  "setup.cfg",
-			Template:         setupCfgTemplate,
-		},
-		EmptyFileContent: []byte{},
+		Name:             "python_setup_cfg",
+		PluginName:       "python",
+		DockerImage:      pluginConfig.DockerImage,
+		VersionQualifier: "dev",
+		VersionFileName:  "setup.cfg",
+		Template:         setupCfgTemplate,
+		EmptyContent:     []byte{},
 	},
 	{
-		TestConfig: plugin.TestConfig{
-			Name:             "python_setup_py",
-			PluginName:       "python",
-			DockerImage:      pluginConfig.DockerImage,
-			VersionQualifier: "dev",
-			VersionFileName:  "setup.py",
-			Template:         setupPyTemplate,
-		},
-		EmptyFileContent: []byte{},
+		Name:             "python_setup_py",
+		PluginName:       "python",
+		DockerImage:      pluginConfig.DockerImage,
+		VersionQualifier: "dev",
+		VersionFileName:  "setup.py",
+		Template:         setupPyTemplate,
+		EmptyContent:     []byte{},
 	},
 }
 
 func TestE2E_ReleaseStart(t *testing.T) {
-	for _, tc := range e2eConfigs {
+	for _, tc := range testConfigs {
 		t.Run(tc.Name, func(t *testing.T) {
-			workflow.RunReleaseStart(t, tc.TestConfig)
+			workflow.RunReleaseStart(t, tc)
 		})
 	}
 }
 
 func TestE2E_ReleaseStart_BeforeHook(t *testing.T) {
-	for _, tc := range e2eConfigs {
-		if tc.EmptyFileContent == nil {
+	for _, tc := range testConfigs {
+		if tc.EmptyContent == nil {
 			continue
 		}
 		t.Run(tc.Name, func(t *testing.T) {
-			workflow.RunBeforeReleaseStartHook(t, tc.TestConfig, tc.EmptyFileContent)
+			workflow.RunBeforeReleaseStartHook(t, tc)
 		})
 	}
 }
 
 func TestE2E_ReleaseFinish(t *testing.T) {
-	for _, tc := range e2eConfigs {
+	for _, tc := range testConfigs {
 		t.Run(tc.Name, func(t *testing.T) {
-			workflow.RunReleaseFinish(t, tc.TestConfig)
+			workflow.RunReleaseFinish(t, tc)
 		})
 	}
 }
 
 func TestE2E_HotfixStart(t *testing.T) {
-	for _, tc := range e2eConfigs {
+	for _, tc := range testConfigs {
 		t.Run(tc.Name, func(t *testing.T) {
-			workflow.RunHotfixStart(t, tc.TestConfig)
+			workflow.RunHotfixStart(t, tc)
 		})
 	}
 }
 
 func TestE2E_HotfixStart_BeforeHook(t *testing.T) {
-	for _, tc := range e2eConfigs {
-		if tc.EmptyFileContent == nil {
+	for _, tc := range testConfigs {
+		if tc.EmptyContent == nil {
 			continue
 		}
 		t.Run(tc.Name, func(t *testing.T) {
-			workflow.RunBeforeHotfixStartHook(t, tc.TestConfig, tc.EmptyFileContent)
+			workflow.RunBeforeHotfixStartHook(t, tc)
 		})
 	}
 }
 
 func TestE2E_HotfixFinish(t *testing.T) {
-	for _, tc := range e2eConfigs {
+	for _, tc := range testConfigs {
 		t.Run(tc.Name, func(t *testing.T) {
-			workflow.RunHotfixFinish(t, tc.TestConfig)
+			workflow.RunHotfixFinish(t, tc)
 		})
 	}
 }

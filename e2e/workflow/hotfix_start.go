@@ -43,11 +43,11 @@ func RunHotfixStartFallback(t *testing.T) {
 	env.AssertCurrentBranchEquals("hotfix/1.0.1")
 }
 
-func RunBeforeHotfixStartHook(t *testing.T, tc plugin.TestConfig, emptyContent []byte) {
+func RunBeforeHotfixStartHook(t *testing.T, tc plugin.TestConfig) {
 	t.Helper()
 	env := e2e.SetupTestEnv(t, e2e.WithDockerMode(tc.DockerImage != ""))
 
-	env.CommitFile(tc.VersionFileName, emptyContent, "main")
+	env.CommitFile(tc.VersionFileName, tc.EmptyContent, "main")
 
 	env.ExecuteGitflow("hotfix", "start")
 

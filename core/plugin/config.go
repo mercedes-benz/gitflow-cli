@@ -39,4 +39,7 @@ type TestConfig struct {
 	Template string
 	// VersionFileName is the resulting file name (e.g., "pom.xml", "package.json")
 	VersionFileName string
+	// EmptyContent is the content of an empty version file used in before-hook tests.
+	// For JSON-based plugins this is "{}"; for text-based plugins it can be empty bytes.
+	EmptyContent []byte
 }

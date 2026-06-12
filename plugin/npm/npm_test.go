@@ -16,36 +16,35 @@ import (
 //go:embed testdata/e2e/package.json.tpl
 var packageTemplate string
 
-var e2eConfig = plugin.TestConfig{
+var testConfig = plugin.TestConfig{
 	Name:             "npm",
 	DockerImage:      pluginConfig.DockerImage,
 	VersionQualifier: "dev",
 	VersionFileName:  "package.json",
 	Template:         packageTemplate,
+	EmptyContent:     []byte("{}"),
 }
 
-var emptyFileContent = []byte("{}")
-
 func TestReleaseStart(t *testing.T) {
-	workflow.RunReleaseStart(t, e2eConfig)
+	workflow.RunReleaseStart(t, testConfig)
 }
 
 func TestReleaseStart_BeforeHook(t *testing.T) {
-	workflow.RunBeforeReleaseStartHook(t, e2eConfig, emptyFileContent)
+	workflow.RunBeforeReleaseStartHook(t, testConfig)
 }
 
 func TestReleaseFinish(t *testing.T) {
-	workflow.RunReleaseFinish(t, e2eConfig)
+	workflow.RunReleaseFinish(t, testConfig)
 }
 
 func TestHotfixStart(t *testing.T) {
-	workflow.RunHotfixStart(t, e2eConfig)
+	workflow.RunHotfixStart(t, testConfig)
 }
 
 func TestHotfixStart_BeforeHook(t *testing.T) {
-	workflow.RunBeforeHotfixStartHook(t, e2eConfig, emptyFileContent)
+	workflow.RunBeforeHotfixStartHook(t, testConfig)
 }
 
 func TestHotfixFinish(t *testing.T) {
-	workflow.RunHotfixFinish(t, e2eConfig)
+	workflow.RunHotfixFinish(t, testConfig)
 }

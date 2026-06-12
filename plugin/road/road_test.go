@@ -21,7 +21,7 @@ import (
 //go:embed testdata/e2e/road.yaml.tpl
 var roadTemplate string
 
-var e2eConfig = plugin.TestConfig{
+var testConfig = plugin.TestConfig{
 	Name:             "road",
 	DockerImage:      pluginConfig.DockerImage,
 	VersionQualifier: "dev",
@@ -30,19 +30,19 @@ var e2eConfig = plugin.TestConfig{
 }
 
 func TestReleaseStart(t *testing.T) {
-	workflow.RunReleaseStart(t, e2eConfig)
+	workflow.RunReleaseStart(t, testConfig)
 }
 
 func TestReleaseFinish(t *testing.T) {
-	workflow.RunReleaseFinish(t, e2eConfig)
+	workflow.RunReleaseFinish(t, testConfig)
 }
 
 func TestHotfixStart(t *testing.T) {
-	workflow.RunHotfixStart(t, e2eConfig)
+	workflow.RunHotfixStart(t, testConfig)
 }
 
 func TestHotfixFinish(t *testing.T) {
-	workflow.RunHotfixFinish(t, e2eConfig)
+	workflow.RunHotfixFinish(t, testConfig)
 }
 
 // Helper function to set up test environment

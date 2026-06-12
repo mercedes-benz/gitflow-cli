@@ -50,7 +50,7 @@ When the develop branch has acquired enough features for a release, a new
 branch is created. This branch is used to prepare for a new production
 release.
 
-By default, plugin commands run natively on the host. Use --docker to run
+By default, plugin commands run natively on the host. Use --docker-mode to run
 them inside a Docker container instead.`,
 
 	RunE: func(c *cobra.Command, args []string) error {
@@ -70,7 +70,7 @@ var finishCmd = &cobra.Command{
 Once the team is satisfied with the state of the release branch, it is merged
 into master and tagged with a version number.
 
-By default, plugin commands run natively on the host. Use --docker to run
+By default, plugin commands run natively on the host. Use --docker-mode to run
 them inside a Docker container instead.`,
 
 	RunE: func(c *cobra.Command, args []string) error {

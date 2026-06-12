@@ -48,7 +48,7 @@ var startCmd = &cobra.Command{
 Hotfix branches are created when there's a need to quickly fix an issue in the
 production version of the software.
 
-By default, plugin commands run natively on the host. Use --docker to run
+By default, plugin commands run natively on the host. Use --docker-mode to run
 them inside a Docker container instead.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -68,7 +68,7 @@ var finishCmd = &cobra.Command{
 Once the fix is complete, the hotfix branch is merged back into both master and
 develop (or the current release branch).
 
-By default, plugin commands run natively on the host. Use --docker to run
+By default, plugin commands run natively on the host. Use --docker-mode to run
 them inside a Docker container instead.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
