@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
-	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
+	"github.com/mercedes-benz/gitflow-cli/e2e"
 )
 
 func RunHotfixStart(t *testing.T, tc plugin.TestConfig) {
 	t.Helper()
-	env := helper.SetupTestEnv(t, helper.WithDockerMode(tc.DockerImage != ""))
+	env := e2e.SetupTestEnv(t, e2e.WithDockerMode(tc.DockerImage != ""))
 
 	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.0.0", "main")
 	env.CommitTemplateContent(tc.Template, tc.VersionFileName, "1.1.0-"+tc.VersionQualifier, "develop")
@@ -30,7 +30,7 @@ func RunHotfixStart(t *testing.T, tc plugin.TestConfig) {
 
 func RunHotfixStartFallback(t *testing.T) {
 	t.Helper()
-	env := helper.SetupTestEnv(t)
+	env := e2e.SetupTestEnv(t)
 
 	env.ExecuteGitflow("hotfix", "start")
 
@@ -45,7 +45,7 @@ func RunHotfixStartFallback(t *testing.T) {
 
 func RunBeforeHotfixStartHook(t *testing.T, tc plugin.TestConfig, emptyContent []byte) {
 	t.Helper()
-	env := helper.SetupTestEnv(t, helper.WithDockerMode(tc.DockerImage != ""))
+	env := e2e.SetupTestEnv(t, e2e.WithDockerMode(tc.DockerImage != ""))
 
 	env.CommitFile(tc.VersionFileName, emptyContent, "main")
 

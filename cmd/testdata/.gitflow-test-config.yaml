@@ -1,0 +1,6 @@
+core:
+  production: custom-production
+  development: custom-develop
+  release: custom-release
+  hotfix: custom-hotfix
+

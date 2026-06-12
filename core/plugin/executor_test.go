@@ -158,3 +158,70 @@ func TestExecutor_RequiredTools_DockerMode(t *testing.T) {
 
 	assert.Equal(t, []string{"docker"}, executor.RequiredTools([]string{"npm"}))
 }
+
+func TestExecutor_ConfigValues_ModeImageCommand(t *testing.T) {
+	viper.Reset()
+	ExecutorModeOverride = ""
+	defer viper.Reset()
+
+	viper.Set("plugins.mvn.mode", "docker-mode")
+	viper.Set("plugins.mvn.image", "maven:3.9-custom")
+	viper.Set("plugins.mvn.command", "/opt/maven/bin/mvn")
+	viper.Set("plugins.npm.mode", "native-mode")
+	viper.Set("plugins.npm.image", "node:22-alpine")
+	viper.Set("plugins.npm.command", "/usr/local/bin/npm")
+	viper.Set("plugins.python.mode", "docker-mode")
+	viper.Set("plugins.python.command", "toml-cli")
+
+	t.Run("mvn uses docker-mode from config", func(t *testing.T) {
+		executor := Executor{PluginName: "mvn", Image: "maven:3.9-eclipse-temurin-17"}
+
+		assert.Equal(t, ModeDocker, executor.mode())
+	})
+
+	t.Run("mvn uses custom image from config", func(t *testing.T) {
+		executor := Executor{PluginName: "mvn", Image: "maven:3.9-eclipse-temurin-17"}
+
+		assert.Equal(t, "maven:3.9-custom", executor.resolveImage())
+	})
+
+	t.Run("mvn uses custom command from config", func(t *testing.T) {
+		executor := Executor{PluginName: "mvn", Image: "maven:3.9-eclipse-temurin-17"}
+
+		assert.Equal(t, "/opt/maven/bin/mvn", executor.resolveCommand("mvn"))
+	})
+
+	t.Run("npm uses native-mode from config", func(t *testing.T) {
+		executor := Executor{PluginName: "npm", Image: "node:20-slim"}
+
+		assert.Equal(t, ModeNative, executor.mode())
+	})
+
+	t.Run("npm uses custom image from config", func(t *testing.T) {
+		executor := Executor{PluginName: "npm", Image: "node:20-slim"}
+
+		assert.Equal(t, "node:22-alpine", executor.resolveImage())
+	})
+
+	t.Run("npm uses custom command from config", func(t *testing.T) {
+		executor := Executor{PluginName: "npm", Image: "node:20-slim"}
+
+		assert.Equal(t, "/usr/local/bin/npm", executor.resolveCommand("npm"))
+	})
+
+	t.Run("python uses docker-mode with custom command and default image", func(t *testing.T) {
+		executor := Executor{PluginName: "python", Image: "python:3.12-slim"}
+
+		assert.Equal(t, ModeDocker, executor.mode())
+		assert.Equal(t, "python:3.12-slim", executor.resolveImage())
+		assert.Equal(t, "toml-cli", executor.resolveCommand("toml"))
+	})
+
+	t.Run("composer falls back to defaults when not in config", func(t *testing.T) {
+		executor := Executor{PluginName: "composer", Image: "composer:2"}
+
+		assert.Equal(t, ModeNative, executor.mode())
+		assert.Equal(t, "composer:2", executor.resolveImage())
+		assert.Equal(t, "composer", executor.resolveCommand("composer"))
+	})
+}

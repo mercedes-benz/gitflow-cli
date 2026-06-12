@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
 SPDX-License-Identifier: MIT
 */
 
-package helper
+package e2e
 
 import (
 	"bytes"
@@ -17,11 +17,14 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/mercedes-benz/gitflow-cli/cmd"
 	"github.com/mercedes-benz/gitflow-cli/core/plugin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// ExecuteFunc is the function used to execute the CLI command.
+// Must be set before calling ExecuteGitflow (typically to cmd.Execute).
+var ExecuteFunc func() error
 
 // GitTestEnv manages local repository and simulated remote repository
 type GitTestEnv struct {
@@ -242,7 +245,7 @@ func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 			}
 		}()
 
-		cmdErr = cmd.Execute()
+		cmdErr = ExecuteFunc()
 	}()
 
 	// Restore original stdout/stderr and close the write end to signal EOF to reader

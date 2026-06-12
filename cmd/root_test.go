@@ -3,15 +3,20 @@ SPDX-FileCopyrightText: 2024 Mercedes-Benz Tech Innovation GmbH
 SPDX-License-Identifier: MIT
 */
 
-package e2e
+package cmd_test
 
 import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mercedes-benz/gitflow-cli/e2e/helper"
+	"github.com/mercedes-benz/gitflow-cli/cmd"
+	"github.com/mercedes-benz/gitflow-cli/e2e"
 	_ "github.com/mercedes-benz/gitflow-cli/plugin"
 )
+
+func init() {
+	e2e.ExecuteFunc = cmd.Execute
+}
 
 // Constants for custom branch names used in all tests
 const (
@@ -20,23 +25,23 @@ const (
 	releaseBranch     = "custom-release"
 	hotfixBranch      = "custom-hotfix"
 
-	versionTemplate = "{{.Version}}"
-	versionFileName = "version.txt"
+	versionTemplate  = "{{.Version}}"
+	versionFileName  = "version.txt"
 	versionQualifier = "dev"
 )
 
 // setupCustomBranchTest creates a test environment with custom branch names
-func setupCustomBranchTest(t *testing.T) (*helper.GitTestEnv, string) {
+func setupCustomBranchTest(t *testing.T) (*e2e.GitTestEnv, string) {
 	// GIVEN: a Git repository with custom branch names
-	env := helper.SetupTestEnv(t,
-		helper.WithProductionBranch(productionBranch),
-		helper.WithDevelopmentBranch(developmentBranch),
-		helper.WithReleaseBranch(releaseBranch),
-		helper.WithHotfixBranch(hotfixBranch),
+	env := e2e.SetupTestEnv(t,
+		e2e.WithProductionBranch(productionBranch),
+		e2e.WithDevelopmentBranch(developmentBranch),
+		e2e.WithReleaseBranch(releaseBranch),
+		e2e.WithHotfixBranch(hotfixBranch),
 	)
 
 	// Path to the predefined config file
-	configPath := filepath.Join("helper", ".gitflow-test-config.yaml")
+	configPath := filepath.Join("testdata", ".gitflow-test-config.yaml")
 
 	return env, configPath
 }
