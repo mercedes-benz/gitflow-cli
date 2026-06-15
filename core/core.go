@@ -7,7 +7,6 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -86,6 +85,8 @@ const settingsGroup = "core"
 
 // UndoSetting controls undo-behavior for all local changes in a repository.
 const undoSetting = "undo"
+const pushSetting = "push"
+const dockerFallbackSetting = "docker-fallback"
 
 // Git version control system tool commands.
 const (
@@ -137,6 +138,10 @@ var branchSettings = map[string]Branch{
 }
 
 var undoChanges = false
+var pushChanges = true
+
+// DockerFallback indicates whether to automatically fall back to Docker when a native tool is missing.
+var DockerFallback = false
 
 // ProjectPath holds the path to the Git repository
 var ProjectPath = "."
@@ -197,9 +202,29 @@ func (b Branch) String() string {
 	return branchNames[b]
 }
 
+// ResetBranchNames restores default branch names. Used by tests to prevent state leakage.
+func ResetBranchNames() {
+	branchNames[Production] = "main"
+	branchNames[Development] = "develop"
+	branchNames[Release] = "release"
+	branchNames[Hotfix] = "hotfix"
+}
+
+// branchConfigKeys maps Branch constants to their config key names.
+var branchConfigKeys = map[Branch]string{
+	Production:  "production",
+	Development: "development",
+	Release:     "release",
+	Hotfix:      "hotfix",
+}
+
+// ConfigKey returns the config key name for this branch type.
+func (b Branch) ConfigKey() string {
+	return branchConfigKeys[b]
+}
+
 // Apply suitable settings from the global configuration to the core package.
 func applySettings() {
-	log.SetOutput(os.Stdout)
 	all := viper.AllSettings()
 
 	if settings, ok := all[settingsGroup].(map[string]any); !ok {
@@ -212,12 +237,10 @@ func applySettings() {
 					// first reset logging flags to off if configuration is found
 					loggingFlags = 0
 
-					// logging output goes to standard output
 					if strings.Contains(v, StdErr.String()) {
 						loggingFlags |= StdErr
 					}
 
-					// logging output goes to standard error
 					if strings.Contains(v, StdOut.String()) {
 						loggingFlags |= StdOut
 					}
@@ -238,9 +261,16 @@ func applySettings() {
 					}
 				}
 			} else if key == undoSetting {
-				// configure undo-behavior for all local changes in a repository
 				if v, ok := value.(bool); ok {
 					undoChanges = v
+				}
+			} else if key == pushSetting {
+				if v, ok := value.(bool); ok {
+					pushChanges = v
+				}
+			} else if key == dockerFallbackSetting {
+				if v, ok := value.(bool); ok {
+					DockerFallback = v
 				}
 			} else if b, ok := branchSettings[key]; ok {
 				// configure branch names for the Gitflow model

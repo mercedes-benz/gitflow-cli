@@ -8,6 +8,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/mercedes-benz/gitflow-cli/cmd/hotfix"
 	"github.com/mercedes-benz/gitflow-cli/cmd/release"
@@ -39,6 +40,9 @@ func init() {
 	// sets the passed functions to be run when each command's ExecuteHook method is called
 	cobra.OnInitialize(initConfiguration)
 
+	// set up interactive prompts (branch resolver, docker fallback)
+	initPrompts()
+
 	// add subcommands to the root command
 	rootCmd.AddCommand(release.ReleaseCmd, hotfix.HotfixCmd)
 
@@ -47,6 +51,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&core.ProjectPath, "path", "p", ".", "path to git repository (default is current directory)")
 	rootCmd.PersistentFlags().Bool("docker-mode", false, "run plugin commands inside a Docker container")
 	rootCmd.PersistentFlags().Bool("native-mode", false, "run plugin commands natively on the host (default)")
+	rootCmd.PersistentFlags().Bool("no-push", false, "do not push changes to remote repository")
+	rootCmd.PersistentFlags().BoolP("yes", "y", false, "automatically confirm all interactive prompts")
 	rootCmd.MarkFlagsMutuallyExclusive("docker-mode", "native-mode")
 }
 
@@ -56,6 +62,10 @@ func initConfiguration() {
 		plugin.ExecutorModeOverride = plugin.ModeDocker
 	} else if native, _ := rootCmd.Flags().GetBool("native-mode"); native {
 		plugin.ExecutorModeOverride = plugin.ModeNative
+	}
+
+	if noPush, _ := rootCmd.Flags().GetBool("no-push"); noPush {
+		viper.Set("core.push", false)
 	}
 
 	if cfgFile != "" {
@@ -78,5 +88,47 @@ func initConfiguration() {
 	// if a config file is found, read it in
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	} else if cfgFile == "" {
+		if err := initDefaultConfig(); err != nil {
+			fmt.Fprintln(os.Stderr, "Warning: could not create default config:", err)
+		} else {
+			_ = viper.ReadInConfig()
+		}
 	}
+}
+
+const defaultConfig = `core:
+  # Branch names
+  production: main
+  development: develop
+  release: release
+  hotfix: hotfix
+
+  # Behavior
+  push: true
+  undo: false
+  docker-fallback: false
+
+  # Logging: off, stdout, stderr, cmdline, output (combinable)
+  logging: "off"
+`
+
+func initDefaultConfig() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	configPath := filepath.Join(home, ".gitflow-cli.yaml")
+
+	if _, err := os.Stat(configPath); err == nil {
+		return nil
+	}
+
+	if err := os.WriteFile(configPath, []byte(defaultConfig), 0644); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(os.Stderr, "Created default config file:", configPath)
+	return nil
 }

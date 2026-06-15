@@ -147,6 +147,52 @@ func SetupTestEnv(t *testing.T, options ...SetupTestEnvOption) *GitTestEnv {
 	return env
 }
 
+// SetupTestEnvWithoutDevelop creates a test environment with only the production branch (no develop).
+func SetupTestEnvWithoutDevelop(t *testing.T) *GitTestEnv {
+	t.Helper()
+
+	tmpDir := t.TempDir()
+	localPath := filepath.Join(tmpDir, "local")
+	remotePath := filepath.Join(tmpDir, "remote")
+
+	require.NoError(t, os.MkdirAll(localPath, 0755))
+	require.NoError(t, os.MkdirAll(remotePath, 0755))
+
+	cmd := exec.Command("git", "init", "--bare")
+	cmd.Dir = remotePath
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "init", "--initial-branch=main")
+	cmd.Dir = localPath
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = localPath
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "config", "user.email", "noreply@mercedes-benz.com")
+	cmd.Dir = localPath
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "remote", "add", "origin", remotePath)
+	cmd.Dir = localPath
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "commit", "--allow-empty", "-m", "Initial empty commit")
+	cmd.Dir = localPath
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "push", "-u", "origin", "main")
+	cmd.Dir = localPath
+	require.NoError(t, cmd.Run())
+
+	return &GitTestEnv{
+		LocalPath:  localPath,
+		RemotePath: remotePath,
+		t:          t,
+	}
+}
+
 // CommitTemplateContent renders a template string with the given version and commits the result.
 func (env *GitTestEnv) CommitTemplateContent(templateContent, fileName, version, commitRef string) {
 	env.t.Helper()
@@ -272,6 +318,88 @@ func (env *GitTestEnv) ExecuteGitflow(args ...string) string {
 	}
 
 	return string(output)
+}
+
+// ExecuteGitflowExpectError calls the Gitflow CLI and expects it to fail.
+// Returns the error message.
+func (env *GitTestEnv) ExecuteGitflowExpectError(args ...string) string {
+	env.t.Helper()
+
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	baseArgs := []string{"gitflow-cli", "--path", env.LocalPath}
+	if env.dockerMode {
+		baseArgs = append(baseArgs, "--docker-mode")
+	}
+	os.Args = append(baseArgs, args...)
+	env.t.Logf("Executing command (expect error): gitflow-cli %s", strings.Join(os.Args[1:], " "))
+
+	r, w, err := os.Pipe()
+	require.NoError(env.t, err)
+
+	oldStdout, oldStderr := os.Stdout, os.Stderr
+	os.Stdout, os.Stderr = w, w
+
+	var output []byte
+	var readErr error
+	done := make(chan struct{})
+	go func() {
+		output, readErr = io.ReadAll(r)
+		close(done)
+	}()
+
+	var cmdErr error
+	func() {
+		defer func() {
+			if rec := recover(); rec != nil {
+				cmdErr = fmt.Errorf("panic: %v", rec)
+			}
+		}()
+		cmdErr = ExecuteFunc()
+	}()
+
+	os.Stdout, os.Stderr = oldStdout, oldStderr
+	w.Close()
+	<-done
+	require.NoError(env.t, readErr)
+
+	env.t.Logf("Command output: %s", string(output))
+
+	require.Error(env.t, cmdErr, "Expected command to fail but it succeeded. Output: %s", string(output))
+	return cmdErr.Error()
+}
+
+// WriteConfig writes a temporary config file outside the repo and returns its path.
+func (env *GitTestEnv) WriteConfig(content string) string {
+	env.t.Helper()
+	tmpDir := env.t.TempDir()
+	configPath := filepath.Join(tmpDir, ".gitflow-cli-test.yaml")
+	err := os.WriteFile(configPath, []byte(content), 0644)
+	require.NoError(env.t, err)
+	return configPath
+}
+
+// AssertBranchNotOnRemote checks that a branch exists locally but not on the remote.
+func (env *GitTestEnv) AssertBranchNotOnRemote(branch string) {
+	env.t.Helper()
+	// Check local exists
+	_, err := env.ExecuteGitAllowError("rev-parse", "--verify", branch)
+	assert.NoError(env.t, err, "Branch %s should exist locally", branch)
+	// Check remote does NOT exist
+	_, err = env.ExecuteGitAllowError("rev-parse", "--verify", "origin/"+branch)
+	assert.Error(env.t, err, "Branch %s should NOT exist on remote", branch)
+}
+
+// AssertTagNotOnRemote checks that a tag exists locally but not on the remote.
+func (env *GitTestEnv) AssertTagNotOnRemote(tag string) {
+	env.t.Helper()
+	// Check local tag exists
+	_, err := env.ExecuteGitAllowError("rev-parse", "--verify", tag)
+	assert.NoError(env.t, err, "Tag %s should exist locally", tag)
+	// Check remote tag does NOT exist
+	output, _ := env.ExecuteGitAllowError("ls-remote", "--tags", "origin", tag)
+	assert.Empty(env.t, strings.TrimSpace(output), "Tag %s should NOT exist on remote", tag)
 }
 
 // ExecuteGit runs a git command in the local repository

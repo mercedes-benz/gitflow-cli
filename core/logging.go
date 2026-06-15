@@ -41,7 +41,7 @@ var loggingNames = map[Logging]string{
 }
 
 // Internal flags for controlling core package behavior.
-var loggingFlags Logging = StdOut | CmdLine | Output
+var loggingFlags Logging = 0
 
 // Log a message to Go standard logging based on logging flags and variadic arguments.
 func Log(message ...any) {

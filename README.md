@@ -37,7 +37,7 @@ From within the project directory the **gitflow-cli** can be built, run and inst
 ### Prerequisites
 
 - **git** — required for all operations
-- **docker** — required only when using `--docker-mode` flag or `mode: docker-mode` in config. Install [Docker Desktop](https://docs.docker.com/get-docker/) or Docker Engine.
+- **docker** — optional. Used when `--docker-mode` flag is set, or as automatic fallback when a native plugin tool is missing (see [Plugin Execution Modes](#plugin-execution-modes)). Install [Docker Desktop](https://docs.docker.com/get-docker/) or Docker Engine.
 
 ## Usage
 
@@ -130,44 +130,43 @@ By default, all plugins execute commands **natively** on the host. This requires
 
 ## Configuration
 
-   You have the option to provide a configuration file to **gitflow-cli**.
-   This configuration file will be automatically located at `HOME/.gitflow-cli.yaml` and has the following structure:
+A configuration file is automatically created at `$HOME/.gitflow-cli.yaml` on first run. You can also specify a custom path with `--config`.
+
+### Configuration Reference
+
+| Setting | Description | Config key | CLI flag | Default |
+|---------|-------------|------------|----------|---------|
+| Production branch | Name of the production branch | `core.production` | — | `main` |
+| Development branch | Name of the development branch | `core.development` | — | `develop` |
+| Release prefix | Prefix for release branches | `core.release` | — | `release` |
+| Hotfix prefix | Prefix for hotfix branches | `core.hotfix` | — | `hotfix` |
+| Push | Push changes to remote after workflow completes | `core.push` | `--no-push` (disables) | `true` |
+| Undo | Rollback local changes on workflow failure | `core.undo` | — | `false` |
+| Docker fallback | Automatically use Docker when native tool is missing | `core.docker-fallback` | — | `false` |
+| Logging | Diagnostic output (combinable: `stdout`, `stderr`, `cmdline`, `output`, `off`) | `core.logging` | — | `off` |
+| Docker mode | Force all plugin commands to run in Docker | — | `--docker-mode` | `false` |
+| Native mode | Force all plugin commands to run natively | — | `--native-mode` | `false` |
+| Auto-confirm | Automatically confirm all interactive prompts | — | `--yes` / `-y` | `false` |
+| Config file | Path to configuration file | — | `--config` / `-c` | `$HOME/.gitflow-cli.yaml` |
+| Project path | Path to the git repository | — | `--path` / `-p` | `.` |
+
+**Priority:** CLI flag > config file > default value.
+
+`--docker-mode` and `--native-mode` are mutually exclusive.
+
+### Example Configuration
 
    ```yaml
    core:
-     production: main | custom-name                        # production branch name
-     development: develop | custom-name                    # development branch name
-     release: release | custom-name                        # release branch prefix
-     hotfix: hotfix | custom-name                          # hotfix branch prefix
-     undo: true | false                                    # rollback local changes in case of an error, default = false
-     logging: stderr | stdout | cmdline | output | off     # diagnostic logging for the Gitflow workflow, default = stdout | cmdline | output
-
-   plugins:
-     mvn:
-       mode: docker-mode | native-mode                    # execution mode, default = native-mode
-       image: maven:3.9-eclipse-temurin-17                # Docker image override (default shown)
-       command: mvn                                       # executable name or path, used in both modes
-     npm:
-       mode: docker-mode | native-mode
-       image: node:20-slim
-       command: npm
-     python:
-       mode: docker-mode | native-mode
-       image: python:3.12-slim
-       command: toml                                       # the toml CLI tool used for pyproject.toml
-     composer:
-       mode: docker-mode | native-mode
-       image: composer:2
-       command: composer
-     standard:
-       mode: docker-mode | native-mode
-       image: alpine:3
-     road:
-       mode: docker-mode | native-mode
-       image: alpine:3
+     production: main
+     development: develop
+     release: release
+     hotfix: hotfix
+     push: true
+     undo: false
+     docker-fallback: false
+     logging: "off"
    ```
-
-   You can also specify a custom configuration file using the top-level flag `--config file-path`.
 
 ### Plugin Execution Modes
 
@@ -178,12 +177,9 @@ By default, all plugins execute commands **natively** on the host. This requires
 
    The execution mode is resolved in the following priority order:
    1. CLI flag: `--docker-mode` or `--native-mode` (applies to all plugins)
-   2. Per-plugin config: `plugins.<name>.mode` in config file
-   3. Default: `native-mode`
-
-   Per-plugin configuration options (all optional):
-   - **`image`**: Override the Docker image used in docker mode. If not set, the plugin's built-in default is used (see table above).
-   - **`command`**: Override the executable name or path. Applies to both modes — in native mode it's the binary that gets called, in docker mode it's the command run inside the container. If not set, the plugin's default tool name is used.
+   2. Docker fallback: If `docker-fallback: true` in config and the native tool is missing, Docker is used automatically
+   3. Interactive: If the native tool is missing and docker-fallback is not enabled, the CLI asks whether to use Docker (auto-confirmed with `--yes`)
+   4. Default: `native-mode`
 
 ## Contributing
 

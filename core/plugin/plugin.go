@@ -42,8 +42,10 @@ func (p *Plugin) VersionQualifier() string {
 }
 
 // RequiredTools returns list of required command line tools.
-// Delegates to the executor to determine whether "docker" or the native tools are required.
+// Resolves execution mode (applying docker fallback if needed) then delegates
+// to the executor to determine whether "docker" or the native tools are required.
 func (p *Plugin) RequiredTools() []string {
+	_ = p.Executor.ResolveMode(p.Config.RequiredTools)
 	return p.Executor.RequiredTools(p.Config.RequiredTools)
 }
 

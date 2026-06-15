@@ -10,6 +10,13 @@ import (
 	"os"
 )
 
+func pushIfEnabled(fn func() error) error {
+	if !pushChanges {
+		return nil
+	}
+	return fn()
+}
+
 // Start executes the first plugin that meets the precondition.
 func Start(branch Branch, projectPath string) error {
 	pluginRegistryLock.Lock()
@@ -48,6 +55,18 @@ func executePluginStart(plugin Plugin, branch Branch, projectPath string) error 
 	// check if the repository prerequisites are met
 	if err := repository.IsClean(); err != nil {
 		return err
+	}
+
+	// ensure production branch exists (must resolve before development)
+	if err := syncBranch(repository, Production); err != nil {
+		return err
+	}
+
+	// ensure development branch exists for release workflows
+	if branch == Release {
+		if err := syncBranch(repository, Development); err != nil {
+			return err
+		}
 	}
 
 	// format start command messages
@@ -127,6 +146,16 @@ func executePluginFinish(plugin Plugin, branch Branch, projectPath string) error
 		return err
 	}
 
+	// ensure production branch exists (must resolve before development)
+	if err := syncBranch(repository, Production); err != nil {
+		return err
+	}
+
+	// ensure development branch exists for finish workflows
+	if err := syncBranch(repository, Development); err != nil {
+		return err
+	}
+
 	// format finish command messages
 	prefix := fmt.Sprintf("%v Plugin Finish on branch", plugin.String())
 	called := fmt.Sprintf("%v %v called: %v", prefix, branch.String(), repository.Local())
@@ -175,15 +204,6 @@ func releaseStart(plugin Plugin, repository Repository) error {
 			Release, Release)
 	}
 
-	// check if the repository has a develop branch
-	if found, _, err := repository.HasBranch(Development); err != nil {
-		return err
-	} else if !found {
-		return fmt.Errorf(
-			"repository does not have a '%v' branch to start a new '%v' branch from",
-			Development, Release)
-	}
-
 	// checkout develop branch
 	if err := repository.CheckoutBranch(Development.String()); err != nil {
 		return err
@@ -221,7 +241,7 @@ func releaseStart(plugin Plugin, repository Repository) error {
 	}
 
 	// push all branches to remotes
-	if err := repository.PushAllChanges(); err != nil {
+	if err := pushIfEnabled(repository.PushAllChanges); err != nil {
 		return err
 	}
 
@@ -276,7 +296,7 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	}
 
 	// push all branches to remotes
-	if err := repository.PushAllChanges(); err != nil {
+	if err := pushIfEnabled(repository.PushAllChanges); err != nil {
 		return err
 	}
 
@@ -298,15 +318,6 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 		return err
 	} else {
 		releaseVersion = version
-	}
-
-	// check if the repository has a develop branch
-	if found, _, err := repository.HasBranch(Development); err != nil {
-		return err
-	} else if !found {
-		return fmt.Errorf(
-			"repository does not have a '%v' branch to finish and merge with a '%v' branch",
-			Development, Release)
 	}
 
 	// checkout release branch
@@ -369,17 +380,17 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 	}
 
 	// push all branches to remotes
-	if err := repository.PushAllChanges(); err != nil {
+	if err := pushIfEnabled(repository.PushAllChanges); err != nil {
 		return err
 	}
 
 	// push all tags to remotes
-	if err := repository.PushAllTags(); err != nil {
+	if err := pushIfEnabled(repository.PushAllTags); err != nil {
 		return err
 	}
 
 	// delete the release branch remotely
-	if err := repository.PushDeletion(releaseVersion.BranchName(Release)); err != nil {
+	if err := pushIfEnabled(func() error { return repository.PushDeletion(releaseVersion.BranchName(Release)) }); err != nil {
 		return err
 	}
 
@@ -401,15 +412,6 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 		return err
 	} else {
 		hotfixVersion = version
-	}
-
-	// check if the repository has a develop branch
-	if found, _, err := repository.HasBranch(Development); err != nil {
-		return err
-	} else if !found {
-		return fmt.Errorf(
-			"repository does not have a '%v' branch to finish and merge with a '%v' branch",
-			Development, Hotfix)
 	}
 
 	// checkout hotfix branch
@@ -471,17 +473,17 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 	}
 
 	// push all branches to remotes
-	if err := repository.PushAllChanges(); err != nil {
+	if err := pushIfEnabled(repository.PushAllChanges); err != nil {
 		return err
 	}
 
 	// push all tags to remotes
-	if err := repository.PushAllTags(); err != nil {
+	if err := pushIfEnabled(repository.PushAllTags); err != nil {
 		return err
 	}
 
 	// delete the hotfix branch remotely
-	if err := repository.PushDeletion(hotfixVersion.BranchName(Hotfix)); err != nil {
+	if err := pushIfEnabled(func() error { return repository.PushDeletion(hotfixVersion.BranchName(Hotfix)) }); err != nil {
 		return err
 	}
 

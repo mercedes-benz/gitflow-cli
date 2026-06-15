@@ -55,3 +55,61 @@ func TestHotfixFinish(t *testing.T) {
 func TestHotfixFinishFallback(t *testing.T) {
 	workflow.RunHotfixFinishFallback(t)
 }
+
+// --- Edge case tests ---
+
+func TestReleaseStartNoPush(t *testing.T) {
+	workflow.RunReleaseStartNoPush(t)
+}
+
+func TestReleaseFinishNoPush(t *testing.T) {
+	workflow.RunReleaseFinishNoPush(t)
+}
+
+func TestHotfixStartNoPush(t *testing.T) {
+	workflow.RunHotfixStartNoPush(t)
+}
+
+func TestHotfixFinishNoPush(t *testing.T) {
+	workflow.RunHotfixFinishNoPush(t)
+}
+
+func TestUndoPreservesExistingBranches(t *testing.T) {
+	workflow.RunUndoPreservesExistingBranches(t)
+}
+
+func TestUndoDisabledLeavesState(t *testing.T) {
+	workflow.RunUndoDisabledLeavesState(t)
+}
+
+func TestReleaseStartCreatesDevBranch(t *testing.T) {
+	workflow.RunReleaseStartCreatesDevBranch(t)
+}
+
+func TestReleaseStartDeclinedCreatesDev(t *testing.T) {
+	workflow.RunReleaseStartDeclinedCreatesDev(t)
+}
+
+func TestReleaseStartWithMasterBranch(t *testing.T) {
+	workflow.RunReleaseStartWithMasterBranch(t)
+}
+
+func TestReleaseStartWithMasterDeclined(t *testing.T) {
+	workflow.RunReleaseStartWithMasterDeclined(t)
+}
+
+func TestReleaseStartWithDevBranch(t *testing.T) {
+	workflow.RunReleaseStartWithDevBranch(t)
+}
+
+func TestReleaseStartDirtyRepo(t *testing.T) {
+	workflow.RunReleaseStartDirtyRepo(t)
+}
+
+func TestReleaseStartDuplicateRelease(t *testing.T) {
+	workflow.RunReleaseStartDuplicateRelease(t)
+}
+
+func TestHotfixStartDuplicateHotfix(t *testing.T) {
+	workflow.RunHotfixStartDuplicateHotfix(t)
+}

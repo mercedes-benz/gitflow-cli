@@ -8,10 +8,11 @@ package plugin
 import (
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 
-	"github.com/spf13/viper"
+	"github.com/mercedes-benz/gitflow-cli/core"
 )
 
 const (
@@ -21,6 +22,11 @@ const (
 
 // ExecutorModeOverride is set by CLI flags (--docker-mode/--native-mode) and takes highest priority.
 var ExecutorModeOverride string
+
+// ToolFallbackFunc is called when a native tool is not found and docker-fallback is not
+// automatically enabled. It asks the user whether to use Docker instead.
+// Returns true to proceed with Docker, false to abort.
+var ToolFallbackFunc func(tool string, image string) (bool, error)
 
 // Executor executes CLI commands either natively or inside a Docker container.
 type Executor struct {
@@ -32,18 +38,15 @@ type Executor struct {
 // Command returns an *exec.Cmd that runs the given tool with args.
 // In native mode, the command runs directly on the host.
 // In docker mode, it uses "docker run --rm" with the plugin's image.
-// If DockerSetup is set, commands are wrapped in sh -c with setup commands prepended.
 func (e *Executor) Command(workDir string, name string, args ...string) *exec.Cmd {
-	command := e.resolveCommand(name)
-
 	if e.mode() == ModeNative {
-		log.Printf("[executor] native: %s %v (dir=%s)", command, args, workDir)
-		cmd := exec.Command(command, args...)
+		log.Printf("[executor] native: %s %v (dir=%s)", name, args, workDir)
+		cmd := exec.Command(name, args...)
 		cmd.Dir = workDir
 		return cmd
 	}
 
-	image := e.resolveImage()
+	image := e.Image
 	dockerArgs := []string{
 		"run", "--rm",
 		"-v", workDir + ":/work",
@@ -58,18 +61,18 @@ func (e *Executor) Command(workDir string, name string, args ...string) *exec.Cm
 
 	if len(e.DockerSetup) > 0 {
 		quotedParts := make([]string, 0, len(args)+1)
-		quotedParts = append(quotedParts, shellQuote(command))
+		quotedParts = append(quotedParts, shellQuote(name))
 		for _, a := range args {
 			quotedParts = append(quotedParts, shellQuote(a))
 		}
 		setupChain := strings.Join(e.DockerSetup, " && ")
 		fullCmd := setupChain + " && " + strings.Join(quotedParts, " ")
 		dockerArgs = append(dockerArgs, "sh", "-c", fullCmd)
-		log.Printf("[executor] docker run: image=%s, setup=%v, command=%s %v (dir=%s)", image, e.DockerSetup, command, args, workDir)
+		log.Printf("[executor] docker run: image=%s, setup=%v, command=%s %v (dir=%s)", image, e.DockerSetup, name, args, workDir)
 	} else {
-		dockerArgs = append(dockerArgs, command)
+		dockerArgs = append(dockerArgs, name)
 		dockerArgs = append(dockerArgs, args...)
-		log.Printf("[executor] docker run: image=%s, command=%s %v (dir=%s)", image, command, args, workDir)
+		log.Printf("[executor] docker run: image=%s, command=%s %v (dir=%s)", image, name, args, workDir)
 	}
 
 	return exec.Command("docker", dockerArgs...)
@@ -84,6 +87,50 @@ func (e *Executor) RequiredTools(nativeTools []string) []string {
 	return []string{"docker"}
 }
 
+// ResolveMode determines the effective execution mode, applying docker fallback logic
+// when native tools are missing. Call this before RequiredTools to allow fallback.
+func (e *Executor) ResolveMode(nativeTools []string) error {
+	if ExecutorModeOverride != "" || e.Image == "" {
+		return nil
+	}
+
+	// Check if native tools are available
+	for _, tool := range nativeTools {
+		if _, err := exec.LookPath(tool); err != nil {
+			return e.handleMissingTool(tool)
+		}
+	}
+	return nil
+}
+
+func (e *Executor) handleMissingTool(tool string) error {
+	// Check if docker is available
+	if _, err := exec.LookPath("docker"); err != nil {
+		return fmt.Errorf("neither '%s' nor 'docker' found — install one of them", tool)
+	}
+
+	// Auto-fallback if configured
+	if core.DockerFallback {
+		fmt.Fprintf(os.Stderr, "INFO: %s not found, using Docker (%s)\n", tool, e.Image)
+		ExecutorModeOverride = ModeDocker
+		return nil
+	}
+
+	// Ask the user via the callback
+	if ToolFallbackFunc != nil {
+		proceed, err := ToolFallbackFunc(tool, e.Image)
+		if err != nil {
+			return err
+		}
+		if proceed {
+			ExecutorModeOverride = ModeDocker
+			return nil
+		}
+	}
+
+	return fmt.Errorf("'%s' not found — install it or enable docker-fallback in config", tool)
+}
+
 func (e *Executor) mode() string {
 	if e.Image == "" {
 		return ModeNative
@@ -91,28 +138,7 @@ func (e *Executor) mode() string {
 	if ExecutorModeOverride != "" {
 		return ExecutorModeOverride
 	}
-	if mode := viper.GetString(fmt.Sprintf("plugins.%s.mode", e.PluginName)); mode != "" {
-		return mode
-	}
 	return ModeNative
-}
-
-// resolveImage returns the configured Docker image for this plugin, or falls back to the default.
-func (e *Executor) resolveImage() string {
-	key := fmt.Sprintf("plugins.%s.image", e.PluginName)
-	if image := viper.GetString(key); image != "" {
-		return image
-	}
-	return e.Image
-}
-
-// resolveCommand returns the configured command for this plugin, or falls back to the given name.
-func (e *Executor) resolveCommand(name string) string {
-	key := fmt.Sprintf("plugins.%s.command", e.PluginName)
-	if command := viper.GetString(key); command != "" {
-		return command
-	}
-	return name
 }
 
 func shellQuote(s string) string {

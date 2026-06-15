@@ -50,6 +50,7 @@ type (
 		UndoAllChanges(cause error) error
 		CompareFiles(sourceBranch, targetBranch, sourceFile, targetFile string) (bool, error)
 		WriteFile(fileName string, fileContent string) error
+		HasRemoteBranch(name string) (bool, error)
 	}
 )
 
@@ -294,11 +295,11 @@ func (r *repository) HasBranch(branch Branch) (bool, []string, error) {
 		logs = append(logs, all, output)
 
 		// check every line of the output for the branch name
+		prefix := r.remote + "/" + branch.String()
 		for _, remote := range strings.Split(string(output), "\n") {
-			if remote = strings.TrimSpace(remote); strings.Contains(remote, branch.String()) {
-				if strings.HasPrefix(remote, r.remote) {
-					remotes = append(remotes, remote)
-				}
+			remote = strings.TrimSpace(remote)
+			if remote == prefix || strings.HasPrefix(remote, prefix+"/") {
+				remotes = append(remotes, remote)
 			}
 		}
 	}
@@ -598,43 +599,34 @@ func (r *repository) UndoAllChanges(cause error) error {
 		return cause
 	}
 
-	// fetch and prune all remote branches
-	fetch := exec.Command(Git, r.fetchAll...)
-	fetch.Dir = r.projectPath
-
-	// clean all files and directories in the working directory
-	clean := exec.Command(Git, r.cleanAll...)
-	clean.Dir = r.projectPath
-
-	// checkout the production branch
-	checkout := exec.Command(Git, append(r.switchBranch, Production.String())...)
-	checkout.Dir = r.projectPath
-
-	// reset the production branch to the remote production branch
-	reset := exec.Command(Git, append(r.resetBranch, fmt.Sprintf("%v/%v", r.remote, Production))...)
-	reset.Dir = r.projectPath
-
-	// list all locals of the repository
-	all := exec.Command(Git, r.allLocals...)
-	all.Dir = r.projectPath
-
-	// run git command to fetch all branches
-	if output, err := fetch.CombinedOutput(); err != nil {
-		logs = append(logs, fetch, output, err)
-		return errors.Join(cause, fmt.Errorf("fetching all branches failed with %v: %s", err, output))
-	} else {
-		logs = append(logs, fetch, output)
+	// abort any in-progress merge (ignore error if no merge is running)
+	abortMerge := exec.Command(Git, "merge", "--abort")
+	abortMerge.Dir = r.projectPath
+	if output, err := abortMerge.CombinedOutput(); err == nil {
+		logs = append(logs, abortMerge, output)
 	}
 
-	// run git command to check out branch
+	// try to checkout the production branch
+	checkout := exec.Command(Git, append(r.switchBranch, Production.String())...)
+	checkout.Dir = r.projectPath
 	if output, err := checkout.CombinedOutput(); err != nil {
 		logs = append(logs, checkout, output, err)
-		return errors.Join(cause, fmt.Errorf("git '%v' '%v' failed with %v: %s", checkout, Production, err, output))
+		// fallback: force checkout
+		forceCheckout := exec.Command(Git, "checkout", "--force", Production.String())
+		forceCheckout.Dir = r.projectPath
+		if output, err := forceCheckout.CombinedOutput(); err != nil {
+			logs = append(logs, forceCheckout, output, err)
+			return errors.Join(cause, fmt.Errorf("checkout production branch failed with %v: %s", err, output))
+		} else {
+			logs = append(logs, forceCheckout, output)
+		}
 	} else {
 		logs = append(logs, checkout, output)
 	}
 
-	// run git command to reset branch
+	// reset the production branch to the remote production branch
+	reset := exec.Command(Git, append(r.resetBranch, fmt.Sprintf("%v/%v", r.remote, Production))...)
+	reset.Dir = r.projectPath
 	if output, err := reset.CombinedOutput(); err != nil {
 		logs = append(logs, reset, output, err)
 		return errors.Join(cause, fmt.Errorf("resetting production branch failed with %v: %s", err, output))
@@ -642,7 +634,9 @@ func (r *repository) UndoAllChanges(cause error) error {
 		logs = append(logs, reset, output)
 	}
 
-	// run git command to clean all files and directories
+	// clean all files and directories in the working directory
+	clean := exec.Command(Git, r.cleanAll...)
+	clean.Dir = r.projectPath
 	if output, err := clean.CombinedOutput(); err != nil {
 		logs = append(logs, clean, output, err)
 		return errors.Join(cause, fmt.Errorf("cleaning all files and directories failed with %v: %s", err, output))
@@ -650,36 +644,60 @@ func (r *repository) UndoAllChanges(cause error) error {
 		logs = append(logs, clean, output)
 	}
 
-	// run git command to list all locals
+	// list all locals and only delete workflow branches (release/hotfix prefixes)
+	all := exec.Command(Git, r.allLocals...)
+	all.Dir = r.projectPath
 	if output, err := all.CombinedOutput(); err != nil {
 		logs = append(logs, all, output, err)
 		return errors.Join(cause, fmt.Errorf("getting all locals failed with %v: %s", err, output))
 	} else {
 		logs = append(logs, all, output)
 
-		// check every line of the output for the branch name
+		releasePrefix := branchNames[Release] + "/"
+		hotfixPrefix := branchNames[Hotfix] + "/"
+
 		for _, local := range strings.Split(string(output), "\n") {
 			local = strings.Trim(local, "* \n\r")
 
-			// check if the local branch is not the production branch
-			if len(local) > 0 && local != Production.String() {
-				// force-delete the local branch
-				delete := exec.Command(Git, append(r.forceDeleteBranch, local)...)
-				delete.Dir = r.projectPath
+			if len(local) == 0 {
+				continue
+			}
 
-				// run git command to delete the local branch
-				if output, err := delete.CombinedOutput(); err != nil {
-					logs = append(logs, delete, output, err)
-					return errors.Join(cause, fmt.Errorf("deleting local branch '%v' failed with %v: %s", local, err, output))
-				} else {
-					logs = append(logs, delete, output)
-				}
+			// only delete branches created by the workflow (release/* or hotfix/*)
+			if !strings.HasPrefix(local, releasePrefix) && !strings.HasPrefix(local, hotfixPrefix) {
+				continue
+			}
+
+			delete := exec.Command(Git, append(r.forceDeleteBranch, local)...)
+			delete.Dir = r.projectPath
+			if output, err := delete.CombinedOutput(); err != nil {
+				logs = append(logs, delete, output, err)
+				return errors.Join(cause, fmt.Errorf("deleting local branch '%v' failed with %v: %s", local, err, output))
+			} else {
+				logs = append(logs, delete, output)
 			}
 		}
 	}
 
 	// always return the original cause if no error occurred
 	return cause
+}
+
+// HasRemoteBranch checks if a specific branch name exists on the remote.
+func (r *repository) HasRemoteBranch(name string) (bool, error) {
+	all := exec.Command(Git, r.allRemotes...)
+	all.Dir = r.projectPath
+	output, err := all.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("listing remotes failed: %v: %s", err, output)
+	}
+	target := r.remote + "/" + name
+	for _, remote := range strings.Split(string(output), "\n") {
+		if strings.TrimSpace(remote) == target {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // CompareFiles compares the content of a file in two different branches
