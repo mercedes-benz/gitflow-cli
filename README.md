@@ -49,7 +49,7 @@ Make sure the repository meets all [preconditions](#preconditions).
 To initiate a new release, use the following command:
 
    ```bash
-   gitflow-cli release start [--docker-mode | --native-mode]
+   gitflow-cli release start
    ```
 
 Release start will perform the following steps:
@@ -62,7 +62,7 @@ You can now use the `release/x.y.z` branch for bug fixing, creating the release 
 Once the release is ready, finish it with:
 
    ```bash
-   gitflow-cli release finish [--docker-mode | --native-mode]
+   gitflow-cli release finish
    ```
 
 Release finish will perform the following steps:
@@ -78,7 +78,7 @@ Use hotfixes if you have a bug in production, and you need to make targeted fixe
 To initiate a new hotfix, use the following command:
 
    ```bash
-   gitflow-cli hotfix start [--docker-mode | --native-mode]
+   gitflow-cli hotfix start
    ```
 
 Hotfix start will perform the following steps:
@@ -90,7 +90,7 @@ You can now check out the `hotfix/x.y.z` branch, create a quick patch, and push 
 Once the hotfix is ready, finish it with:
 
    ```bash
-   gitflow-cli hotfix finish [--docker-mode | --native-mode]
+   gitflow-cli hotfix finish
    ```
 
 Hotfix finish will perform the following steps:
@@ -124,7 +124,7 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 | **composer** | Plugin for [composer](https://getcomposer.org/) projects.                                        | `composer.json`                               |
 | **road**     | Plugin for projects with road app manifest configuration.                                        | `road.yaml`                                   |
 
-By default, all plugins execute commands **natively** on the host. If a required CLI tool (e.g., `mvn`, `npm`, `composer`, `toml`) is not installed, the CLI automatically falls back to running the command inside a Docker container. To disable this behavior, set `docker-fallback: false` in the configuration. You can also force a specific mode with `--docker-mode` or `--native-mode`.
+By default, all plugins execute commands **natively** on the host. If a required CLI tool (e.g., `mvn`, `npm`, `composer`, `toml`) is not installed, the CLI automatically falls back to running the command inside a Docker container. You can also force a specific mode with `--docker-mode` or `--native-mode`.
 
 **Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
 
@@ -134,21 +134,16 @@ A configuration file is automatically created at `$HOME/.gitflow-cli.yaml` on fi
 
 ### Configuration Reference
 
-| Setting | Description | Config key | CLI flag | Default |
-|---------|-------------|------------|----------|---------|
-| Production branch | Name of the production branch | `branches.production` | — | `main` |
-| Development branch | Name of the development branch | `branches.development` | — | `develop` |
-| Release prefix | Prefix for release branches | `branches.release` | — | `release` |
-| Hotfix prefix | Prefix for hotfix branches | `branches.hotfix` | — | `hotfix` |
-| Push | Push changes to remote after workflow completes | `workflow.push` | `--no-push` (disables) | `true` |
-| Rollback | Rollback local changes on workflow failure | `workflow.rollback` | — | `false` |
-| Docker fallback | Automatically use Docker when native tool is missing | `workflow.docker-fallback` | — | `true` |
-| Logging | Diagnostic output (combinable: `stdout`, `stderr`, `cmdline`, `output`, `off`) | `logging` | — | `off` |
-| Docker mode | Force all plugin commands to run in Docker | — | `--docker-mode` | `false` |
-| Native mode | Force all plugin commands to run natively | — | `--native-mode` | `false` |
-| Auto-confirm | Automatically confirm all interactive prompts | — | `--yes` / `-y` | `false` |
-| Config file | Path to configuration file | — | `--config` / `-c` | `$HOME/.gitflow-cli.yaml` |
-| Project path | Path to the git repository | — | `--path` / `-p` | `.` |
+| Config key | Description | CLI flag | Default |
+|------------|-------------|----------|---------|
+| `branches.production` | Name of the production branch | — | `main` |
+| `branches.development` | Name of the development branch | — | `develop` |
+| `branches.release` | Prefix for release branches | — | `release` |
+| `branches.hotfix` | Prefix for hotfix branches | — | `hotfix` |
+| `workflow.push` | Push changes to remote after workflow completes | `--no-push` (disables) | `true` |
+| `workflow.rollback` | Rollback local changes on workflow failure | — | `false` |
+| `workflow.docker-fallback` | Automatically use Docker when native tool is missing | — | `true` |
+| `logging` | Diagnostic output (combinable: `stdout`, `stderr`, `cmdline`, `output`, `off`) | — | `off` |
 
 **Priority:** CLI flag > config file > default value.
 
