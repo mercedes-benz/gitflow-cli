@@ -134,16 +134,16 @@ A configuration file is automatically created at `$HOME/.gitflow-cli.yaml` on fi
 
 ### Configuration Reference
 
-| Config key | Description | CLI flag | Default |
-|------------|-------------|----------|---------|
-| `branches.production` | Name of the production branch | — | `main` |
-| `branches.development` | Name of the development branch | — | `develop` |
-| `branches.release` | Prefix for release branches | — | `release` |
-| `branches.hotfix` | Prefix for hotfix branches | — | `hotfix` |
-| `workflow.push` | Push changes to remote after workflow completes | `--no-push` (disables) | `true` |
-| `workflow.rollback` | Rollback local changes on workflow failure | — | `false` |
-| `workflow.docker-fallback` | Automatically use Docker when native tool is missing | — | `true` |
-| `logging` | Diagnostic output (combinable: `stdout`, `stderr`, `cmdline`, `output`, `off`) | — | `off` |
+| Config key | Description | Default |
+|------------|-------------|---------|
+| `branches.production` | Name of the production branch | `main` |
+| `branches.development` | Name of the development branch | `develop` |
+| `branches.release` | Prefix for release branches | `release` |
+| `branches.hotfix` | Prefix for hotfix branches | `hotfix` |
+| `workflow.push` | Push changes to remote after workflow completes | `true` |
+| `workflow.rollback` | Rollback local changes on workflow failure | `false` |
+| `workflow.docker-fallback` | Automatically use Docker when native tool is missing | `true` |
+| `logging` | Diagnostic output (combinable: `stdout`, `stderr`, `cmdline`, `output`, `off`) | `off` |
 
 **Priority:** CLI flag > config file > default value.
 
