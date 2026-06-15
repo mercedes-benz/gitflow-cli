@@ -74,6 +74,22 @@ func TestHotfixFinishNoPush(t *testing.T) {
 	workflow.RunHotfixFinishNoPush(t)
 }
 
+func TestReleaseStartNoPushFlag(t *testing.T) {
+	workflow.RunReleaseStartNoPushFlag(t)
+}
+
+func TestHotfixStartNoPushFlag(t *testing.T) {
+	workflow.RunHotfixStartNoPushFlag(t)
+}
+
+func TestReleaseFinishNoPushFlag(t *testing.T) {
+	workflow.RunReleaseFinishNoPushFlag(t)
+}
+
+func TestHotfixFinishNoPushFlag(t *testing.T) {
+	workflow.RunHotfixFinishNoPushFlag(t)
+}
+
 func TestRollbackPreservesExistingBranches(t *testing.T) {
 	workflow.RunRollbackPreservesExistingBranches(t)
 }
@@ -100,6 +116,14 @@ func TestReleaseStartWithMasterDeclined(t *testing.T) {
 
 func TestReleaseStartWithDevBranch(t *testing.T) {
 	workflow.RunReleaseStartWithDevBranch(t)
+}
+
+func TestReleaseStartYesAutoResolvesBranch(t *testing.T) {
+	workflow.RunReleaseStartYesAutoResolvesBranch(t)
+}
+
+func TestReleaseStartYesCreatesDevBranch(t *testing.T) {
+	workflow.RunReleaseStartYesCreatesDevBranch(t)
 }
 
 func TestReleaseStartDirtyRepo(t *testing.T) {

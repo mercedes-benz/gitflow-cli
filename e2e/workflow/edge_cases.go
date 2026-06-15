@@ -78,6 +78,66 @@ func RunHotfixFinishNoPush(t *testing.T) {
 	env.AssertCurrentBranchEquals("develop")
 }
 
+// --- --no-push flag tests ---
+
+func RunReleaseStartNoPushFlag(t *testing.T) {
+	t.Helper()
+	env := e2e.SetupTestEnv(t)
+
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "main")
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
+
+	env.ExecuteGitflow("release", "start", "--no-push")
+
+	env.AssertBranchExists("release/1.1.0")
+	env.AssertBranchNotOnRemote("release/1.1.0")
+	env.AssertCurrentBranchEquals("release/1.1.0")
+}
+
+func RunHotfixStartNoPushFlag(t *testing.T) {
+	t.Helper()
+	env := e2e.SetupTestEnv(t)
+
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "main")
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
+
+	env.ExecuteGitflow("hotfix", "start", "--no-push")
+
+	env.AssertBranchExists("hotfix/1.0.1")
+	env.AssertBranchNotOnRemote("hotfix/1.0.1")
+	env.AssertCurrentBranchEquals("hotfix/1.0.1")
+}
+
+func RunReleaseFinishNoPushFlag(t *testing.T) {
+	t.Helper()
+	env := e2e.SetupTestEnv(t)
+
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "main")
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
+	env.CreateBranch("release/1.1.0", "develop")
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0", "release/1.1.0")
+
+	env.ExecuteGitflow("release", "finish", "--no-push")
+
+	env.AssertTagNotOnRemote("1.1.0")
+	env.AssertCurrentBranchEquals("develop")
+}
+
+func RunHotfixFinishNoPushFlag(t *testing.T) {
+	t.Helper()
+	env := e2e.SetupTestEnv(t)
+
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "main")
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
+	env.CreateBranch("hotfix/1.0.1", "main")
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.1", "hotfix/1.0.1")
+
+	env.ExecuteGitflow("hotfix", "finish", "--no-push")
+
+	env.AssertTagNotOnRemote("1.0.1")
+	env.AssertCurrentBranchEquals("develop")
+}
+
 // --- Rollback tests ---
 
 func RunRollbackPreservesExistingBranches(t *testing.T) {
@@ -255,6 +315,36 @@ func RunReleaseStartWithDevBranch(t *testing.T) {
 	env.ExecuteGitflow("release", "start")
 
 	env.AssertBranchExists("release/1.1.0")
+}
+
+// --- Auto-confirm (--yes) tests ---
+
+func RunReleaseStartYesAutoResolvesBranch(t *testing.T) {
+	t.Helper()
+	t.Cleanup(func() { core.ResetBranchNames() })
+
+	// Repo has 'master' but config defaults to 'main'
+	env := e2e.SetupTestEnv(t, e2e.WithProductionBranch("master"))
+
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "master")
+	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
+
+	env.ExecuteGitflow("release", "start", "--yes")
+
+	env.AssertBranchExists("release/1.1.0")
+}
+
+func RunReleaseStartYesCreatesDevBranch(t *testing.T) {
+	t.Helper()
+	t.Cleanup(func() { core.ResetBranchNames() })
+
+	env := e2e.SetupTestEnvWithoutDevelop(t)
+
+	// No version file on main — the beforeReleaseStart hook will create one on develop
+	env.ExecuteGitflow("release", "start", "--yes")
+
+	env.AssertBranchExists("develop")
+	env.AssertBranchExists("release/1.0.0")
 }
 
 // --- Robustness tests ---

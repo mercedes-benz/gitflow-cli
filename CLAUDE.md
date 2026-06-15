@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow Behavior
+
+See [README.md](README.md) for the complete user-facing documentation: workflow steps (release start/finish, hotfix start/finish), CLI flags (`--no-push`, `--docker-mode`, `--native-mode`, `--yes`), configuration keys, and plugin execution modes. When modifying workflow logic, always verify that the README still accurately describes the behavior.
+
 ## Build & Run
 
 ```bash
@@ -78,10 +82,10 @@ Each plugin is self-contained in `plugin/<name>/`:
 ### E2E test architecture
 
 - `e2e/workflow/` — exported test functions (`RunReleaseStart`, `RunHotfixFinish`, etc.) that define the generic workflow assertions. This package is a library — it provides test logic but does not call it.
-- `e2e/helper/` — `GitTestEnv` (repo setup, git commands, assertions) and container management
+- `e2e/test_env.go` — `GitTestEnv` (repo setup, git commands, assertions)
 - Each plugin's `_test.go` imports `e2e/workflow` and calls the shared functions with its own `TestConfig`
-- Fallback tests (no-plugin behavior) live in `e2e/workflow/fallback_test.go`
-- Configuration tests live in `e2e/configuration_test.go`
+- Fallback tests (no-plugin behavior) live in `plugin/standard/standard_test.go` (the standard plugin IS the fallback)
+- Configuration tests (custom branch names) live in `cmd/root_test.go`
 
 ### Hook system
 
@@ -89,7 +93,7 @@ Each plugin is self-contained in `plugin/<name>/`:
 
 ### Repository abstraction
 
-`core/repository.go` — `Repository` interface wraps all git operations (checkout, merge, tag, push, undo). Every method shells out to `git` via `exec.Command`. The `UndoAllChanges` method resets the repo to remote state when `undo: true` is configured.
+`core/repository.go` — `Repository` interface wraps all git operations (checkout, merge, tag, push, rollback). Every method shells out to `git` via `exec.Command`. The `Rollback` method resets the repo to remote state when `workflow.rollback: true` is configured.
 
 ### Version handling
 

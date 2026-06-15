@@ -67,7 +67,7 @@ Once the release is ready, finish it with:
 
 Release finish will perform the following steps:
 * Merge the `release/x.y.z` branch into `main` (e.g., `release/1.2.0` → `main`)
-* Create a tag in `main` with the corresponding version (e.g., `v1.2.0`)
+* Create a tag in `main` with the corresponding version (e.g., `1.2.0`)
 * Perform a back-merge into `develop` (e.g., `release/1.2.0` → `develop`)
 * Bump the development version to the next minor version (e.g., `1.3.0-dev`)
 
@@ -95,7 +95,7 @@ Once the hotfix is ready, finish it with:
 
 Hotfix finish will perform the following steps:
 * Merge the `hotfix/x.y.z` branch into `main` (e.g., `hotfix/1.2.1` → `main`)
-* Create a tag in `main` with the corresponding version (e.g., `v1.2.1`)
+* Create a tag in `main` with the corresponding version (e.g., `1.2.1`)
 * Perform a back-merge into `develop` (e.g., `hotfix/1.2.1` → `develop`)
 * Keep the current version in `develop` unchanged (e.g., `1.3.0-dev`)
 
