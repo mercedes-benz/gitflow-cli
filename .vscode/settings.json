@@ -1,5 +1,5 @@
 {
-  "go.testTimeout": "300s",
+  "go.testTimeout": "0",
   "go.testExplorer.enable": true,
   "go.testExplorer.showOutput": true,
   "go.testFlags": ["-v", "-count=1"],
