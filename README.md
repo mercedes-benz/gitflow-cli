@@ -124,7 +124,7 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 | **composer** | Plugin for [composer](https://getcomposer.org/) projects.                                        | `composer.json`                               |
 | **road**     | Plugin for projects with road app manifest configuration.                                        | `road.yaml`                                   |
 
-By default, all plugins execute commands **natively** on the host. This requires the respective CLI tools (e.g., `mvn`, `npm`, `composer`, `toml`) to be installed and available in PATH. Alternatively, you can use `--docker-mode` to run plugin commands inside Docker containers — in that case, only `git` and `docker` are needed locally.
+By default, all plugins execute commands **natively** on the host. If a required CLI tool (e.g., `mvn`, `npm`, `composer`, `toml`) is not installed, the CLI automatically falls back to running the command inside a Docker container. To disable this behavior, set `docker-fallback: false` in the configuration. You can also force a specific mode with `--docker-mode` or `--native-mode`.
 
 **Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
 
@@ -136,14 +136,14 @@ A configuration file is automatically created at `$HOME/.gitflow-cli.yaml` on fi
 
 | Setting | Description | Config key | CLI flag | Default |
 |---------|-------------|------------|----------|---------|
-| Production branch | Name of the production branch | `core.production` | — | `main` |
-| Development branch | Name of the development branch | `core.development` | — | `develop` |
-| Release prefix | Prefix for release branches | `core.release` | — | `release` |
-| Hotfix prefix | Prefix for hotfix branches | `core.hotfix` | — | `hotfix` |
-| Push | Push changes to remote after workflow completes | `core.push` | `--no-push` (disables) | `true` |
-| Undo | Rollback local changes on workflow failure | `core.undo` | — | `false` |
-| Docker fallback | Automatically use Docker when native tool is missing | `core.docker-fallback` | — | `false` |
-| Logging | Diagnostic output (combinable: `stdout`, `stderr`, `cmdline`, `output`, `off`) | `core.logging` | — | `off` |
+| Production branch | Name of the production branch | `branches.production` | — | `main` |
+| Development branch | Name of the development branch | `branches.development` | — | `develop` |
+| Release prefix | Prefix for release branches | `branches.release` | — | `release` |
+| Hotfix prefix | Prefix for hotfix branches | `branches.hotfix` | — | `hotfix` |
+| Push | Push changes to remote after workflow completes | `workflow.push` | `--no-push` (disables) | `true` |
+| Rollback | Rollback local changes on workflow failure | `workflow.rollback` | — | `false` |
+| Docker fallback | Automatically use Docker when native tool is missing | `workflow.docker-fallback` | — | `true` |
+| Logging | Diagnostic output (combinable: `stdout`, `stderr`, `cmdline`, `output`, `off`) | `logging` | — | `off` |
 | Docker mode | Force all plugin commands to run in Docker | — | `--docker-mode` | `false` |
 | Native mode | Force all plugin commands to run natively | — | `--native-mode` | `false` |
 | Auto-confirm | Automatically confirm all interactive prompts | — | `--yes` / `-y` | `false` |
@@ -157,15 +157,18 @@ A configuration file is automatically created at `$HOME/.gitflow-cli.yaml` on fi
 ### Example Configuration
 
    ```yaml
-   core:
+   branches:
      production: main
      development: develop
      release: release
      hotfix: hotfix
+
+   workflow:
      push: true
-     undo: false
-     docker-fallback: false
-     logging: "off"
+     rollback: false
+     docker-fallback: true
+
+   logging: "off"
    ```
 
 ### Plugin Execution Modes
@@ -177,8 +180,8 @@ A configuration file is automatically created at `$HOME/.gitflow-cli.yaml` on fi
 
    The execution mode is resolved in the following priority order:
    1. CLI flag: `--docker-mode` or `--native-mode` (applies to all plugins)
-   2. Docker fallback: If `docker-fallback: true` in config and the native tool is missing, Docker is used automatically
-   3. Interactive: If the native tool is missing and docker-fallback is not enabled, the CLI asks whether to use Docker (auto-confirmed with `--yes`)
+   2. Docker fallback (default: enabled): If the native tool is missing, Docker is used automatically. Disable with `docker-fallback: false` in config.
+   3. Interactive: If the native tool is missing and docker-fallback is disabled, the CLI asks whether to use Docker (auto-confirmed with `--yes`)
    4. Default: `native-mode`
 
 ## Contributing

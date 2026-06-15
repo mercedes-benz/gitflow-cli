@@ -106,7 +106,7 @@ const defaultConfig = `branches:
 workflow:
   push: true
   rollback: false
-  docker-fallback: false
+  docker-fallback: true
 
 logging: "off"
 `

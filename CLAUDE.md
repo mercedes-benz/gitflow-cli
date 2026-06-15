@@ -97,7 +97,7 @@ Each plugin is self-contained in `plugin/<name>/`:
 
 ### Configuration
 
-Reads `$HOME/.gitflow-cli.yaml` (or `--config` flag) via Viper. Settings under `core:` key configure branch names (production, development, release, hotfix prefixes), undo behavior, and logging output.
+Reads `$HOME/.gitflow-cli.yaml` (or `--config` flag) via Viper. Settings are grouped under `branches:` (production, development, release, hotfix), `workflow:` (push, rollback, docker-fallback), and `logging:`.
 
 ## Adding a new plugin
 
