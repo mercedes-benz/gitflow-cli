@@ -78,9 +78,9 @@ func RunHotfixFinishNoPush(t *testing.T) {
 	env.AssertCurrentBranchEquals("develop")
 }
 
-// --- Undo tests ---
+// --- Rollback tests ---
 
-func RunUndoPreservesExistingBranches(t *testing.T) {
+func RunRollbackPreservesExistingBranches(t *testing.T) {
 	t.Helper()
 	env := e2e.SetupTestEnv(t)
 
@@ -97,7 +97,7 @@ func RunUndoPreservesExistingBranches(t *testing.T) {
 	env.AssertBranchExists("develop")
 }
 
-func RunUndoDisabledLeavesState(t *testing.T) {
+func RunRollbackDisabledLeavesState(t *testing.T) {
 	t.Helper()
 	env := e2e.SetupTestEnv(t)
 

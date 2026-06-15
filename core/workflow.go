@@ -210,7 +210,7 @@ func releaseStart(plugin Plugin, repository Repository) error {
 	}
 
 	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.BeforeReleaseStartHook, repository); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// read out the current project version
@@ -222,22 +222,22 @@ func releaseStart(plugin Plugin, repository Repository) error {
 	// create branch release/x.y.z based on the current develop branch without qualifier
 	// checkout release/x.y.z branch
 	if err := repository.CreateBranch(current.RemoveQualifier().BranchName(Release)); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// remove qualifier from the project version (change POM file)
 	if err := plugin.WriteVersion(repository, current.RemoveQualifier()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// perform a git commit with a commit message
 	if err := repository.CommitChanges("Remove qualifier from project version."); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// After update project version hook
 	if err := GlobalHooks.ExecuteHook(plugin, ReleaseStartHooks.AfterUpdateProjectVersionHook, repository); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// push all branches to remotes
@@ -264,7 +264,7 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	}
 
 	if err := GlobalHooks.ExecuteHook(plugin, HotfixStartHooks.BeforeHotfixStartHook, repository); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// read out the current project version
@@ -282,17 +282,17 @@ func hotfixStart(plugin Plugin, repository Repository) error {
 	// create branch hotfix/${major}.${minor}.${increment + 1} based on the current production branch
 	// checkout hotfix/${major}.${minor}.${increment + 1} branch
 	if err := repository.CreateBranch(next.BranchName(Hotfix)); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// update project version to ${major}.${minor}.${increment + 1}
 	if err := plugin.WriteVersion(repository, next); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// perform a git commit with a commit message
 	if err := repository.CommitChanges("Increment patch version for hotfix."); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// push all branches to remotes
@@ -339,44 +339,44 @@ func releaseFinish(plugin Plugin, repository Repository) error {
 
 	// tag last commit with the release version number
 	if err := repository.TagCommit(releaseVersion.String()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// checkout develop branch
 	if err := repository.CheckoutBranch(Development.String()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// merge release branch into current develop branch (with merge commit --no-ff git flag)
 	if err := repository.MergeBranch(releaseVersion.BranchName(Release), NoFastForward); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// read the current version from the project
 	current, err := plugin.ReadVersion(repository)
 	if err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// calculate the next minor version
 	next, err := current.Next(Minor)
 	if err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// set project version to the next develop version ${major}.(${minor}+1).0-${qualifier}
 	if err := plugin.WriteVersion(repository, next.AddQualifier(plugin.VersionQualifier())); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// perform a git commit with a commit message
 	if err := repository.CommitChanges("Set next minor project version."); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// delete the release branch locally
 	if err := repository.DeleteBranch(releaseVersion.BranchName(Release)); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// push all branches to remotes
@@ -426,21 +426,21 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 
 	// merge hotfix branch into current production branch (with merge commit --no-ff git flag)
 	if err := repository.MergeBranch(hotfixVersion.BranchName(Hotfix), NoFastForward); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// tag last commit with the hotfix version number
 	if err := repository.TagCommit(hotfixVersion.String()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// check if the repository has a release branch and merge hotfix into it
 	if found, remotes, err := repository.HasBranch(Release); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	} else if found && len(remotes) == 1 {
 		// checkout release branch
 		if err := repository.CheckoutBranch(remotes[0]); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		}
 
 		// merge hotfix branch into current release branch (with merge commit --no-ff git flag)
@@ -453,7 +453,7 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 
 	// checkout develop branch
 	if err := repository.CheckoutBranch(Development.String()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// merge hotfix branch into current develop branch
@@ -464,12 +464,12 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 	}
 
 	if err := GlobalHooks.ExecuteHook(plugin, HotfixFinishHooks.AfterMergeIntoDevelopmentHook, repository); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// delete the release branch locally
 	if err := repository.DeleteBranch(hotfixVersion.BranchName(Hotfix)); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// push all branches to remotes
@@ -495,20 +495,20 @@ func hotfixFinish(plugin Plugin, repository Repository) error {
 func handleVersionFileMergeConflict(plugin Plugin, repository Repository, strategy CheckoutStrategy) error {
 	mergeConflictsMap, err := repository.GetMergeConflicts()
 	if err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	if len(mergeConflictsMap) == 1 && len(mergeConflictsMap[plugin.VersionFileName()]) == 1 {
 		if err := repository.CheckoutFile(plugin.VersionFileName(), strategy); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		}
 
 		if err := repository.AddFile(plugin.VersionFileName()); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		}
 
 		if err := repository.ContinueMerge(); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		}
 
 		return nil

@@ -126,7 +126,7 @@ func (p *mavenPlugin) afterUpdateProjectVersion(repository core.Repository) erro
 	// if not clean: perform a git commit with a commit message because the previous step changed the POM file
 	if err := repository.IsClean(); err != nil {
 		if err := repository.CommitChanges("Update project dependencies with corresponding releases."); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		}
 	}
 	return nil

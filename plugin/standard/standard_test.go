@@ -74,12 +74,12 @@ func TestHotfixFinishNoPush(t *testing.T) {
 	workflow.RunHotfixFinishNoPush(t)
 }
 
-func TestUndoPreservesExistingBranches(t *testing.T) {
-	workflow.RunUndoPreservesExistingBranches(t)
+func TestRollbackPreservesExistingBranches(t *testing.T) {
+	workflow.RunRollbackPreservesExistingBranches(t)
 }
 
-func TestUndoDisabledLeavesState(t *testing.T) {
-	workflow.RunUndoDisabledLeavesState(t)
+func TestRollbackDisabledLeavesState(t *testing.T) {
+	workflow.RunRollbackDisabledLeavesState(t)
 }
 
 func TestReleaseStartCreatesDevBranch(t *testing.T) {

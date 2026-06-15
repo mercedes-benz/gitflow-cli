@@ -47,7 +47,7 @@ type (
 		PushAllChanges() error
 		PushAllTags() error
 		PushDeletion(branchName string) error
-		UndoAllChanges(cause error) error
+		Rollback(cause error) error
 		CompareFiles(sourceBranch, targetBranch, sourceFile, targetFile string) (bool, error)
 		WriteFile(fileName string, fileContent string) error
 		HasRemoteBranch(name string) (bool, error)
@@ -587,8 +587,8 @@ func (r *repository) PushDeletion(branchName string) error {
 	return nil
 }
 
-// UndoAllChanges Undo all local changes in the repository and synchronize with the remote repository.
-func (r *repository) UndoAllChanges(cause error) error {
+// Rollback reverts all local changes in the repository and synchronizes with the remote repository.
+func (r *repository) Rollback(cause error) error {
 	var logs []any = make([]any, 0)
 
 	// log human-readable description of the git command

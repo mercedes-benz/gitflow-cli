@@ -100,7 +100,7 @@ func (p *standardPlugin) WriteVersion(repository core.Repository, version core.V
 
 func (p *standardPlugin) beforeReleaseStart(repository core.Repository) error {
 	if err := repository.CheckoutBranch(core.Development.String()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// Check if a version file already exists
@@ -111,15 +111,15 @@ func (p *standardPlugin) beforeReleaseStart(repository core.Repository) error {
 
 	initVersion := core.NewVersion("1", "0", "0", p.Config.VersionQualifier)
 	if err := os.WriteFile(versionFilePath, []byte(initVersion.String()), 0644); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	if err := repository.AddFile(versionFilePath); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	if err := repository.CommitChanges("Create versions file"); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	return nil
@@ -127,7 +127,7 @@ func (p *standardPlugin) beforeReleaseStart(repository core.Repository) error {
 
 func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 	if err := repository.CheckoutBranch(core.Production.String()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// Check if a version file already exists
@@ -138,15 +138,15 @@ func (p *standardPlugin) beforeHotfixStart(repository core.Repository) error {
 
 	initVersion := core.NewVersion("1", "0", "0")
 	if err := os.WriteFile(versionFilePath, []byte(initVersion.String()), 0644); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	if err := repository.AddFile(versionFilePath); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	if err := repository.CommitChanges("Create versions file"); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	return nil
@@ -157,21 +157,21 @@ func (p *standardPlugin) afterMergeIntoDevelopment(repository core.Repository) e
 	filesEqual, err := repository.CompareFiles(core.Production.String(), core.Development.String(), p.Config.VersionFileName, p.Config.VersionFileName)
 
 	if err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// if versions are identical, update the version in the development branch (possible only if hotfix start created initial version)
 	if filesEqual {
 		if current, err := p.ReadVersion(repository); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		} else if next, err := current.Next(core.Minor); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		} else if err := p.WriteVersion(repository, next.AddQualifier(p.VersionQualifier())); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		}
 
 		if err := repository.CommitChanges("Set next minor project version."); err != nil {
-			return repository.UndoAllChanges(err)
+			return repository.Rollback(err)
 		}
 	}
 

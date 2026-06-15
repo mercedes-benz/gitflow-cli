@@ -98,7 +98,7 @@ func (p *npmPlugin) WriteVersion(repository core.Repository, version core.Versio
 // beforeReleaseStart ensures a version is set in the package.json file on the development branch
 func (p *npmPlugin) beforeReleaseStart(repository core.Repository) error {
 	if err := repository.CheckoutBranch(core.Development.String()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// Check if version is available in package.json
@@ -117,13 +117,13 @@ func (p *npmPlugin) beforeReleaseStart(repository core.Repository) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		core.Log(cmd, output, err)
-		return repository.UndoAllChanges(fmt.Errorf("failed to set initial version: %v", err))
+		return repository.Rollback(fmt.Errorf("failed to set initial version: %v", err))
 	}
 
 	core.Log(cmd, output)
 
 	if err := repository.CommitChanges("Set initial project version."); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	return nil
@@ -132,7 +132,7 @@ func (p *npmPlugin) beforeReleaseStart(repository core.Repository) error {
 // beforeHotfixStart ensures a version is set in the package.json file on the production branch
 func (p *npmPlugin) beforeHotfixStart(repository core.Repository) error {
 	if err := repository.CheckoutBranch(core.Production.String()); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	// Check if version is available in package.json
@@ -151,13 +151,13 @@ func (p *npmPlugin) beforeHotfixStart(repository core.Repository) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		core.Log(cmd, output, err)
-		return repository.UndoAllChanges(fmt.Errorf("failed to set initial version: %v", err))
+		return repository.Rollback(fmt.Errorf("failed to set initial version: %v", err))
 	}
 
 	core.Log(cmd, output)
 
 	if err := repository.CommitChanges("Set initial project version."); err != nil {
-		return repository.UndoAllChanges(err)
+		return repository.Rollback(err)
 	}
 
 	return nil
