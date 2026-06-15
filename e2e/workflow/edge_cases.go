@@ -23,7 +23,7 @@ func RunReleaseStartNoPush(t *testing.T) {
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "main")
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
 
-	configPath := env.WriteConfig("core:\n  push: false\n")
+	configPath := env.WriteConfig("workflow:\n  push: false\n")
 	env.ExecuteGitflow("release", "start", "--config", configPath)
 
 	env.AssertBranchExists("release/1.1.0")
@@ -40,7 +40,7 @@ func RunReleaseFinishNoPush(t *testing.T) {
 	env.CreateBranch("release/1.1.0", "develop")
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0", "release/1.1.0")
 
-	configPath := env.WriteConfig("core:\n  push: false\n")
+	configPath := env.WriteConfig("workflow:\n  push: false\n")
 	env.ExecuteGitflow("release", "finish", "--config", configPath)
 
 	env.AssertTagNotOnRemote("1.1.0")
@@ -54,7 +54,7 @@ func RunHotfixStartNoPush(t *testing.T) {
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "main")
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
 
-	configPath := env.WriteConfig("core:\n  push: false\n")
+	configPath := env.WriteConfig("workflow:\n  push: false\n")
 	env.ExecuteGitflow("hotfix", "start", "--config", configPath)
 
 	env.AssertBranchExists("hotfix/1.0.1")
@@ -71,7 +71,7 @@ func RunHotfixFinishNoPush(t *testing.T) {
 	env.CreateBranch("hotfix/1.0.1", "main")
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.1", "hotfix/1.0.1")
 
-	configPath := env.WriteConfig("core:\n  push: false\n")
+	configPath := env.WriteConfig("workflow:\n  push: false\n")
 	env.ExecuteGitflow("hotfix", "finish", "--config", configPath)
 
 	env.AssertTagNotOnRemote("1.0.1")
@@ -88,12 +88,12 @@ func RunUndoPreservesExistingBranches(t *testing.T) {
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
 
 	// Try release finish without a release branch — triggers an error
-	configPath := env.WriteConfig("core:\n  undo: true\n")
+	configPath := env.WriteConfig("workflow:\n  rollback: true\n")
 	errMsg := env.ExecuteGitflowExpectError("release", "finish", "--config", configPath)
 
 	assert.Contains(t, errMsg, "'release'")
 
-	// develop branch must still exist after undo
+	// develop branch must still exist after rollback
 	env.AssertBranchExists("develop")
 }
 
@@ -104,12 +104,12 @@ func RunUndoDisabledLeavesState(t *testing.T) {
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.0.0", "main")
 	env.CommitTemplateContent("{{.Version}}", "version.txt", "1.1.0-dev", "develop")
 
-	configPath := env.WriteConfig("core:\n  undo: false\n")
+	configPath := env.WriteConfig("workflow:\n  rollback: false\n")
 	errMsg := env.ExecuteGitflowExpectError("release", "finish", "--config", configPath)
 
 	assert.Contains(t, errMsg, "'release'")
 
-	// develop branch must still exist (undo disabled = no cleanup at all)
+	// develop branch must still exist (rollback disabled = no cleanup at all)
 	env.AssertBranchExists("develop")
 }
 

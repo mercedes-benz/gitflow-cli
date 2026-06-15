@@ -594,8 +594,7 @@ func (r *repository) UndoAllChanges(cause error) error {
 	// log human-readable description of the git command
 	defer func() { Log(logs...) }()
 
-	// just return the cause if undo changes is disabled
-	if !undoChanges {
+	if !rollbackChanges {
 		return cause
 	}
 

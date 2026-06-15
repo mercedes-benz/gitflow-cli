@@ -107,7 +107,7 @@ func branchExistsOnRemote(req core.BranchSyncRequest, name string) bool {
 }
 
 func persistBranchToConfig(branchType core.Branch, name string) {
-	key := "core." + branchType.ConfigKey()
+	key := "branches." + branchType.ConfigKey()
 	viper.Set(key, name)
 	if err := viper.WriteConfig(); err != nil {
 		fmt.Fprintf(os.Stderr, "WARN: could not save config: %v\n", err)

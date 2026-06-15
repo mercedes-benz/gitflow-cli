@@ -65,7 +65,7 @@ func initConfiguration() {
 	}
 
 	if noPush, _ := rootCmd.Flags().GetBool("no-push"); noPush {
-		viper.Set("core.push", false)
+		viper.Set("workflow.push", false)
 	}
 
 	if cfgFile != "" {
@@ -97,20 +97,18 @@ func initConfiguration() {
 	}
 }
 
-const defaultConfig = `core:
-  # Branch names
+const defaultConfig = `branches:
   production: main
   development: develop
   release: release
   hotfix: hotfix
 
-  # Behavior
+workflow:
   push: true
-  undo: false
+  rollback: false
   docker-fallback: false
 
-  # Logging: off, stdout, stderr, cmdline, output (combinable)
-  logging: "off"
+logging: "off"
 `
 
 func initDefaultConfig() error {

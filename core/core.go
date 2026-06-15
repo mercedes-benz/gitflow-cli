@@ -80,11 +80,16 @@ type (
 	}
 )
 
-// Settings group for the core package.
-const settingsGroup = "core"
+// Configuration groups.
+const (
+	branchesGroup = "branches"
+	workflowGroup = "workflow"
+	loggingKey    = "logging"
+	legacyGroup   = "core"
+)
 
-// UndoSetting controls undo-behavior for all local changes in a repository.
-const undoSetting = "undo"
+// Workflow settings keys.
+const rollbackSetting = "rollback"
 const pushSetting = "push"
 const dockerFallbackSetting = "docker-fallback"
 
@@ -137,7 +142,7 @@ var branchSettings = map[string]Branch{
 	"hotfix":      Hotfix,
 }
 
-var undoChanges = false
+var rollbackChanges = false
 var pushChanges = true
 
 // DockerFallback indicates whether to automatically fall back to Docker when a native tool is missing.
@@ -227,57 +232,68 @@ func (b Branch) ConfigKey() string {
 func applySettings() {
 	all := viper.AllSettings()
 
-	if settings, ok := all[settingsGroup].(map[string]any); !ok {
-		return
-	} else {
-		for key, value := range settings {
-			if key == loggingSetting {
-				// configure logging behavior for all repository operations
-				if v, ok := value.(string); ok {
-					// first reset logging flags to off if configuration is found
-					loggingFlags = 0
+	if branches, ok := all[branchesGroup].(map[string]any); ok {
+		applyBranchSettings(branches)
+	} else if legacy, ok := all[legacyGroup].(map[string]any); ok {
+		applyBranchSettings(legacy)
+	}
 
-					if strings.Contains(v, StdErr.String()) {
-						loggingFlags |= StdErr
-					}
+	if wf, ok := all[workflowGroup].(map[string]any); ok {
+		applyWorkflowSettings(wf)
+	} else if legacy, ok := all[legacyGroup].(map[string]any); ok {
+		applyWorkflowSettings(legacy)
+	}
 
-					if strings.Contains(v, StdOut.String()) {
-						loggingFlags |= StdOut
-					}
+	if v, ok := all[loggingKey].(string); ok {
+		applyLoggingSettings(v)
+	} else if legacy, ok := all[legacyGroup].(map[string]any); ok {
+		if v, ok := legacy[loggingSetting].(string); ok {
+			applyLoggingSettings(v)
+		}
+	}
+}
 
-					// log command line with all arguments
-					if strings.Contains(v, CmdLine.String()) {
-						loggingFlags |= CmdLine
-					}
-
-					// log output of all command lines
-					if strings.Contains(v, Output.String()) {
-						loggingFlags |= Output
-					}
-
-					// turn off logging must be the last option
-					if strings.Contains(v, Off.String()) {
-						loggingFlags = 0
-					}
-				}
-			} else if key == undoSetting {
-				if v, ok := value.(bool); ok {
-					undoChanges = v
-				}
-			} else if key == pushSetting {
-				if v, ok := value.(bool); ok {
-					pushChanges = v
-				}
-			} else if key == dockerFallbackSetting {
-				if v, ok := value.(bool); ok {
-					DockerFallback = v
-				}
-			} else if b, ok := branchSettings[key]; ok {
-				// configure branch names for the Gitflow model
-				if v, ok := value.(string); ok || len(v) > 0 {
-					branchNames[b] = v
-				}
+func applyBranchSettings(settings map[string]any) {
+	for key, value := range settings {
+		if b, ok := branchSettings[key]; ok {
+			if v, ok := value.(string); ok && len(v) > 0 {
+				branchNames[b] = v
 			}
 		}
+	}
+}
+
+func applyWorkflowSettings(settings map[string]any) {
+	if v, ok := settings[rollbackSetting].(bool); ok {
+		rollbackChanges = v
+	}
+	// Legacy: accept "undo" as alias for "rollback"
+	if v, ok := settings["undo"].(bool); ok {
+		rollbackChanges = v
+	}
+	if v, ok := settings[pushSetting].(bool); ok {
+		pushChanges = v
+	}
+	if v, ok := settings[dockerFallbackSetting].(bool); ok {
+		DockerFallback = v
+	}
+}
+
+func applyLoggingSettings(v string) {
+	loggingFlags = 0
+	if strings.Contains(v, StdErr.String()) {
+		loggingFlags |= StdErr
+	}
+	if strings.Contains(v, StdOut.String()) {
+		loggingFlags |= StdOut
+	}
+	if strings.Contains(v, CmdLine.String()) {
+		loggingFlags |= CmdLine
+	}
+	if strings.Contains(v, Output.String()) {
+		loggingFlags |= Output
+	}
+	if strings.Contains(v, Off.String()) {
+		loggingFlags = 0
 	}
 }
