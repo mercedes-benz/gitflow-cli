@@ -3,12 +3,7 @@
 [![build](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/build.yml)
 [![blackduck](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/blackduck.yml/badge.svg)](https://github.com/mercedes-benz/gitflow-cli/actions/workflows/blackduck.yml)
 
-Gitflow is a [branching model](https://nvie.com/posts/a-successful-git-branching-model/) that organizes feature development, 
-releases, and hotfixes into dedicated branches, providing a structured approach to managing complex software projects with
-reliable releases based on [semantic versioning](https://semver.org/).
-
-The **gitflow-cli** automates this release workflow process, saving time and reducing the risk of errors. 
-It maintains a clean and consistent Git graph, contributing to overall project stability.
+The **gitflow-cli** is a release workflow automation tool built on the [gitflow](https://nvie.com/posts/a-successful-git-branching-model/) branching model. It detects your project type and automatically increments the [semantic version](https://semver.org/), supporting a growing list of [plugins](#available-plugins) out of the box.
 
 <img src=".github/assets/gitflow-cli-demo.png" alt="gitflow-cli-demo" width="600" />
 
@@ -32,12 +27,7 @@ From within the project directory the **gitflow-cli** can be built, run and inst
    gitflow-cli --help
    ```
 
-   **Note:** Make sure you have [Go](https://go.dev/doc/install) installed and that the `go/bin` directory is part of your PATH.
-
-### Prerequisites
-
-- **git** — required for all operations
-- **docker** — optional. Used when `--docker-mode` flag is set, or as automatic fallback when a native plugin tool is missing (see [Plugin Execution Modes](#plugin-execution-modes)). Install [Docker Desktop](https://docs.docker.com/get-docker/) or Docker Engine.
+   Make sure you have [Go](https://go.dev/doc/install) installed and that the `go/bin` directory is part of your PATH.
 
 ## Usage
 
@@ -103,6 +93,18 @@ Hotfix finish will perform the following steps:
 
 To use **gitflow-cli**, ensure your project meets the basic structural requirements, particularly around Git branches and version management.
 
+### Prerequisites
+
+- **git** — required for all operations
+
+- **Native Mode** (`--native-mode`, default)
+  - The respective build tool (e.g., `mvn`, `npm`, `composer`, `toml`) must be installed and available in PATH.
+  - If the native tool is missing, Docker is used automatically as fallback.
+
+- **Docker Mode** (`--docker-mode`)
+  - Only [Docker](https://docs.docker.com/get-docker/) needs to be installed — no build tools required on the host.
+  - Commands run inside disposable containers (removed automatically after each invocation).
+
 ### Git Branches
 
 Your repository must define a dedicated **production** and **development** branches (e.g., `main` and `develop`).
@@ -120,13 +122,12 @@ The **gitflow-cli** detects your project's context and automatically delegates t
 | **standard** | Plugin for projects without a dedicated version file.                                            | `version.txt`                                 |
 | **mvn**      | Plugin for [maven](https://maven.apache.org) projects.                                           | `pom.xml`                                     |
 | **npm**      | Plugin for [npm](https://www.npmjs.com/) projects.                                               | `package.json`                                |
-| **python**   | Plugin for [python](https://www.python.org/) projects.                                           | `pyproject.toml`, `setup.cfg`, or `setup.py`  |
+| **python**   | Plugin for [python](https://www.python.org/) projects.                                           | `pyproject.toml` \| `setup.cfg` \| `setup.py`    |
 | **composer** | Plugin for [composer](https://getcomposer.org/) projects.                                        | `composer.json`                               |
 | **road**     | Plugin for projects with road app manifest configuration.                                        | `road.yaml`                                   |
 
-By default, all plugins execute commands **natively** on the host. If a required CLI tool (e.g., `mvn`, `npm`, `composer`, `toml`) is not installed, the CLI automatically falls back to running the command inside a Docker container. You can also force a specific mode with `--docker-mode` or `--native-mode`.
 
-**Note:** If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
+If no technology-specific plugin can be applied, **gitflow-cli** will create a `version.txt` file in your project's root directory and apply the **standard** plugin.
 
 ## Configuration
 
@@ -134,50 +135,23 @@ A configuration file is automatically created at `$HOME/.gitflow-cli.yaml` on fi
 
 ### Configuration Reference
 
-| Config key | Description | Default |
-|------------|-------------|---------|
-| `branches.production` | Name of the production branch | `main` |
-| `branches.development` | Name of the development branch | `develop` |
-| `branches.release` | Prefix for release branches | `release` |
-| `branches.hotfix` | Prefix for hotfix branches | `hotfix` |
-| `workflow.push` | Push changes to remote after workflow completes | `true` |
-| `workflow.rollback` | Rollback local changes on workflow failure | `false` |
-| `workflow.docker-fallback` | Automatically use Docker when native tool is missing | `true` |
-| `logging` | Diagnostic output (combinable: `stdout`, `stderr`, `cmdline`, `output`, `off`) | `off` |
+```yaml
+branches:
+  production: main       # Name of the production branch
+  development: develop   # Name of the development branch
+  release: release       # Prefix for release branches
+  hotfix: hotfix         # Prefix for hotfix branches
 
-**Priority:** CLI flag > config file > default value.
+workflow:
+  push: true             # Push changes to remote after workflow completes
+  rollback: false        # Rollback local changes on workflow failure
+  docker-fallback: true  # Automatically use Docker when native tool is missing
 
-`--docker-mode` and `--native-mode` are mutually exclusive.
+logging: "off"           # Diagnostic output (combinable: stdout, stderr, cmdline, output, off)
+```
 
-### Example Configuration
+Values are resolved in order: CLI flag → config file → default.
 
-   ```yaml
-   branches:
-     production: main
-     development: develop
-     release: release
-     hotfix: hotfix
-
-   workflow:
-     push: true
-     rollback: false
-     docker-fallback: true
-
-   logging: "off"
-   ```
-
-### Plugin Execution Modes
-
-   All plugins support two execution modes:
-
-   - **native-mode** (default): Commands run directly on the host. The respective CLI tool (e.g., `mvn`, `npm`, `composer`, `toml`) must be installed and available in PATH.
-   - **docker-mode**: Commands run inside a disposable Docker container. Only `docker` needs to be installed on the host. Containers are removed automatically after each invocation (`--rm`).
-
-   The execution mode is resolved in the following priority order:
-   1. CLI flag: `--docker-mode` or `--native-mode` (applies to all plugins)
-   2. Docker fallback (default: enabled): If the native tool is missing, Docker is used automatically. Disable with `docker-fallback: false` in config.
-   3. Interactive: If the native tool is missing and docker-fallback is disabled, the CLI asks whether to use Docker (auto-confirmed with `--yes`)
-   4. Default: `native-mode`
 
 ## Contributing
 
