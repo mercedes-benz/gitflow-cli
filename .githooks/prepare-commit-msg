@@ -1,10 +1,12 @@
 #!/bin/sh
 
-# File to append the message to
+# Adds a Developer Certificate of Origin (DCO) sign-off to every commit message:
+#   Signed-off-by: Name <email>
+# Equivalent to "git commit -s". The trailer is not duplicated if it already exists
+# (e.g. on "git commit --amend" or when committing with -s).
+
 COMMIT_MSG_FILE=$1
 
-COMMITTER_NAME=$(git config user.name)
-COMMITTER_EMAIL=$(git config user.email)
+SIGNOFF="Signed-off-by: $(git config user.name) <$(git config user.email)>"
 
-# Append signature to the commit message file
-printf "\n%s" "${COMMITTER_NAME} <${COMMITTER_EMAIL}>, on behalf of Mercedes-Benz Tech Innovation GmbH" >> "$COMMIT_MSG_FILE"
+git interpret-trailers --in-place --if-exists doNothing --trailer "$SIGNOFF" "$COMMIT_MSG_FILE"

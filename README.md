@@ -160,7 +160,8 @@ If you want to contribute to this project, please read the [contributing guide](
 
 ### Git Hook
 
-To contribute to **gitflow-cli**, we suggest setting up the Git hook below to comply with our contribution guidelines.
+All commits must carry a DCO sign-off (`Signed-off-by: Name <email>`), see [CONTRIBUTING.md](CONTRIBUTING.md#developer-certificate-of-origin).
+Either commit with `git commit -s`, or set up the Git hook below, which adds the sign-off automatically:
 
    ```bash
    cp .githooks/prepare-commit-msg .git/hooks/
