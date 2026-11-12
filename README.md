@@ -157,16 +157,7 @@ Values are resolved in order: CLI flag → config file → default.
 
 We welcome any contributions.
 If you want to contribute to this project, please read the [contributing guide](CONTRIBUTING.md).
-
-### Git Hook
-
-All commits must carry a DCO sign-off (`Signed-off-by: Name <email>`), see [CONTRIBUTING.md](CONTRIBUTING.md#developer-certificate-of-origin).
-Either commit with `git commit -s`, or set up the Git hook below, which adds the sign-off automatically:
-
-   ```bash
-   cp .githooks/prepare-commit-msg .git/hooks/
-   chmod +x .git/hooks/prepare-commit-msg
-   ```
+All commits must be signed off (`git commit -s`) according to the [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin).
 
 ## Code of Conduct
 
