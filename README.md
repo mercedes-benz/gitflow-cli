@@ -157,15 +157,7 @@ Values are resolved in order: CLI flag → config file → default.
 
 We welcome any contributions.
 If you want to contribute to this project, please read the [contributing guide](CONTRIBUTING.md).
-
-### Git Hook
-
-To contribute to **gitflow-cli**, we suggest setting up the Git hook below to comply with our contribution guidelines.
-
-   ```bash
-   cp .githooks/prepare-commit-msg .git/hooks/
-   chmod +x .git/hooks/prepare-commit-msg
-   ```
+All commits must be signed off (`git commit -s`) according to the [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin).
 
 ## Code of Conduct
 
